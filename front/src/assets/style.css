@@ -1568,3 +1568,233 @@ footer {
   border-color: #4262ff;
   color: #4262ff;
 }
+
+/* Graph overlay */
+.graph-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.12s ease;
+}
+
+.graph-overlay.visible {
+  display: flex;
+}
+
+.graph-modal {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 720px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.graph-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #eee;
+  flex-shrink: 0;
+}
+
+.graph-modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+}
+
+.graph-modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #999;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.graph-modal-close:hover {
+  color: #333;
+}
+
+.graph-modal-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.graph-controls {
+  width: 260px;
+  padding: 14px;
+  border-right: 1px solid #eee;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.graph-preview-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  min-width: 0;
+  overflow: auto;
+  background: #fafafa;
+}
+
+#graph-preview {
+  width: 400px;
+  height: 300px;
+}
+
+#graph-preview svg {
+  border-radius: 4px;
+}
+
+.graph-error {
+  color: #e74c3c;
+  font-size: 12px;
+  text-align: center;
+  padding: 12px;
+}
+
+/* Function rows */
+.graph-functions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.graph-fn-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.graph-fn-input {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  outline: none;
+  min-width: 0;
+}
+
+.graph-fn-input:focus {
+  border-color: #4262ff;
+  box-shadow: 0 0 0 2px rgba(66, 98, 255, 0.12);
+}
+
+.graph-fn-color {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 2px;
+  cursor: pointer;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.graph-fn-remove {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #ccc;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.graph-fn-remove:hover {
+  color: #e74c3c;
+}
+
+.graph-add-fn-btn {
+  background: none;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  padding: 5px 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #999;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.graph-add-fn-btn:hover {
+  border-color: #4262ff;
+  color: #4262ff;
+  background: #f8f9ff;
+}
+
+/* Range inputs */
+.graph-range-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.graph-range-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.graph-range-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #888;
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.graph-range-input {
+  flex: 1;
+  padding: 5px 6px;
+  font-size: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  outline: none;
+  min-width: 0;
+}
+
+.graph-range-input:focus {
+  border-color: #4262ff;
+  box-shadow: 0 0 0 2px rgba(66, 98, 255, 0.12);
+}
+
+.graph-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+}
+
+.graph-check input {
+  margin: 0;
+  accent-color: #4262ff;
+}
+
+.graph-place-btn {
+  width: 100%;
+  margin-top: auto;
+}

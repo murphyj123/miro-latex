@@ -13,5 +13,8 @@
   "devDependencies": {
     "mirotone": "^5.0.0",
     "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "function-plot": "^1.25.3"
   }
 }

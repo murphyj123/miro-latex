@@ -1,6 +1,7 @@
 // Modal — full-featured LaTeX editor with symbols, templates, and preview
 import { symbolGroups } from './latex-data.js';
 import { formulaLibrary } from './formula-library.js';
+import functionPlot from 'function-plot';
 
 function debounce(func, timeout = 300) {
   let timer;
@@ -525,6 +526,193 @@ function buildLibraryOverlay() {
   };
 }
 
+const GRAPH_DEFAULT_COLORS = ['#4262ff', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6'];
+
+function buildGraphOverlay() {
+  const overlay = document.createElement('div');
+  overlay.className = 'graph-overlay';
+  overlay.id = 'modal-graph-overlay';
+
+  overlay.innerHTML = `
+    <div class="graph-modal">
+      <div class="graph-modal-header">
+        <span class="graph-modal-title">Function Graph</span>
+        <button type="button" class="graph-modal-close">&times;</button>
+      </div>
+      <div class="graph-modal-body">
+        <div class="graph-controls">
+          <div class="graph-functions" id="graph-functions">
+            <div class="graph-fn-row" data-index="0">
+              <input type="text" class="graph-fn-input" placeholder="e.g. x^2, sin(x), ln(x)" value="x^2" />
+              <input type="color" class="graph-fn-color" value="#4262ff" />
+              <button type="button" class="graph-fn-remove" title="Remove" style="visibility:hidden">&times;</button>
+            </div>
+          </div>
+          <button type="button" class="graph-add-fn-btn" id="graph-add-fn">+ Add function</button>
+
+          <div class="graph-range-group">
+            <div class="graph-range-row">
+              <label class="graph-range-label">x-min</label>
+              <input type="number" class="graph-range-input" id="graph-xmin" value="-10" />
+              <label class="graph-range-label">x-max</label>
+              <input type="number" class="graph-range-input" id="graph-xmax" value="10" />
+            </div>
+            <div class="graph-range-row">
+              <label class="graph-range-label">y-min</label>
+              <input type="number" class="graph-range-input" id="graph-ymin" value="-10" />
+              <label class="graph-range-label">y-max</label>
+              <input type="number" class="graph-range-input" id="graph-ymax" value="10" />
+            </div>
+          </div>
+
+          <label class="graph-check">
+            <input type="checkbox" id="graph-grid" checked />
+            <span>Show grid</span>
+          </label>
+
+          <button type="button" class="place-btn graph-place-btn" id="graph-place">Place on Board</button>
+        </div>
+        <div class="graph-preview-area">
+          <div id="graph-preview"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const closeBtn = overlay.querySelector('.graph-modal-close');
+  const fnContainer = overlay.querySelector('#graph-functions');
+  const addFnBtn = overlay.querySelector('#graph-add-fn');
+  const placeBtn = overlay.querySelector('#graph-place');
+
+  function getFunctions() {
+    const rows = fnContainer.querySelectorAll('.graph-fn-row');
+    const fns = [];
+    rows.forEach((row) => {
+      const expr = row.querySelector('.graph-fn-input').value.trim();
+      const color = row.querySelector('.graph-fn-color').value;
+      if (expr) fns.push({ fn: expr, color });
+    });
+    return fns;
+  }
+
+  function updateGraph() {
+    const fns = getFunctions();
+    if (fns.length === 0) return;
+
+    const xMin = parseFloat(document.getElementById('graph-xmin').value) || -10;
+    const xMax = parseFloat(document.getElementById('graph-xmax').value) || 10;
+    const yMin = parseFloat(document.getElementById('graph-ymin').value) || -10;
+    const yMax = parseFloat(document.getElementById('graph-ymax').value) || 10;
+    const showGrid = document.getElementById('graph-grid').checked;
+
+    try {
+      functionPlot({
+        target: '#graph-preview',
+        width: 400,
+        height: 300,
+        xAxis: { domain: [xMin, xMax] },
+        yAxis: { domain: [yMin, yMax] },
+        grid: showGrid,
+        data: fns,
+      });
+    } catch (err) {
+      const preview = document.getElementById('graph-preview');
+      preview.innerHTML = `<div class="graph-error">${err.message || 'Invalid expression'}</div>`;
+    }
+  }
+
+  const debouncedUpdate = debounce(updateGraph, 250);
+
+  function updateRemoveButtons() {
+    const rows = fnContainer.querySelectorAll('.graph-fn-row');
+    rows.forEach((row) => {
+      const btn = row.querySelector('.graph-fn-remove');
+      btn.style.visibility = rows.length > 1 ? 'visible' : 'hidden';
+    });
+  }
+
+  function addFunctionRow() {
+    const rows = fnContainer.querySelectorAll('.graph-fn-row');
+    if (rows.length >= 5) return;
+
+    const idx = rows.length;
+    const row = document.createElement('div');
+    row.className = 'graph-fn-row';
+    row.dataset.index = idx;
+    row.innerHTML = `
+      <input type="text" class="graph-fn-input" placeholder="e.g. sin(x)" />
+      <input type="color" class="graph-fn-color" value="${GRAPH_DEFAULT_COLORS[idx] || '#4262ff'}" />
+      <button type="button" class="graph-fn-remove" title="Remove">&times;</button>
+    `;
+    fnContainer.appendChild(row);
+
+    row.querySelector('.graph-fn-input').addEventListener('input', debouncedUpdate);
+    row.querySelector('.graph-fn-color').addEventListener('input', debouncedUpdate);
+    row.querySelector('.graph-fn-remove').addEventListener('click', () => {
+      row.remove();
+      updateRemoveButtons();
+      debouncedUpdate();
+    });
+
+    updateRemoveButtons();
+    if (rows.length >= 4) addFnBtn.style.display = 'none';
+    row.querySelector('.graph-fn-input').focus();
+  }
+
+  addFnBtn.addEventListener('click', addFunctionRow);
+
+  // Wire up change listeners on initial row and range inputs
+  fnContainer.querySelector('.graph-fn-input').addEventListener('input', debouncedUpdate);
+  fnContainer.querySelector('.graph-fn-color').addEventListener('input', debouncedUpdate);
+
+  ['graph-xmin', 'graph-xmax', 'graph-ymin', 'graph-ymax'].forEach((id) => {
+    document.getElementById(id).addEventListener('input', debouncedUpdate);
+  });
+  document.getElementById('graph-grid').addEventListener('change', debouncedUpdate);
+
+  // Place on board
+  placeBtn.addEventListener('click', async () => {
+    const svgEl = document.querySelector('#graph-preview svg');
+    if (!svgEl) {
+      await miro.board.notifications.showError('No graph to place — enter a function');
+      return;
+    }
+
+    const clone = svgEl.cloneNode(true);
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    const svgStr = clone.outerHTML;
+    const url = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgStr)))}`;
+
+    const fns = getFunctions();
+    const title = fns.map((f) => f.fn).join(', ');
+
+    const vp = await miro.board.viewport.get();
+    const cx = vp.x + vp.width / 2;
+    const cy = vp.y + vp.height / 2;
+
+    await miro.board.createImage({ url, x: cx, y: cy, width: 500, title: title || 'Graph' });
+    overlay.classList.remove('visible');
+  });
+
+  // Open / close
+  document.getElementById('modal-graph-btn').addEventListener('click', () => {
+    overlay.classList.toggle('visible');
+    if (overlay.classList.contains('visible')) {
+      // Reset add-fn button visibility
+      const rows = fnContainer.querySelectorAll('.graph-fn-row');
+      addFnBtn.style.display = rows.length >= 5 ? 'none' : '';
+      setTimeout(updateGraph, 50);
+    }
+  });
+
+  closeBtn.addEventListener('click', () => overlay.classList.remove('visible'));
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.remove('visible');
+  });
+}
+
 async function init() {
   buildFormattingBar();
   buildToolbar();
@@ -596,6 +784,9 @@ async function init() {
 
   // Library overlay
   const openLibraryFn = buildLibraryOverlay();
+
+  // Graph overlay
+  buildGraphOverlay();
 
   // Auto-open library if launched from panel subject button
   const libSubject = localStorage.getItem('miro-latex-lib-subject');
