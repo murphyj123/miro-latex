@@ -6,59 +6,81 @@
     <link rel="stylesheet" href="/src/assets/style.css" />
     <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
     <script>
-      MathJax = {loader: {load:['ui/safe', 'input/tex', 'output/svg']},
-		 startup: {typeset:false},
-		 //options: {enableMenu: false}
-		};
+      MathJax = {
+        loader: { load: ['input/tex', 'output/svg', '[tex]/mhchem', '[tex]/color', '[tex]/cancel'] },
+        tex: { packages: {'[+]': ['mhchem', 'color', 'cancel']} },
+        startup: { typeset: false },
+      };
     </script>
     <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/startup.js"></script>
-    <script defer src="https://unpkg.com/mathlive"></script>
   </head>
   <body>
     <div class="container">
-      <div class="editor">
-	<div class="form-group">
-	  <div class="hidden mathlive">
-	    <div class="grid">
-	      <label class="cs1 ce6" for="mathlive">MathLive Editor</label>
-	      <label class="cs7 ce12 toggle align-right" for="virtkbd">
-		<input type="checkbox" id="virtkbd" name="virtkbd" tabindex="0"/>
-		<span></span> Keyboard
-	      </label>
-	    </div>
-	    <math-field name="mathlive" id="mathlive"
-			virtual-keyboards="functions symbols greek"
-			virtual-keyobard-theme="material"></math-field>
-	  </div>
-	  <div class="mathjax">
-	    <label for="texinput">Enter LaTeX</label>
-            <textarea id="texinput" class="textarea"
-		      spellcheck="false"
-		      placeholder="\int_0^1 \frac12 x^2\, dx"></textarea>
-	  </div>
-	  <button type="button" id="place-button"
-		  class="button button-small button-primary">
-	    Place At Center
-	  </button>
-	  Or drag and drop image below to canvas.
-	</div>
-	<div class="miro-draggable" id="texoutput">
-	  \[f(x)=\frac12\sin(x^3)\]
-	</div>
-      </div>
+      <!-- Actions -->
+      <section class="section">
+        <div class="action-row">
+          <button type="button" id="open-modal" class="action-btn action-btn-primary" title="Open large editor">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+            Editor
+          </button>
+          <button type="button" id="convert-selection" class="action-btn" title="Convert selected text to LaTeX image">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 12l3 3 5-5"/></svg>
+            Convert
+          </button>
+          <button type="button" id="edit-selected" class="action-btn" title="Load LaTeX from selected image">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4v16h16v-7"/><path d="M18.5 2.5l3 3L12 15H9v-3z"/></svg>
+            Edit
+          </button>
+          <button type="button" id="new-btn" class="action-btn" title="Clear editor and start fresh">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            New
+          </button>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- Recently used formulae -->
+      <section class="section" id="recent-section" style="display:none">
+        <label class="label">Recent</label>
+        <div id="recent-list" class="recent-list"></div>
+      </section>
+
+      <!-- Subject buttons -->
+      <section class="section">
+        <div class="panel-subjects" id="panel-subjects"></div>
+      </section>
+
       <footer>
-        <div class="grid p-medium">
-          <label class="toggle cs1 ce6">
-            LaTeX
-            <input type="checkbox" id="mathlive-toggle"
-                   name="mathlive-toggle" tabindex="0"/>
-            <span></span> MathLive
-	  </label>
-	  <div class="cs7 ce12 powered-by align-right">
-	    Powered by MathJax
-	  </div>
-	</div>
+        <div class="footer-row">
+          <span class="footer-text">Powered by MathJax</span>
+          <button type="button" id="help-btn" class="help-icon" title="How to use">?</button>
+        </div>
       </footer>
+
+      <!-- Help overlay -->
+      <div class="help-overlay" id="help-overlay">
+        <div class="help-card">
+          <button class="help-close" id="help-close">&times;</button>
+          <h3>How to use LaTeX for Miro</h3>
+          <div class="help-section">
+            <h4>Editor</h4>
+            <p>Click <strong>Editor</strong> to open the full LaTeX editor with formatting tools, symbols, and templates.</p>
+          </div>
+          <div class="help-section">
+            <h4>Convert</h4>
+            <p>Type LaTeX in a text item on the board, select it, then click <strong>Convert</strong> to render it as an image.</p>
+          </div>
+          <div class="help-section">
+            <h4>Edit</h4>
+            <p>Select a previously placed LaTeX image, click <strong>Edit</strong> to load it back into the editor.</p>
+          </div>
+          <div class="help-section">
+            <h4>Formula Library</h4>
+            <p>Browse or search standard formulae below. Click any formula to open it in the editor.</p>
+          </div>
+        </div>
+      </div>
     </div>
     <script type="module" src="/src/app.js"></script>
   </body>

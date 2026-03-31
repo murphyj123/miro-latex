@@ -1,25 +1,20 @@
-const {resolve} = require('path');
-const {defineConfig} = require('vite');
-const {postcssPlugin} = require('uncss');
+import { resolve } from 'path';
+import { defineConfig } from 'vite';
 
-let root = 'front/'
+const root = 'front/';
 
-module.exports = defineConfig({
-  root: root,
+export default defineConfig({
+  root,
   build: {
     outDir: '../dist/',
     emptyOutDir: true,
     rollupOptions: {
       input: {
-	index: resolve(__dirname, root, 'index.html'),
-	app: resolve(__dirname, root, 'app.html'),
-	privacy: resolve(__dirname, root, 'privacy.html')
-      }
-    }
+        index: resolve(import.meta.dirname, root, 'index.html'),
+        app: resolve(import.meta.dirname, root, 'app.html'),
+        modal: resolve(import.meta.dirname, root, 'modal.html'),
+        privacy: resolve(import.meta.dirname, root, 'privacy.html'),
+      },
+    },
   },
-  css: {
-    postcss: {
-      plugins: [ postcssPlugin({html: "front/*.html"}) ],
-    }
-  }
 });

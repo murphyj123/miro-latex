@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/src/assets/style.css" />
+    <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+    <script>
+      MathJax = {
+        loader: { load: ['input/tex', 'output/svg', '[tex]/mhchem', '[tex]/color', '[tex]/cancel'] },
+        tex: { packages: {'[+]': ['mhchem', 'color', 'cancel']} },
+        startup: { typeset: false },
+      };
+    </script>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/startup.js"></script>
+  </head>
+  <body class="modal-body">
+    <div class="modal-layout">
+
+      <!-- Formatting toolbar -->
+      <div class="fmt-bar" id="fmt-bar"></div>
+
+      <!-- Symbol dropdowns (Greek, Calculus, etc.) -->
+      <div class="modal-toolbar" id="modal-symbol-bar"></div>
+
+      <!-- Editor + live preview split -->
+      <div class="modal-split">
+        <textarea id="modal-texinput" class="modal-textarea" spellcheck="false"
+          placeholder="Type LaTeX here...&#10;&#10;e.g. \int_0^1 \frac{1}{2} x^2\, dx"></textarea>
+        <div class="modal-live-preview" id="modal-texoutput"></div>
+      </div>
+
+      <!-- Bottom bar — single compact line -->
+      <div class="modal-bottom-bar">
+        <button type="button" id="modal-place" class="place-btn">Place</button>
+        <button type="button" id="modal-clear" class="bar-btn" title="Clear editor">Clear</button>
+        <label class="size-control" title="Image width when placed">
+          <span class="size-label">Size</span>
+          <input type="range" id="modal-img-size" min="100" max="800" value="400" step="50" />
+          <span class="size-value" id="modal-size-value">400</span>
+        </label>
+        <button type="button" id="modal-library-btn" class="bar-btn" title="Formula library">Library</button>
+        <div class="color-picks">
+          <label class="swatch" title="Background colour">
+            <input type="color" id="modal-bg-color" value="#ffffff" />
+            <span class="swatch-dot" style="background:#ffffff"></span>
+            <span class="swatch-label">BG</span>
+          </label>
+          <label class="swatch" title="Text colour">
+            <input type="color" id="modal-text-color" value="#000000" />
+            <span class="swatch-dot" style="background:#000000"></span>
+            <span class="swatch-label">Aa</span>
+          </label>
+        </div>
+        <span class="modal-spacer"></span>
+        <button type="button" id="modal-help-btn" class="help-icon" title="Keyboard shortcuts">?</button>
+      </div>
+    </div>
+
+    <!-- Help overlay -->
+    <div class="modal-help-overlay" id="modal-help-overlay">
+      <div class="help-card">
+        <button class="help-close" id="modal-help-close">&times;</button>
+        <h3>Keyboard Shortcuts</h3>
+        <div class="help-section">
+          <table class="shortcut-table">
+            <tr><td><kbd>Shift</kbd> + <kbd>Enter</kbd></td><td>New line (renders on separate line)</td></tr>
+            <tr><td><kbd>Ctrl/Cmd</kbd> + <kbd>Enter</kbd></td><td>Place on board</td></tr>
+            <tr><td><kbd>Tab</kbd></td><td>Insert 2 spaces (indent)</td></tr>
+            <tr><td><kbd>Ctrl/Cmd</kbd> + <kbd>L</kbd></td><td>Open formula library</td></tr>
+          </table>
+        </div>
+        <div class="help-section">
+          <h4>Tips</h4>
+          <ul>
+            <li>Top bar: formatting (bold, fractions, brackets, tables...)</li>
+            <li>Second bar: symbol &amp; template dropdowns</li>
+            <li>Use <code>&amp;</code> to align columns in aligned/array</li>
+            <li>Wrap normal text in <code>\text{...}</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/modal.js"></script>
+  </body>
+</html>

@@ -1,62 +1,17 @@
 {
   "name": "miro-latex",
-  "version": "0.0.1",
-  "description": "miro latex integration",
-  "main": "index.js",
+  "version": "1.0.0",
+  "description": "Render LaTeX equations on Miro boards — no server required",
+  "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "concurrently --kill-others npm:vite npm:nodemon",
-    "nodemon": "nodemon -r dotenv/config server.js",
-    "vite": "vite",
+    "dev": "vite",
     "build": "vite build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "preview": "vite preview"
   },
-  "nodemonConfig": {
-    "ignore": [
-      "front/*",
-      "dist/*"
-    ],
-    "watch": [
-      ".",
-      ".env"
-    ]
-  },
-  "author": "Grady Weyenberg",
+  "author": "Grady Weyenberg / Jason Murphy",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^7.2.1",
-    "dotenv": "^16.0.1",
-    "http-proxy-middleware": "^2.0.6",
-    "mirotone": "^2.0.9",
-    "nodemon": "^2.0.16",
-    "uncss": "^0.17.3",
-    "vite": "^2.9.9"
-  },
-  "dependencies": {
-    "express": "^4.18.1",
-    "express-rate-limit": "^6.4.0",
-    "ioredis": "^5.0.5",
-    "morgan": "^1.10.0",
-    "nanoid": "^3.3.4",
-    "pako": "^2.0.4",
-    "passport": "^0.6.0",
-    "passport-jwt": "^4.0.0"
-  },
-  "engines": {
-    "node": "16.x"
-  },
-  "eslintConfig": {
-    "extends": [
-      "eslint:recommended"
-    ],
-    "env": {
-      "node": true
-    },
-    "parserOptions": {
-      "ecmaVersion": "2018"
-    },
-    "ignorePatterns": [
-      "dist/*"
-    ]
+    "mirotone": "^5.0.0",
+    "vite": "^6.0.0"
   }
 }
