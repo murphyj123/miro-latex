@@ -674,6 +674,32 @@ function init() {
     els.fontSizeVal.textContent = els.fontSize.value;
   });
 
+  // Quadrant radio → adjust window
+  document.querySelectorAll('input[name="quadrants"]').forEach((radio) => {
+    radio.addEventListener('change', () => {
+      const q = radio.value;
+      const xMax = Math.abs(parseFloat(els.xMax.value)) || 10;
+      const yMax = Math.abs(parseFloat(els.yMax.value)) || 10;
+      if (q === '1') {
+        els.xMin.value = 0;
+        els.yMin.value = 0;
+        els.xMax.value = xMax;
+        els.yMax.value = yMax;
+      } else if (q === '2') {
+        els.xMin.value = -xMax;
+        els.xMax.value = xMax;
+        els.yMin.value = 0;
+        els.yMax.value = yMax;
+      } else {
+        els.xMin.value = -xMax;
+        els.xMax.value = xMax;
+        els.yMin.value = -yMax;
+        els.yMax.value = yMax;
+      }
+      updatePreviewImmediate();
+    });
+  });
+
   // Pi interval → auto-set xStep
   els.piInterval.addEventListener('change', () => {
     if (els.piLabels.checked) {
