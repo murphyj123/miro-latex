@@ -245,6 +245,11 @@ btnModal.addEventListener('click', async () => {
   await miro.board.ui.openModal({ url: 'timer/modal.html', width: 600, height: 520 });
 });
 
+const btnExam = document.getElementById('btn-exam');
+btnExam.addEventListener('click', async () => {
+  await miro.board.ui.openModal({ url: 'timer/exam.html', width: 900, height: 650 });
+});
+
 // Listen for storage events from modal
 window.addEventListener('storage', () => syncUI());
 

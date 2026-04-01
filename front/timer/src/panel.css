@@ -384,6 +384,18 @@ body {
   color: var(--color-active);
 }
 
+.btn-exam {
+  margin-top: 8px;
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+}
+
+.btn-exam:hover {
+  border-color: #8b5cf6;
+  color: #fff;
+  background: #8b5cf6;
+}
+
 .btn-modal svg {
   width: 14px;
   height: 14px;

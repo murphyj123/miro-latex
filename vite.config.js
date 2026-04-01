@@ -21,6 +21,7 @@ export default defineConfig({
         'timer-index': resolve(import.meta.dirname, root, 'timer/index.html'),
         'timer-panel': resolve(import.meta.dirname, root, 'timer/panel.html'),
         'timer-modal': resolve(import.meta.dirname, root, 'timer/modal.html'),
+        'timer-exam': resolve(import.meta.dirname, root, 'timer/exam.html'),
       },
     },
   },

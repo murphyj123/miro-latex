@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/timer/src/exam.css" />
+    <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+  </head>
+  <body>
+
+    <!-- Setup Screen -->
+    <div id="setup-screen" class="setup-screen">
+      <div class="setup-card">
+        <h1 class="setup-title">Exam Mode</h1>
+
+        <div class="form-group">
+          <label for="exam-name">Exam Name</label>
+          <input type="text" id="exam-name" placeholder="IB Mathematics HL Paper 1" autocomplete="off" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Duration</label>
+            <div class="time-inputs">
+              <input type="number" id="duration-hours" min="0" max="5" value="1" />
+              <span class="time-sep">h</span>
+              <input type="number" id="duration-minutes" min="0" max="59" value="30" />
+              <span class="time-sep">m</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="reading-time">Reading Time</label>
+            <select id="reading-time">
+              <option value="0">None</option>
+              <option value="5" selected>5 minutes</option>
+              <option value="10">10 minutes</option>
+              <option value="15">15 minutes</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Extra Time</label>
+          <div class="checkbox-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="extra-25" />
+              <span>25% extra time</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="extra-50" />
+              <span>50% extra time</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Start Time</label>
+          <div class="start-time-row">
+            <label class="radio-label">
+              <input type="radio" name="start-mode" value="now" checked />
+              <span>Now</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="start-mode" value="scheduled" />
+              <span>At</span>
+            </label>
+            <input type="time" id="scheduled-time" disabled />
+          </div>
+        </div>
+
+        <button class="btn-start-exam" id="btn-start-exam">Start Exam</button>
+      </div>
+    </div>
+
+    <!-- Display Screen -->
+    <div id="display-screen" class="display-screen" style="display:none;">
+      <div class="top-bar">
+        <span class="exam-name-display" id="exam-name-display"></span>
+        <span class="exam-date" id="exam-date"></span>
+      </div>
+
+      <div class="main-area">
+        <div class="current-time" id="current-time">00:00:00</div>
+
+        <div class="phase-badge" id="phase-badge">WRITING TIME</div>
+
+        <div class="time-remaining" id="time-remaining">0:00:00</div>
+
+        <div class="time-elapsed-row">
+          <span class="time-elapsed-label">Elapsed</span>
+          <span class="time-elapsed" id="time-elapsed">00:00</span>
+        </div>
+
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+      </div>
+
+      <div class="end-times-section">
+        <table class="end-times-table" id="end-times-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>End Time</th>
+            </tr>
+          </thead>
+          <tbody id="end-times-body"></tbody>
+        </table>
+      </div>
+
+      <div class="display-controls">
+        <button class="btn-control btn-pause" id="btn-pause">Pause</button>
+        <button class="btn-control btn-end" id="btn-end">End Exam</button>
+      </div>
+    </div>
+
+    <script type="module" src="/timer/src/exam.js"></script>
+  </body>
+</html>
