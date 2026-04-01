@@ -487,16 +487,35 @@ extraTemplates['parallel-transversal'] = {
     c.appendChild(row(
       field('Transversal angle', numberInput('pt-angle', 65, 20, 160, 1)),
     ));
+    c.appendChild(sectionLabel('Highlight Angle Pairs'));
+    c.appendChild(row(
+      field('Highlight', select('pt-highlight', [
+        ['none', 'None'],
+        ['alternate', 'Alternate angles'],
+        ['corresponding', 'Corresponding angles'],
+        ['co-interior', 'Co-interior angles'],
+        ['all', 'All angles'],
+      ])),
+    ));
+    c.appendChild(row(
+      field('Highlight colour', colourSwatch('pt-hl-colour', '#4285f4')),
+    ));
+    c.appendChild(row(
+      checkbox('pt-show-relationship', 'Show angle relationship text', false),
+    ));
   },
   readConfig() {
     return {
       showLabels: val('pt-labels'),
       style: val('pt-style') || 'letters',
       angle: val('pt-angle') || 65,
+      highlight: val('pt-highlight') || 'none',
+      hlColour: val('pt-hl-colour') || '#4285f4',
+      showRelationship: val('pt-show-relationship'),
     };
   },
   generateSVG(s) {
-    const W = 480, H = 360;
+    const W = 480, H = 400;
     const svg = makeSVG(W, H);
 
     const y1 = 110, y2 = 250;
@@ -540,13 +559,118 @@ extraTemplates['parallel-transversal'] = {
     svg.appendChild(svgEl('circle', { cx: ix1, cy: y1, r: '4', fill: '#4262ff' }));
     svg.appendChild(svgEl('circle', { cx: ix2, cy: y2, r: '4', fill: '#4262ff' }));
 
-    if (s.showLabels) {
-      const ang = Math.round(s.angle);
-      const co = 180 - ang;
-      const letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-      const vals = [ang, co, co, ang, ang, co, co, ang];
+    /* --- Highlight angle pair wedges --- */
+    const ang = Math.round(s.angle);
+    const co = 180 - ang;
+    const hlCol = s.hlColour || '#4285f4';
 
-      /* top intersection: angles a,b,c,d */
+    /*
+     * Angles a-h at two intersection points.
+     * Convention (measuring CCW from the positive-x direction of the parallel line):
+     *   a = top-left of upper intersection   (angle = transversal angle, between line-left and transversal-up)
+     *   b = top-right                         (supplement)
+     *   c = bottom-right                      (vertically opposite a => same as a's value)
+     *   d = bottom-left                       (supplement)
+     *   e-h mirror a-d at lower intersection.
+     *
+     * The transversal goes up-left at angle s.angle from horizontal.
+     * Angle wedge directions (startDeg, endDeg) measured in SVG coords (CW from right):
+     *   At upper intersection (ix1, y1):
+     *     a: from transversal-up direction to line-left   => from (180 + s.angle) to 180  -- but we need SVG angles.
+     *   The transversal direction upward in SVG: angle = -(s.angle) from horizontal = -s.angle
+     *   The transversal direction downward in SVG: 180 - s.angle
+     *
+     * SVG angle conventions: 0 = right, 90 = down, 180 = left, 270 = up
+     * Transversal up-right direction in SVG:  -s.angle  (i.e. 360 - s.angle)
+     * Transversal down-left direction in SVG: 180 - s.angle
+     *
+     * At upper intersection (ix1, y1) - four angles:
+     *   a (top-left):      from 180 to (360 - s.angle)      => this is the acute angle = s.angle
+     *   b (top-right):     from (360 - s.angle) to 360      => supplement = 180 - s.angle
+     *   c (bottom-right):  from 0 to (180 - s.angle)        => = 180 - s.angle ... wait.
+     *
+     * Let me just define them carefully.
+     * The transversal "up" direction (towards top of SVG) has SVG angle = -s.angle = (360 - s.angle).
+     * The transversal "down" direction = (180 - s.angle).
+     * The parallel line goes left (180) and right (0/360).
+     *
+     * Four angles at upper intersection:
+     *   a: between left-ray (180) and up-ray (360-s.angle), measured going CW from left to up
+     *      => startDeg=180, sweep CW to (360-s.angle) => endDeg=360-s.angle
+     *      => angular size = (360-s.angle) - 180 = 180 - s.angle  ... that's the co-interior angle.
+     *
+     * Actually let me just use the simple mapping. The transversal angle from horizontal = s.angle.
+     * At the top intersection going clockwise from the right ray:
+     *   angle from right(0) to transversal-down(180-s.angle) = 180-s.angle  [this is 'c']
+     *   angle from transversal-down(180-s.angle) to left(180) = s.angle     [this is 'd']
+     *   angle from left(180) to transversal-up(360-s.angle) = 180-s.angle   [this is 'a']
+     *   angle from transversal-up(360-s.angle) to right(360) = s.angle      [this is 'b']
+     *
+     * Correcting labels to match convention (a=top-left, b=top-right, c=bottom-right, d=bottom-left):
+     *   a (top-left):     left(180) -> up(360-s.angle)       CW sweep = 180-s.angle
+     *   b (top-right):    up(360-s.angle) -> right(360)      CW sweep = s.angle
+     *   c (bottom-right): right(0) -> down(180-s.angle)      CW sweep = 180-s.angle
+     *   d (bottom-left):  down(180-s.angle) -> left(180)     CW sweep = s.angle
+     */
+    const transUp = 360 - s.angle;   /* SVG angle of transversal going "up" */
+    const transDn = 180 - s.angle;   /* SVG angle of transversal going "down" */
+
+    /* Each angle: [startDeg, endDeg] going CW in SVG space. */
+    /* Index matches letters: 0=a, 1=b, 2=c, 3=d (upper), 4=e, 5=f, 6=g, 7=h (lower) */
+    const angleWedges = [
+      /* upper intersection */
+      { cx: ix1, cy: y1, start: 180,     end: transUp },  /* a: 180-angle degrees */
+      { cx: ix1, cy: y1, start: transUp, end: 360 },      /* b: angle degrees */
+      { cx: ix1, cy: y1, start: 0,       end: transDn },  /* c: 180-angle degrees */
+      { cx: ix1, cy: y1, start: transDn, end: 180 },      /* d: angle degrees */
+      /* lower intersection */
+      { cx: ix2, cy: y2, start: 180,     end: transUp },  /* e: 180-angle degrees */
+      { cx: ix2, cy: y2, start: transUp, end: 360 },      /* f: angle degrees */
+      { cx: ix2, cy: y2, start: 0,       end: transDn },  /* g: 180-angle degrees */
+      { cx: ix2, cy: y2, start: transDn, end: 180 },      /* h: angle degrees */
+    ];
+
+    const letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const vals = [co, ang, co, ang, co, ang, co, ang]; /* size of each angle in degrees */
+
+    /* Determine which angles to highlight */
+    let highlightIndices = [];
+    if (s.highlight === 'alternate') {
+      highlightIndices = [0, 6, 3, 5]; /* a=g, d=f */
+    } else if (s.highlight === 'corresponding') {
+      highlightIndices = [0, 4, 1, 5, 2, 6, 3, 7]; /* a=e, b=f, c=g, d=h */
+    } else if (s.highlight === 'co-interior') {
+      highlightIndices = [2, 4, 3, 5]; /* c+e=180, d+f=180 */
+    } else if (s.highlight === 'all') {
+      highlightIndices = [0, 1, 2, 3, 4, 5, 6, 7];
+    }
+
+    /* Draw highlighted angle wedges */
+    const arcRadius = 28;
+    const hlSet = new Set(highlightIndices);
+    if (hlSet.size > 0) {
+      /* Parse highlight colour and create semi-transparent version */
+      const fillCol = hlCol + '33'; /* hex + ~20% alpha */
+
+      angleWedges.forEach((w, i) => {
+        if (!hlSet.has(i)) return;
+        /* Draw a filled wedge (pie slice) */
+        const sRad = degToRad(w.start);
+        const eRad = degToRad(w.end);
+        const sx = w.cx + arcRadius * Math.cos(sRad);
+        const sy = w.cy + arcRadius * Math.sin(sRad);
+        const ex = w.cx + arcRadius * Math.cos(eRad);
+        const ey = w.cy + arcRadius * Math.sin(eRad);
+        let sweep = w.end - w.start;
+        if (sweep < 0) sweep += 360;
+        const largeArc = sweep > 180 ? 1 : 0;
+        const d = `M ${w.cx} ${w.cy} L ${sx} ${sy} A ${arcRadius} ${arcRadius} 0 ${largeArc} 1 ${ex} ${ey} Z`;
+        svg.appendChild(svgEl('path', { d, fill: fillCol, stroke: hlCol, 'stroke-width': '1.5' }));
+      });
+    }
+
+    if (s.showLabels) {
+      /* angle label positions */
       const positions = [
         { x: ix1 - 20, y: y1 - 10 }, /* a - top-left */
         { x: ix1 + 20, y: y1 - 10 }, /* b - top-right */
@@ -559,18 +683,44 @@ extraTemplates['parallel-transversal'] = {
       ];
 
       positions.forEach((p, i) => {
+        const isHL = hlSet.has(i);
         const txt = s.style === 'letters' ? letters[i] : `${vals[i]}°`;
-        svg.appendChild(svgText(p.x, p.y, txt, 11, 'middle', { fill: '#e63946', 'font-weight': '600' }));
+        const fill = isHL ? hlCol : '#e63946';
+        const weight = isHL ? '800' : '600';
+        svg.appendChild(svgText(p.x, p.y, txt, 11, 'middle', { fill, 'font-weight': weight }));
       });
 
-      /* annotations */
+      /* Annotations - always show the standard summary at the bottom */
       const annotations = [
-        { txt: `Alternate: ${s.style === 'letters' ? 'a = e' : `${ang}°`}`, y: H - 50 },
-        { txt: `Corresponding: ${s.style === 'letters' ? 'a = e, b = f' : `${ang}°, ${co}°`}`, y: H - 34 },
-        { txt: `Co-interior: ${s.style === 'letters' ? 'c + e = 180°' : `${co}° + ${ang}° = 180°`}`, y: H - 18 },
+        { txt: `Alternate: ${s.style === 'letters' ? 'a = g, d = f' : `${co}° = ${co}°, ${ang}° = ${ang}°`}`, y: H - 50 },
+        { txt: `Corresponding: ${s.style === 'letters' ? 'a = e, b = f, c = g, d = h' : `${co}°, ${ang}°`}`, y: H - 34 },
+        { txt: `Co-interior: ${s.style === 'letters' ? 'c + e = 180°, d + f = 180°' : `${co}° + ${co}° = 180°, ${ang}° + ${ang}° = 180°`}`, y: H - 18 },
       ];
-      annotations.forEach(a => {
-        svg.appendChild(svgText(W / 2, a.y, a.txt, 10, 'middle', { fill: '#555' }));
+      annotations.forEach(ann => {
+        svg.appendChild(svgText(W / 2, ann.y, ann.txt, 10, 'middle', { fill: '#555' }));
+      });
+    }
+
+    /* Relationship text next to highlighted pairs */
+    if (s.showRelationship && s.highlight !== 'none') {
+      const relTexts = [];
+      if (s.highlight === 'alternate' || s.highlight === 'all') {
+        relTexts.push(`a = g (alternate)`);
+        relTexts.push(`d = f (alternate)`);
+      }
+      if (s.highlight === 'corresponding' || s.highlight === 'all') {
+        relTexts.push(`a = e (corresponding)`);
+        relTexts.push(`b = f (corresponding)`);
+        relTexts.push(`c = g (corresponding)`);
+        relTexts.push(`d = h (corresponding)`);
+      }
+      if (s.highlight === 'co-interior' || s.highlight === 'all') {
+        relTexts.push(`c + e = 180° (co-interior)`);
+        relTexts.push(`d + f = 180° (co-interior)`);
+      }
+      const relStartY = 22;
+      relTexts.forEach((txt, i) => {
+        svg.appendChild(svgText(W - 10, relStartY + i * 14, txt, 9, 'end', { fill: hlCol, 'font-style': 'italic' }));
       });
     }
 
@@ -834,70 +984,240 @@ extraTemplates['trig-triangle'] = {
 extraTemplates['bearings-diagram'] = {
   name: 'Bearings Diagram',
   category: '2D Shapes',
-  renderConfig(c) {
-    c.appendChild(sectionLabel('Bearing'));
-    c.appendChild(row(
-      field('Angle (°)', numberInput('bd-angle', 135, 0, 360, 1)),
-    ));
-    c.appendChild(row(
-      checkbox('bd-north', 'Show North', true),
-      checkbox('bd-arc', 'Show angle arc', true),
-    ));
-    c.appendChild(row(
-      field('Label', textInput('bd-label', 'B')),
-    ));
+
+  /* ── internal: build per-leg config rows ── */
+  _buildLegRows(container, n) {
+    container.innerHTML = '';
+    const defaultLabels = ['A', 'B', 'C', 'D'];
+    const defaultBearings = [45, 120, 260];
+    const defaultDists = ['5 km', '8 km', '3 km'];
+    for (let i = 0; i < n; i++) {
+      container.appendChild(sectionLabel(`Leg ${i + 1}  (${defaultLabels[i]} \u2192 ${defaultLabels[i + 1]})`));
+      container.appendChild(row(
+        field(`From (${defaultLabels[i]})`, textInput(`bd-pt-${i}`, val(`bd-pt-${i}`) || defaultLabels[i], defaultLabels[i])),
+        field('Bearing (\u00B0)', numberInput(`bd-bear-${i}`, val(`bd-bear-${i}`) || defaultBearings[i], 0, 360, 1)),
+      ));
+      container.appendChild(row(
+        field('Distance label', textInput(`bd-dist-${i}`, val(`bd-dist-${i}`) || defaultDists[i], defaultDists[i])),
+      ));
+      if (i === n - 1) {
+        container.appendChild(row(
+          field(`End point (${defaultLabels[i + 1]})`, textInput(`bd-pt-${i + 1}`, val(`bd-pt-${i + 1}`) || defaultLabels[i + 1], defaultLabels[i + 1])),
+        ));
+      }
+    }
   },
+
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Bearings Journey'));
+
+    /* Number of legs slider */
+    const slider = numberInput('bd-legs', 1, 1, 3, 1);
+    slider.type = 'range';
+    slider.style.width = '100%';
+    const countLabel = document.createElement('span');
+    countLabel.textContent = ' 1 leg';
+    countLabel.style.fontSize = '11px';
+    countLabel.style.color = '#777';
+    const sliderRow = row(field('Number of legs', slider));
+    sliderRow.appendChild(countLabel);
+    c.appendChild(sliderRow);
+
+    c.appendChild(row(
+      checkbox('bd-north', 'Show North arrows', true),
+      checkbox('bd-arc', 'Show angle arcs', true),
+    ));
+    c.appendChild(row(
+      checkbox('bd-return', 'Show return bearing', false),
+    ));
+
+    const legContainer = document.createElement('div');
+    legContainer.id = 'bd-leg-container';
+    c.appendChild(legContainer);
+    this._buildLegRows(legContainer, 1);
+
+    slider.addEventListener('input', () => {
+      const n = parseInt(slider.value, 10) || 1;
+      countLabel.textContent = ` ${n} leg${n > 1 ? 's' : ''}`;
+      this._buildLegRows(legContainer, n);
+    });
+  },
+
   readConfig() {
+    const numLegs = parseInt(val('bd-legs')) || 1;
+    const legs = [];
+    for (let i = 0; i < numLegs; i++) {
+      legs.push({
+        from: val(`bd-pt-${i}`) || String.fromCharCode(65 + i),
+        bearing: val(`bd-bear-${i}`) || 0,
+        distance: val(`bd-dist-${i}`) || '',
+      });
+    }
+    /* last point label */
+    const lastLabel = val(`bd-pt-${numLegs}`) || String.fromCharCode(65 + numLegs);
     return {
-      angle: val('bd-angle') || 135,
+      numLegs,
+      legs,
+      lastLabel,
       showNorth: val('bd-north'),
       showArc: val('bd-arc'),
-      label: val('bd-label') || 'B',
+      showReturn: val('bd-return'),
     };
   },
-  generateSVG(s) {
-    const W = 400, H = 400;
-    const svg = makeSVG(W, H);
-    const cx = W / 2, cy = H / 2;
-    const R = 140;
 
-    /* North arrow */
-    if (s.showNorth) {
-      svg.appendChild(svgEl('line', {
-        x1: cx, y1: cy, x2: cx, y2: cy - R - 30,
-        stroke: '#2b2d42', 'stroke-width': '2', 'stroke-dasharray': '6,3',
-      }));
-      svg.appendChild(svgText(cx + 8, cy - R - 32, 'N', 16, 'start', { fill: '#2b2d42', 'font-weight': '800' }));
-      arrowHead(svg, cx, cy - R - 30, -Math.PI / 2, 10, '#2b2d42');
+  generateSVG(s) {
+    /* ── 1. Compute raw point positions (bearing: 0=N, clockwise) ── */
+    const LEG_LEN = 140; /* base pixel length per leg */
+    const rawPts = [{ x: 0, y: 0 }];
+    for (let i = 0; i < s.numLegs; i++) {
+      const prev = rawPts[rawPts.length - 1];
+      const rad = degToRad(s.legs[i].bearing);
+      rawPts.push({
+        x: prev.x + LEG_LEN * Math.sin(rad),
+        y: prev.y - LEG_LEN * Math.cos(rad),
+      });
     }
 
-    /* bearing line */
-    const bearingRad = degToRad(s.angle);
-    const bx = cx + R * Math.sin(bearingRad);
-    const by = cy - R * Math.cos(bearingRad);
-    svg.appendChild(svgEl('line', {
-      x1: cx, y1: cy, x2: bx, y2: by,
-      stroke: '#4262ff', 'stroke-width': '2.5',
+    /* ── 2. Calculate bounding box and scale to fit ── */
+    const MARGIN = 80;
+    const W = 500, H = 460;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    rawPts.forEach(p => {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    });
+    const rawW = (maxX - minX) || 1;
+    const rawH = (maxY - minY) || 1;
+    const scaleX = (W - 2 * MARGIN) / rawW;
+    const scaleY = (H - 2 * MARGIN) / rawH;
+    const scale = Math.min(scaleX, scaleY, 2.0); /* cap scale for single-leg */
+    const cx = W / 2, cy = H / 2;
+    const midRawX = (minX + maxX) / 2;
+    const midRawY = (minY + maxY) / 2;
+    const pts = rawPts.map(p => ({
+      x: cx + (p.x - midRawX) * scale,
+      y: cy + (p.y - midRawY) * scale,
     }));
-    svg.appendChild(svgEl('circle', { cx, cy, r: '4', fill: '#2b2d42' }));
-    svg.appendChild(svgEl('circle', { cx: bx, cy: by, r: '5', fill: '#4262ff' }));
-    svg.appendChild(svgText(bx + 12, by + 4, s.label, 15, 'start', { fill: '#4262ff', 'font-weight': '700' }));
 
-    /* angle arc (measured clockwise from North) */
-    if (s.showArc) {
-      const arcR = 45;
-      /* North is -90 in standard, bearing goes clockwise */
-      const startDeg = -90; /* North in SVG coords */
-      const endDeg = -90 + s.angle;
-      const arcPath = describeArc(cx, cy, arcR, startDeg, endDeg);
-      svg.appendChild(svgEl('path', { d: arcPath, fill: 'none', stroke: '#e63946', 'stroke-width': '1.5' }));
+    const svg = makeSVG(W, H);
+    const NORTH_LEN = 50;
+    const ARC_R = 32;
+
+    /* ── 3. Collect all point labels ── */
+    const ptLabels = [];
+    for (let i = 0; i < s.numLegs; i++) ptLabels.push(s.legs[i].from);
+    ptLabels.push(s.lastLabel);
+
+    /* ── 4. Draw North arrows at every point ── */
+    if (s.showNorth) {
+      pts.forEach((p, i) => {
+        svg.appendChild(svgEl('line', {
+          x1: p.x, y1: p.y, x2: p.x, y2: p.y - NORTH_LEN,
+          stroke: '#2b2d42', 'stroke-width': '1.5', 'stroke-dasharray': '5,3',
+        }));
+        svg.appendChild(svgText(p.x + 7, p.y - NORTH_LEN - 4, 'N', 13, 'start', {
+          fill: '#2b2d42', 'font-weight': '800',
+        }));
+        arrowHead(svg, p.x, p.y - NORTH_LEN, -Math.PI / 2, 8, '#2b2d42');
+      });
+    }
+
+    /* ── 5. Draw each leg: bearing line, arrowhead, distance label, arc ── */
+    const legColours = ['#4262ff', '#2a9d8f', '#e76f51'];
+    for (let i = 0; i < s.numLegs; i++) {
+      const pA = pts[i], pB = pts[i + 1];
+      const colour = legColours[i % legColours.length];
+      const bearing = s.legs[i].bearing;
+      const dist = s.legs[i].distance;
+
+      /* bearing line */
+      svg.appendChild(svgEl('line', {
+        x1: pA.x, y1: pA.y, x2: pB.x, y2: pB.y,
+        stroke: colour, 'stroke-width': '2.5',
+      }));
+
+      /* arrowhead at end */
+      const lineAngle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
+      arrowHead(svg, pB.x, pB.y, lineAngle, 10, colour);
+
+      /* distance label along middle, offset perpendicular */
+      if (dist) {
+        const mx = (pA.x + pB.x) / 2;
+        const my = (pA.y + pB.y) / 2;
+        /* offset perpendicular to the line */
+        const perpAngle = lineAngle - Math.PI / 2;
+        const offsetDist = 14;
+        const lx = mx + offsetDist * Math.cos(perpAngle);
+        const ly = my + offsetDist * Math.sin(perpAngle);
+        svg.appendChild(svgText(lx, ly, dist, 12, 'middle', { fill: colour, 'font-weight': '600' }));
+      }
+
+      /* angle arc (clockwise from North) */
+      if (s.showArc && bearing > 0) {
+        const startDeg = -90; /* North in SVG coords */
+        const endDeg = -90 + bearing;
+        const arcPath = describeArc(pA.x, pA.y, ARC_R, startDeg, endDeg);
+        svg.appendChild(svgEl('path', {
+          d: arcPath, fill: 'none', stroke: '#e63946', 'stroke-width': '1.5',
+        }));
+        /* bearing label */
+        const midDeg = startDeg + bearing / 2;
+        const lr = ARC_R + 15;
+        const lx = pA.x + lr * Math.cos(degToRad(midDeg));
+        const ly = pA.y + lr * Math.sin(degToRad(midDeg));
+        const bearStr = String(Math.round(bearing)).padStart(3, '0') + '\u00B0';
+        svg.appendChild(svgText(lx, ly, bearStr, 11, 'middle', { fill: '#e63946', 'font-weight': '700' }));
+      }
+    }
+
+    /* ── 6. Draw points and labels ── */
+    pts.forEach((p, i) => {
+      svg.appendChild(svgEl('circle', {
+        cx: p.x, cy: p.y, r: '5', fill: '#2b2d42',
+      }));
+      /* place label offset below-right */
+      const lx = p.x + 10;
+      const ly = p.y + 18;
+      svg.appendChild(svgText(lx, ly, ptLabels[i] || '', 15, 'start', {
+        fill: '#2b2d42', 'font-weight': '700',
+      }));
+    });
+
+    /* ── 7. Optional return bearing (dashed line from last point to A) ── */
+    if (s.showReturn && s.numLegs >= 1) {
+      const pFirst = pts[0];
+      const pLast = pts[pts.length - 1];
+      const dx = pFirst.x - pLast.x;
+      const dy = pFirst.y - pLast.y;
+
+      /* return bearing: angle from last point back to A */
+      const retAngle = Math.atan2(dx, -dy); /* bearing angle in radians */
+      let retBearing = radToDeg(retAngle);
+      if (retBearing < 0) retBearing += 360;
+
+      /* dashed line */
+      svg.appendChild(svgEl('line', {
+        x1: pLast.x, y1: pLast.y, x2: pFirst.x, y2: pFirst.y,
+        stroke: '#999', 'stroke-width': '1.5', 'stroke-dasharray': '8,4',
+      }));
+      arrowHead(svg, pFirst.x, pFirst.y, Math.atan2(pFirst.y - pLast.y, pFirst.x - pLast.x), 8, '#999');
+
+      /* return bearing arc at last point */
+      const startDeg = -90;
+      const endDeg = -90 + retBearing;
+      const arcPath = describeArc(pLast.x, pLast.y, ARC_R - 6, startDeg, endDeg);
+      svg.appendChild(svgEl('path', {
+        d: arcPath, fill: 'none', stroke: '#999', 'stroke-width': '1', 'stroke-dasharray': '3,2',
+      }));
       /* label */
-      const midDeg = startDeg + s.angle / 2;
-      const lr = arcR + 16;
-      const lx = cx + lr * Math.cos(degToRad(midDeg));
-      const ly = cy + lr * Math.sin(degToRad(midDeg));
-      const bearStr = String(s.angle).padStart(3, '0') + '°';
-      svg.appendChild(svgText(lx, ly, bearStr, 13, 'middle', { fill: '#e63946', 'font-weight': '700' }));
+      const midDeg = startDeg + retBearing / 2;
+      const lr = ARC_R + 8;
+      const lx = pLast.x + lr * Math.cos(degToRad(midDeg));
+      const ly = pLast.y + lr * Math.sin(degToRad(midDeg));
+      const retStr = String(Math.round(retBearing)).padStart(3, '0') + '\u00B0';
+      svg.appendChild(svgText(lx, ly, retStr, 10, 'middle', { fill: '#999', 'font-weight': '600' }));
     }
 
     return svg;
@@ -1808,27 +2128,114 @@ extraTemplates['stem-leaf'] = {
       field('Type', select('sl-type', [['single', 'Single'], ['back-to-back', 'Back-to-back']])),
     ));
     c.appendChild(row(
+      field('Input mode', select('sl-input-mode', [['raw', 'Raw data'], ['manual', 'Manual']])),
+    ));
+
+    /* --- Raw data inputs --- */
+    const rawDiv = document.createElement('div');
+    rawDiv.id = 'sl-raw-section';
+    const taRight = document.createElement('textarea');
+    taRight.id = 'sl-raw-right';
+    taRight.className = 'cfg-input';
+    taRight.style.height = '60px';
+    taRight.style.fontFamily = 'monospace';
+    taRight.style.fontSize = '11px';
+    taRight.placeholder = 'e.g. 12, 15, 23, 24, 27, 31, 35, 38, 42, 45, 51';
+    taRight.value = '12, 15, 23, 24, 27, 31, 35, 38, 42, 45, 51';
+    rawDiv.appendChild(field('Data (right / main)', taRight));
+    const taLeft = document.createElement('textarea');
+    taLeft.id = 'sl-raw-left';
+    taLeft.className = 'cfg-input';
+    taLeft.style.height = '60px';
+    taLeft.style.fontFamily = 'monospace';
+    taLeft.style.fontSize = '11px';
+    taLeft.placeholder = 'e.g. 11, 18, 22, 26, 34, 39, 41, 47, 52';
+    taLeft.value = '';
+    rawDiv.appendChild(field('Data (left, back-to-back only)', taLeft));
+    c.appendChild(rawDiv);
+
+    /* --- Manual inputs --- */
+    const manDiv = document.createElement('div');
+    manDiv.id = 'sl-manual-section';
+    manDiv.style.display = 'none';
+    manDiv.appendChild(row(
       field('Stems (comma sep)', textInput('sl-stems', '1,2,3,4,5')),
     ));
-    c.appendChild(row(
+    manDiv.appendChild(row(
       field('Leaves right (per stem, | sep)', textInput('sl-right', '2 3 5|1 4 7 8|0 2 6|3 5|1')),
     ));
-    c.appendChild(row(
+    const hintR = document.createElement('div');
+    hintR.style.cssText = 'font-size:10px;color:#888;margin:-6px 0 6px 0;';
+    hintR.textContent = 'Hint: separate each stem\'s leaves with | and individual leaves with spaces. E.g. 2 3 5|1 4 7 8';
+    manDiv.appendChild(hintR);
+    manDiv.appendChild(row(
       field('Leaves left (back-to-back)', textInput('sl-left', '5 3|8 6 2|9 4 1|7 5|2')),
     ));
+    const hintL = document.createElement('div');
+    hintL.style.cssText = 'font-size:10px;color:#888;margin:-6px 0 6px 0;';
+    hintL.textContent = 'Hint: same format as right leaves, used only for back-to-back diagrams.';
+    manDiv.appendChild(hintL);
+    c.appendChild(manDiv);
+
+    /* Toggle visibility based on input mode */
+    const modeSelect = document.getElementById('sl-input-mode');
+    function toggleMode() {
+      const isRaw = modeSelect.value === 'raw';
+      rawDiv.style.display = isRaw ? '' : 'none';
+      manDiv.style.display = isRaw ? 'none' : '';
+    }
+    modeSelect.addEventListener('change', toggleMode);
+    toggleMode();
+
     c.appendChild(row(
       field('Title', textInput('sl-title', 'Stem and Leaf Diagram')),
     ));
     c.appendChild(row(checkbox('sl-key', 'Show key', true)));
   },
   readConfig() {
+    const inputMode = val('sl-input-mode') || 'raw';
+    const type = val('sl-type') || 'single';
+    const title = val('sl-title') || 'Stem and Leaf Diagram';
+    const showKey = val('sl-key');
+
+    if (inputMode === 'raw') {
+      /* Parse raw comma-separated numbers into stems and leaves */
+      function parseRawData(text) {
+        const nums = (text || '').split(/[,\s]+/).map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n) && n >= 0);
+        const map = {};
+        nums.forEach(n => {
+          const stem = Math.floor(n / 10);
+          const leaf = n % 10;
+          if (!map[stem]) map[stem] = [];
+          map[stem].push(leaf);
+        });
+        /* Sort leaves within each stem */
+        for (const k of Object.keys(map)) map[k].sort((a, b) => a - b);
+        return map;
+      }
+
+      const rightMap = parseRawData(document.getElementById('sl-raw-right')?.value || '');
+      const leftMap = type === 'back-to-back' ? parseRawData(document.getElementById('sl-raw-left')?.value || '') : {};
+
+      /* Merge all stems from both sides, sorted */
+      const allStems = [...new Set([...Object.keys(rightMap), ...Object.keys(leftMap)].map(Number))];
+      allStems.sort((a, b) => a - b);
+
+      const stems = allStems.map(String);
+      const leavesRight = allStems.map(st => (rightMap[st] || []).join(' '));
+      const leavesLeft = allStems.map(st => (leftMap[st] || []).join(' '));
+
+      return { type, stems, leavesRight, leavesLeft, title, showKey };
+    }
+
+    /* Manual mode -- existing behaviour */
     return {
-      type: val('sl-type') || 'single',
+      type,
       stems: (val('sl-stems') || '1,2,3,4,5').split(',').map(s => s.trim()),
       leavesRight: (val('sl-right') || '').split('|').map(s => s.trim()),
       leavesLeft: (val('sl-left') || '').split('|').map(s => s.trim()),
-      title: val('sl-title') || 'Stem and Leaf Diagram',
-      showKey: val('sl-key'),
+      title,
+      showKey,
     };
   },
   generateSVG(s) {
@@ -2038,24 +2445,71 @@ extraTemplates['tally-chart'] = {
     c.appendChild(row(
       field('Number of rows', numberInput('tc-rows', 5, 1, 12, 1)),
     ));
-    c.appendChild(row(
-      field('Labels (comma sep)', textInput('tc-labels', 'Red,Blue,Green,Yellow,Purple')),
-    ));
-    c.appendChild(row(
-      field('Tallies (comma sep)', textInput('tc-tallies', '7,12,4,9,3')),
-    ));
+    const rowContainer = document.createElement('div');
+    rowContainer.id = 'tc-row-inputs';
+    c.appendChild(rowContainer);
     c.appendChild(row(
       checkbox('tc-freq', 'Show frequency column', true),
     ));
     c.appendChild(row(
       field('Title', textInput('tc-title', 'Favourite Colour')),
     ));
+
+    const defaultLabels = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Brown', 'Black', 'White', 'Grey', 'Cyan'];
+    const defaultTallies = [7, 12, 4, 9, 3, 6, 8, 2, 11, 5, 10, 1];
+
+    const buildRows = () => {
+      const n = parseInt(document.getElementById('tc-rows').value, 10) || 5;
+      const ct2 = document.getElementById('tc-row-inputs');
+      const oldLabels = [], oldTallies = [];
+      ct2.querySelectorAll('[data-tc-label]').forEach(el => oldLabels.push(el.value));
+      ct2.querySelectorAll('[data-tc-tally]').forEach(el => oldTallies.push(parseInt(el.value) || 0));
+      ct2.innerHTML = '';
+      for (let i = 0; i < n; i++) {
+        const r2 = document.createElement('div');
+        r2.className = 'cfg-row';
+        r2.style.marginBottom = '2px';
+        const fLabel = document.createElement('div');
+        fLabel.className = 'cfg-field';
+        fLabel.style.flex = '2';
+        if (i === 0) { const h = document.createElement('div'); h.className = 'cfg-field-label'; h.textContent = 'Label'; fLabel.appendChild(h); }
+        const lbl = document.createElement('input');
+        lbl.type = 'text'; lbl.className = 'cfg-input';
+        lbl.setAttribute('data-tc-label', i);
+        lbl.value = i < oldLabels.length ? oldLabels[i] : (defaultLabels[i] || `Category ${i + 1}`);
+        lbl.placeholder = `Label ${i + 1}`;
+        fLabel.appendChild(lbl);
+
+        const fTally = document.createElement('div');
+        fTally.className = 'cfg-field';
+        fTally.style.flex = '1';
+        if (i === 0) { const h = document.createElement('div'); h.className = 'cfg-field-label'; h.textContent = 'Tally'; fTally.appendChild(h); }
+        const tly = document.createElement('input');
+        tly.type = 'number'; tly.className = 'cfg-input cfg-input-sm';
+        tly.setAttribute('data-tc-tally', i);
+        tly.min = 0;
+        tly.value = i < oldTallies.length ? oldTallies[i] : (defaultTallies[i] !== undefined ? defaultTallies[i] : 0);
+        fTally.appendChild(tly);
+
+        r2.appendChild(fLabel);
+        r2.appendChild(fTally);
+        ct2.appendChild(r2);
+      }
+      ct2.querySelectorAll('input').forEach(el => { el.addEventListener('input', () => { if (window._tplSchedulePreview) window._tplSchedulePreview(); }); });
+    };
+
+    document.getElementById('tc-rows').addEventListener('change', buildRows);
+    document.getElementById('tc-rows').addEventListener('input', buildRows);
+    buildRows();
   },
   readConfig() {
+    const labels = [], tallies = [];
+    document.querySelectorAll('[data-tc-label]').forEach(el => labels.push(el.value.trim()));
+    document.querySelectorAll('[data-tc-tally]').forEach(el => tallies.push(parseInt(el.value) || 0));
     return {
       numRows: val('tc-rows') || 5,
-      labels: (val('tc-labels') || '').split(',').map(s => s.trim()),
-      tallies: (val('tc-tallies') || '').split(',').map(s => parseInt(s.trim()) || 0),
+      labels,
+      tallies,
       showFreq: val('tc-freq'),
       title: val('tc-title') || 'Tally Chart',
     };
@@ -2162,9 +2616,9 @@ extraTemplates['frequency-table'] = {
     c.appendChild(row(
       field('Rows', numberInput('ft-rows', 6, 2, 15, 1)),
     ));
-    c.appendChild(row(
-      field('Interval labels (comma)', textInput('ft-intervals', '0-10,10-20,20-30,30-40,40-50,50-60')),
-    ));
+    const intContainer = document.createElement('div');
+    intContainer.id = 'ft-interval-inputs';
+    c.appendChild(intContainer);
     c.appendChild(sectionLabel('Columns'));
     c.appendChild(row(
       checkbox('ft-interval', 'Interval', true),
@@ -2179,11 +2633,40 @@ extraTemplates['frequency-table'] = {
     c.appendChild(row(
       field('Title', textInput('ft-title', 'Grouped Frequency Table')),
     ));
+
+    const buildIntervalRows = () => {
+      const n = parseInt(document.getElementById('ft-rows').value, 10) || 6;
+      const ct2 = document.getElementById('ft-interval-inputs');
+      const oldVals = [];
+      ct2.querySelectorAll('[data-ft-interval]').forEach(el => oldVals.push(el.value));
+      ct2.innerHTML = '';
+      const lbl = document.createElement('div');
+      lbl.className = 'cfg-field-label';
+      lbl.textContent = 'Interval labels';
+      ct2.appendChild(lbl);
+      for (let i = 0; i < n; i++) {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'cfg-input';
+        inp.setAttribute('data-ft-interval', i);
+        inp.value = i < oldVals.length ? oldVals[i] : `${i * 10}-${(i + 1) * 10}`;
+        inp.placeholder = `Interval ${i + 1}`;
+        inp.style.marginBottom = '2px';
+        ct2.appendChild(inp);
+      }
+      ct2.querySelectorAll('input').forEach(el => { el.addEventListener('input', () => { if (window._tplSchedulePreview) window._tplSchedulePreview(); }); });
+    };
+
+    document.getElementById('ft-rows').addEventListener('change', buildIntervalRows);
+    document.getElementById('ft-rows').addEventListener('input', buildIntervalRows);
+    buildIntervalRows();
   },
   readConfig() {
+    const intervals = [];
+    document.querySelectorAll('[data-ft-interval]').forEach(el => intervals.push(el.value.trim()));
     return {
       numRows: val('ft-rows') || 6,
-      intervals: (val('ft-intervals') || '').split(',').map(s => s.trim()),
+      intervals,
       showInterval: val('ft-interval'),
       showTally: val('ft-tally'),
       showFreq: val('ft-freq'),
@@ -2468,15 +2951,49 @@ extraTemplates['dice'] = {
     c.appendChild(row(
       field('Number of dice', numberInput('di-num', 2, 1, 4, 1)),
     ));
-    c.appendChild(row(
-      field('Values (comma sep)', textInput('di-vals', '3,5')),
-    ));
+    const diceContainer = document.createElement('div');
+    diceContainer.id = 'di-value-inputs';
+    c.appendChild(diceContainer);
     c.appendChild(row(field('Colour', colourSwatch('di-col', '#ffffff'))));
+
+    const defaultVals = [3, 5, 2, 6];
+    const buildDiceInputs = () => {
+      const n = Math.max(1, Math.min(4, parseInt(document.getElementById('di-num').value, 10) || 2));
+      const ct2 = document.getElementById('di-value-inputs');
+      const oldVals = [];
+      ct2.querySelectorAll('[data-di-val]').forEach(el => oldVals.push(parseInt(el.value) || 1));
+      ct2.innerHTML = '';
+      const r2 = document.createElement('div');
+      r2.className = 'cfg-row';
+      for (let i = 0; i < n; i++) {
+        const f = document.createElement('div');
+        f.className = 'cfg-field';
+        const lbl2 = document.createElement('div');
+        lbl2.className = 'cfg-field-label';
+        lbl2.textContent = `Die ${i + 1}`;
+        f.appendChild(lbl2);
+        const inp = document.createElement('input');
+        inp.type = 'number'; inp.className = 'cfg-input cfg-input-sm';
+        inp.setAttribute('data-di-val', i);
+        inp.min = 1; inp.max = 6;
+        inp.value = i < oldVals.length ? oldVals[i] : (defaultVals[i] || 1);
+        f.appendChild(inp);
+        r2.appendChild(f);
+      }
+      ct2.appendChild(r2);
+      ct2.querySelectorAll('input').forEach(el => { el.addEventListener('input', () => { if (window._tplSchedulePreview) window._tplSchedulePreview(); }); });
+    };
+
+    document.getElementById('di-num').addEventListener('change', buildDiceInputs);
+    document.getElementById('di-num').addEventListener('input', buildDiceInputs);
+    buildDiceInputs();
   },
   readConfig() {
+    const values = [];
+    document.querySelectorAll('[data-di-val]').forEach(el => values.push(Math.max(1, Math.min(6, parseInt(el.value) || 1))));
     return {
       numDice: Math.max(1, Math.min(4, val('di-num') || 2)),
-      values: (val('di-vals') || '').split(',').map(s => Math.max(1, Math.min(6, parseInt(s.trim()) || 1))),
+      values,
       colour: val('di-col') || '#ffffff',
     };
   },
@@ -2530,24 +3047,47 @@ extraTemplates['dice'] = {
 extraTemplates['spinner'] = {
   name: 'Spinner',
   category: 'Number Extra',
+  _defaultPalette: ['#e63946','#4262ff','#2a9d8f','#e9c46a','#9b59b6','#e67e22','#1abc9c','#34495e'],
+  _buildColourSwatches(container, n) {
+    container.innerHTML = '';
+    const r = row();
+    for (let i = 0; i < n; i++) {
+      r.appendChild(field(`Colour ${i + 1}`, colourSwatch(`sp2-col-${i}`, this._defaultPalette[i % this._defaultPalette.length])));
+    }
+    container.appendChild(r);
+  },
   renderConfig(c) {
     c.appendChild(sectionLabel('Spinner'));
+    const nInput = numberInput('sp2-n', 4, 2, 8, 1);
     c.appendChild(row(
-      field('Sectors', numberInput('sp2-n', 4, 2, 8, 1)),
+      field('Sectors', nInput),
     ));
     c.appendChild(row(
       field('Labels (comma sep)', textInput('sp2-labels', '1,2,3,4')),
     ));
-    c.appendChild(row(
-      field('Colours (comma sep hex)', textInput('sp2-colours', '#e63946,#4262ff,#2a9d8f,#e9c46a')),
-    ));
     c.appendChild(row(checkbox('sp2-equal', 'Equal sectors', true)));
+
+    const swatchContainer = document.createElement('div');
+    swatchContainer.id = 'sp2-colours-container';
+    c.appendChild(swatchContainer);
+    this._buildColourSwatches(swatchContainer, 4);
+
+    nInput.addEventListener('change', () => {
+      const n = Math.max(2, Math.min(8, parseInt(nInput.value, 10) || 4));
+      this._buildColourSwatches(swatchContainer, n);
+    });
   },
   readConfig() {
+    const n = Math.max(2, Math.min(8, val('sp2-n') || 4));
+    const colours = [];
+    for (let i = 0; i < n; i++) {
+      const el = document.getElementById(`sp2-col-${i}`);
+      colours.push(el ? el.value : this._defaultPalette[i % this._defaultPalette.length]);
+    }
     return {
-      n: Math.max(2, Math.min(8, val('sp2-n') || 4)),
+      n,
       labels: (val('sp2-labels') || '').split(',').map(s => s.trim()),
-      colours: (val('sp2-colours') || '').split(',').map(s => s.trim()),
+      colours,
       equal: val('sp2-equal'),
     };
   },
@@ -2604,31 +3144,63 @@ extraTemplates['spinner'] = {
 extraTemplates['percentage-bar'] = {
   name: 'Percentage Bar',
   category: 'Number Extra',
+  _pbDefaults: [
+    { label: 'Food', pct: 35, colour: '#e63946' },
+    { label: 'Transport', pct: 20, colour: '#4262ff' },
+    { label: 'Rent', pct: 30, colour: '#2a9d8f' },
+    { label: 'Other', pct: 15, colour: '#e9c46a' },
+    { label: 'Savings', pct: 10, colour: '#9b59b6' },
+    { label: 'Bills', pct: 5, colour: '#e67e22' },
+  ],
+  _buildPbRows(container, n) {
+    container.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      const def = this._pbDefaults[i] || { label: `Seg ${i + 1}`, pct: Math.round(100 / n), colour: '#999' };
+      container.appendChild(row(
+        field('Label', textInput(`pb-label-${i}`, def.label)),
+        field('%', numberInput(`pb-pct-${i}`, def.pct, 0, 100, 1)),
+        field('Colour', colourSwatch(`pb-col-${i}`, def.colour)),
+      ));
+    }
+  },
   renderConfig(c) {
     c.appendChild(sectionLabel('Percentage Bar'));
     c.appendChild(row(
       field('Title', textInput('pb-title', 'Budget Breakdown')),
     ));
-    c.appendChild(sectionLabel('Segments (label:pct:colour, one per line)'));
-    const ta = document.createElement('textarea');
-    ta.id = 'pb-segs';
-    ta.className = 'cfg-input';
-    ta.style.height = '100px';
-    ta.style.fontFamily = 'monospace';
-    ta.style.fontSize = '11px';
-    ta.value = 'Food:35:#e63946\nTransport:20:#4262ff\nRent:30:#2a9d8f\nOther:15:#e9c46a';
-    c.appendChild(ta);
+
+    const slider = numberInput('pb-count', 3, 2, 6, 1);
+    slider.type = 'range';
+    slider.style.width = '100%';
+    const countLabel = document.createElement('span');
+    countLabel.textContent = ' 3 segments';
+    countLabel.style.fontSize = '11px';
+    countLabel.style.color = '#777';
+    const sliderRow = row(field('Number of segments', slider));
+    sliderRow.appendChild(countLabel);
+    c.appendChild(sliderRow);
+
+    const segContainer = document.createElement('div');
+    segContainer.id = 'pb-seg-container';
+    c.appendChild(segContainer);
+    this._buildPbRows(segContainer, 3);
+
+    slider.addEventListener('input', () => {
+      const n = parseInt(slider.value, 10) || 3;
+      countLabel.textContent = ` ${n} segments`;
+      this._buildPbRows(segContainer, n);
+    });
   },
   readConfig() {
-    const lines = (document.getElementById('pb-segs')?.value || '').split('\n').filter(Boolean);
-    const segments = lines.map(l => {
-      const parts = l.split(':');
-      return {
-        label: parts[0]?.trim() || '',
-        pct: parseFloat(parts[1]) || 0,
-        colour: parts[2]?.trim() || '#ccc',
-      };
-    });
+    const count = parseInt(document.getElementById('pb-count')?.value, 10) || 3;
+    const segments = [];
+    for (let i = 0; i < count; i++) {
+      segments.push({
+        label: val(`pb-label-${i}`) || `Seg ${i + 1}`,
+        pct: val(`pb-pct-${i}`) || 0,
+        colour: document.getElementById(`pb-col-${i}`)?.value || '#ccc',
+      });
+    }
     return {
       title: val('pb-title') || 'Percentage Bar',
       segments,
@@ -2929,6 +3501,27 @@ function applyTransformation(verts, type, params) {
 extraTemplates['argand-diagram'] = {
   name: 'Argand Diagram',
   category: 'Advanced/IB',
+  _adDefaultPts: [
+    { label: 'z\u2081', re: 3, im: 2, colour: '#e63946' },
+    { label: 'z\u2082', re: -1, im: 4, colour: '#4262ff' },
+  ],
+  _adPalette: ['#e63946', '#4262ff', '#2a9d8f', '#e9c46a', '#8338ec'],
+  _addAdPointRow(container, i, defaults) {
+    const def = defaults || {
+      label: `z\u2080${String.fromCharCode(8321 + i)}`.replace(/z\u2080/, 'z'),
+      re: 0, im: 0,
+      colour: this._adPalette[i % this._adPalette.length],
+    };
+    const r = row(
+      field('Label', textInput(`ad-label-${i}`, def.label)),
+      field('Real', numberInput(`ad-re-${i}`, def.re, -20, 20, 0.5)),
+      field('Imag', numberInput(`ad-im-${i}`, def.im, -20, 20, 0.5)),
+      field('Colour', colourSwatch(`ad-col-${i}`, def.colour)),
+    );
+    r.className = 'cfg-row ad-point-row';
+    r.dataset.index = i;
+    container.appendChild(r);
+  },
   renderConfig(c) {
     c.appendChild(sectionLabel('Argand Diagram'));
     c.appendChild(row(
@@ -2938,26 +3531,38 @@ extraTemplates['argand-diagram'] = {
       field('Real range', numberInput('ad-xr', 5, 1, 20, 1)),
       field('Imaginary range', numberInput('ad-yr', 5, 1, 20, 1)),
     ));
-    c.appendChild(sectionLabel('Points (label:real:imag, one per line)'));
-    const ta = document.createElement('textarea');
-    ta.id = 'ad-pts';
-    ta.className = 'cfg-input';
-    ta.style.height = '80px';
-    ta.style.fontFamily = 'monospace';
-    ta.style.fontSize = '11px';
-    ta.value = 'z₁:3:2\nz₂:-1:4\nz₃:2:-3';
-    c.appendChild(ta);
+    c.appendChild(sectionLabel('Points'));
+
+    const ptsContainer = document.createElement('div');
+    ptsContainer.id = 'ad-pts-container';
+    c.appendChild(ptsContainer);
+
+    this._adDefaultPts.forEach((def, i) => {
+      this._addAdPointRow(ptsContainer, i, def);
+    });
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'bar-btn';
+    addBtn.textContent = '+ Add Point';
+    addBtn.style.marginTop = '4px';
+    addBtn.addEventListener('click', () => {
+      const count = ptsContainer.querySelectorAll('.ad-point-row').length;
+      if (count < 5) this._addAdPointRow(ptsContainer, count);
+    });
+    c.appendChild(addBtn);
   },
   readConfig() {
-    const lines = (document.getElementById('ad-pts')?.value || '').split('\n').filter(Boolean);
-    const points = lines.map(l => {
-      const parts = l.split(':');
-      return {
-        label: parts[0]?.trim() || '',
-        real: parseFloat(parts[1]) || 0,
-        imag: parseFloat(parts[2]) || 0,
-      };
-    });
+    const points = [];
+    for (let i = 0; i < 5; i++) {
+      const labelEl = document.getElementById(`ad-label-${i}`);
+      if (!labelEl) break;
+      points.push({
+        label: labelEl.value || '',
+        real: val(`ad-re-${i}`) || 0,
+        imag: val(`ad-im-${i}`) || 0,
+        colour: document.getElementById(`ad-col-${i}`)?.value || this._adPalette[i % this._adPalette.length],
+      });
+    }
     return {
       showAxes: val('ad-axes'),
       xRange: val('ad-xr') || 5,
@@ -3007,7 +3612,7 @@ extraTemplates['argand-diagram'] = {
     s.points.forEach((pt, i) => {
       const px = toSVGx(pt.real);
       const py = toSVGy(pt.imag);
-      const col = ptColours[i % ptColours.length];
+      const col = pt.colour || ptColours[i % ptColours.length];
 
       /* vector line from origin */
       svg.appendChild(svgEl('line', {

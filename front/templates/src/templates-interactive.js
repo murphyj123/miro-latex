@@ -1220,28 +1220,49 @@ const ratioBar = {
   name: 'Ratio Bar',
   category: 'Number',
 
+  _rbPalette: ['#3498db','#e74c3c','#2ecc71','#f39c12','#9b59b6','#1abc9c','#e67e22','#34495e'],
+  _buildRbSwatches(container, n) {
+    container.innerHTML = '';
+    const r = makeRow();
+    for (let i = 0; i < n; i++) {
+      r.appendChild(makeField(`Part ${i + 1}`, makeSwatch(`rb-col-${i}`, this._rbPalette[i % this._rbPalette.length])));
+    }
+    container.appendChild(r);
+  },
   renderConfig(container) {
     container.appendChild(makeTitle('Ratio Bar'));
 
+    const ratioInput = makeInput('rb-ratio', 'text', '3:2');
     container.appendChild(makeRow(
-      makeField('Ratio (e.g. 3:2)', makeInput('rb-ratio', 'text', '3:2')),
+      makeField('Ratio (e.g. 3:2)', ratioInput),
       makeField('Total Value (optional)', makeSmallInput('rb-total', 'number', '', { placeholder: 'e.g. 50' })),
     ));
 
     container.appendChild(makeRow(
       makeField('Labels (comma sep.)', makeInput('rb-labels', 'text', 'Boys, Girls')),
-    ));
-
-    container.appendChild(makeRow(
-      makeField('Colours (comma sep. hex)', makeInput('rb-colours', 'text', '#3498db, #e74c3c')),
       makeCheck('rb-values', 'Show Values', true),
     ));
+
+    container.appendChild(makeLabel('Colours'));
+    const swatchContainer = document.createElement('div');
+    swatchContainer.id = 'rb-colours-container';
+    container.appendChild(swatchContainer);
+    this._buildRbSwatches(swatchContainer, 2);
+
+    ratioInput.addEventListener('change', () => {
+      const parts = (ratioInput.value || '').split(':').filter(Boolean);
+      this._buildRbSwatches(swatchContainer, Math.max(1, parts.length));
+    });
   },
 
   readConfig() {
     const ratioParts = (getEl('rb-ratio')?.value || '3:2').split(':').map((s) => parseInt(s.trim(), 10) || 1);
     const labels = (getEl('rb-labels')?.value || '').split(',').map((s) => s.trim());
-    const colours = (getEl('rb-colours')?.value || '#3498db,#e74c3c').split(',').map((s) => s.trim());
+    const colours = [];
+    for (let i = 0; i < ratioParts.length; i++) {
+      const el = document.getElementById(`rb-col-${i}`);
+      colours.push(el ? el.value : this._rbPalette[i % this._rbPalette.length]);
+    }
     return {
       ratioParts,
       labels,
@@ -1757,6 +1778,319 @@ const fractionNumberLine = {
 };
 
 /* ================================================================
+   13. Transformation Grid
+   ================================================================ */
+
+const transformationGrid = {
+  name: 'Transformation Grid',
+  category: 'Geometry',
+
+  _shapePresets: {
+    none: { label: '-- Choose preset --', vertices: '' },
+    square: { label: 'Square', vertices: '1,1 3,1 3,3 1,3' },
+    triangle: { label: 'Triangle', vertices: '1,1 4,1 2.5,4' },
+    lshape: { label: 'L-shape', vertices: '1,1 3,1 3,2 2,2 2,4 1,4' },
+  },
+
+  _buildParamsUI(container, type) {
+    container.innerHTML = '';
+    switch (type) {
+      case 'reflection':
+        container.appendChild(makeRow(
+          makeField('Axis', makeSelect('tg-ref-axis', [
+            ['x-axis', 'x-axis'], ['y-axis', 'y-axis'], ['x=N', 'x = N'], ['y=N', 'y = N'],
+          ], 'y-axis')),
+          makeField('N (for x=N / y=N)', makeSmallInput('tg-ref-n', 'number', '0')),
+        ));
+        break;
+      case 'rotation':
+        container.appendChild(makeRow(
+          makeField('Angle (\u00b0)', makeSmallInput('tg-rot-angle', 'number', '90', { min: '-360', max: '360', step: '1' })),
+          makeField('Centre x', makeSmallInput('tg-rot-cx', 'number', '0')),
+          makeField('Centre y', makeSmallInput('tg-rot-cy', 'number', '0')),
+        ));
+        break;
+      case 'translation':
+        container.appendChild(makeRow(
+          makeField('dx', makeSmallInput('tg-trans-dx', 'number', '3')),
+          makeField('dy', makeSmallInput('tg-trans-dy', 'number', '2')),
+        ));
+        break;
+      case 'enlargement':
+        container.appendChild(makeRow(
+          makeField('Scale factor', makeSmallInput('tg-enl-sf', 'number', '2', { step: '0.5' })),
+          makeField('Centre x', makeSmallInput('tg-enl-cx', 'number', '0')),
+          makeField('Centre y', makeSmallInput('tg-enl-cy', 'number', '0')),
+        ));
+        break;
+    }
+  },
+
+  renderConfig(container) {
+    container.appendChild(makeTitle('Transformation Grid'));
+
+    container.appendChild(makeRow(
+      makeField('x Min', makeSmallInput('tg-xmin', 'number', '-8')),
+      makeField('x Max', makeSmallInput('tg-xmax', 'number', '8')),
+      makeField('y Min', makeSmallInput('tg-ymin', 'number', '-8')),
+      makeField('y Max', makeSmallInput('tg-ymax', 'number', '8')),
+    ));
+
+    container.appendChild(makeRow(
+      makeCheck('tg-grid', 'Show Grid', true),
+      makeCheck('tg-labels', 'Show Labels', true),
+      makeCheck('tg-image', 'Show Image Shape', true),
+    ));
+
+    container.appendChild(makeDivider());
+
+    /* Shape presets */
+    const presetOpts = Object.entries(this._shapePresets).map(([k, v]) => [k, v.label]);
+    const presetSelect = makeSelect('tg-preset', presetOpts, 'none');
+    container.appendChild(makeRow(
+      makeField('Shape Preset', presetSelect),
+    ));
+
+    const vertInput = makeInput('tg-verts', 'text', '1,1 3,1 3,3 1,3', { placeholder: 'x1,y1 x2,y2 ...' });
+    container.appendChild(makeRow(
+      makeField('Vertices (x,y pairs)', vertInput),
+    ));
+
+    presetSelect.addEventListener('change', () => {
+      const preset = this._shapePresets[presetSelect.value];
+      if (preset && preset.vertices) vertInput.value = preset.vertices;
+    });
+
+    container.appendChild(makeDivider());
+    container.appendChild(makeLabel('Transformation'));
+
+    const typeSelect = makeSelect('tg-type', [
+      ['reflection', 'Reflection'],
+      ['rotation', 'Rotation'],
+      ['translation', 'Translation'],
+      ['enlargement', 'Enlargement'],
+    ], 'reflection');
+    container.appendChild(makeRow(makeField('Type', typeSelect)));
+
+    const paramsContainer = document.createElement('div');
+    paramsContainer.id = 'tg-params-container';
+    container.appendChild(paramsContainer);
+    this._buildParamsUI(paramsContainer, 'reflection');
+
+    typeSelect.addEventListener('change', () => {
+      this._buildParamsUI(paramsContainer, typeSelect.value);
+    });
+
+    container.appendChild(makeDivider());
+    container.appendChild(makeRow(
+      makeField('Object colour', makeSwatch('tg-col-obj', '#3498db')),
+      makeField('Image colour', makeSwatch('tg-col-img', '#e74c3c')),
+    ));
+  },
+
+  readConfig() {
+    const type = getEl('tg-type')?.value || 'reflection';
+    let params = '';
+    switch (type) {
+      case 'reflection': {
+        const axis = getEl('tg-ref-axis')?.value || 'y-axis';
+        const n = parseFloat(getEl('tg-ref-n')?.value) || 0;
+        params = (axis === 'x=N' || axis === 'y=N') ? `${axis.replace('N', String(n))}` : axis;
+        break;
+      }
+      case 'rotation': {
+        const angle = parseFloat(getEl('tg-rot-angle')?.value) || 90;
+        const cx = parseFloat(getEl('tg-rot-cx')?.value) || 0;
+        const cy = parseFloat(getEl('tg-rot-cy')?.value) || 0;
+        params = `${angle},${cx},${cy}`;
+        break;
+      }
+      case 'translation': {
+        const dx = parseFloat(getEl('tg-trans-dx')?.value) || 0;
+        const dy = parseFloat(getEl('tg-trans-dy')?.value) || 0;
+        params = `${dx},${dy}`;
+        break;
+      }
+      case 'enlargement': {
+        const sf = parseFloat(getEl('tg-enl-sf')?.value) || 2;
+        const cx = parseFloat(getEl('tg-enl-cx')?.value) || 0;
+        const cy = parseFloat(getEl('tg-enl-cy')?.value) || 0;
+        params = `${sf},${cx},${cy}`;
+        break;
+      }
+    }
+    const vertsStr = getEl('tg-verts')?.value || '1,1 3,1 3,3 1,3';
+    const vertices = vertsStr.trim().split(/\s+/).map(p => {
+      const [x, y] = p.split(',').map(Number);
+      return { x: x || 0, y: y || 0 };
+    });
+    return {
+      xMin: parseFloat(getEl('tg-xmin')?.value) || -8,
+      xMax: parseFloat(getEl('tg-xmax')?.value) || 8,
+      yMin: parseFloat(getEl('tg-ymin')?.value) || -8,
+      yMax: parseFloat(getEl('tg-ymax')?.value) || 8,
+      showGrid: getEl('tg-grid')?.checked ?? true,
+      showLabels: getEl('tg-labels')?.checked ?? true,
+      showImage: getEl('tg-image')?.checked ?? true,
+      type,
+      params,
+      vertices,
+      colObj: getEl('tg-col-obj')?.value || '#3498db',
+      colImg: getEl('tg-col-img')?.value || '#e74c3c',
+    };
+  },
+
+  _applyTransform(vertices, type, params) {
+    switch (type) {
+      case 'reflection': {
+        if (params === 'x-axis') return vertices.map(v => ({ x: v.x, y: -v.y }));
+        if (params === 'y-axis') return vertices.map(v => ({ x: -v.x, y: v.y }));
+        if (params.startsWith('x=')) {
+          const n = parseFloat(params.slice(2)) || 0;
+          return vertices.map(v => ({ x: 2 * n - v.x, y: v.y }));
+        }
+        if (params.startsWith('y=')) {
+          const n = parseFloat(params.slice(2)) || 0;
+          return vertices.map(v => ({ x: v.x, y: 2 * n - v.y }));
+        }
+        return vertices;
+      }
+      case 'rotation': {
+        const [angle, cx, cy] = params.split(',').map(Number);
+        const rad = (angle * Math.PI) / 180;
+        return vertices.map(v => {
+          const dx = v.x - cx, dy = v.y - cy;
+          return {
+            x: cx + dx * Math.cos(rad) - dy * Math.sin(rad),
+            y: cy + dx * Math.sin(rad) + dy * Math.cos(rad),
+          };
+        });
+      }
+      case 'translation': {
+        const [dx, dy] = params.split(',').map(Number);
+        return vertices.map(v => ({ x: v.x + dx, y: v.y + dy }));
+      }
+      case 'enlargement': {
+        const [sf, cx, cy] = params.split(',').map(Number);
+        return vertices.map(v => ({
+          x: cx + sf * (v.x - cx),
+          y: cy + sf * (v.y - cy),
+        }));
+      }
+      default:
+        return vertices;
+    }
+  },
+
+  generateSVG(s) {
+    const W = 500, H = 500;
+    const padL = 40, padR = 20, padT = 20, padB = 36;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    if (s.xMin >= s.xMax) s.xMax = s.xMin + 1;
+    if (s.yMin >= s.yMax) s.yMax = s.yMin + 1;
+
+    const rangeX = s.xMax - s.xMin;
+    const rangeY = s.yMax - s.yMin;
+    function mapX(v) { return padL + ((v - s.xMin) / rangeX) * plotW; }
+    function mapY(v) { return padT + ((s.yMax - v) / rangeY) * plotH; }
+
+    const svg = svgEl('svg', { xmlns: SVG_NS, viewBox: `0 0 ${W} ${H}`, width: W, height: H });
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: '#ffffff' }));
+
+    /* grid */
+    if (s.showGrid) {
+      for (let gx = Math.ceil(s.xMin); gx <= s.xMax; gx++) {
+        svg.appendChild(svgEl('line', {
+          x1: mapX(gx), y1: padT, x2: mapX(gx), y2: padT + plotH,
+          stroke: '#e8e8e8', 'stroke-width': '0.8',
+        }));
+      }
+      for (let gy = Math.ceil(s.yMin); gy <= s.yMax; gy++) {
+        svg.appendChild(svgEl('line', {
+          x1: padL, y1: mapY(gy), x2: padL + plotW, y2: mapY(gy),
+          stroke: '#e8e8e8', 'stroke-width': '0.8',
+        }));
+      }
+    }
+
+    /* axes */
+    const originX = Math.max(s.xMin, Math.min(s.xMax, 0));
+    const originY = Math.max(s.yMin, Math.min(s.yMax, 0));
+    svg.appendChild(svgEl('line', { x1: mapX(s.xMin), y1: mapY(originY), x2: mapX(s.xMax), y2: mapY(originY), stroke: '#333', 'stroke-width': '1.5' }));
+    svg.appendChild(svgEl('line', { x1: mapX(originX), y1: mapY(s.yMin), x2: mapX(originX), y2: mapY(s.yMax), stroke: '#333', 'stroke-width': '1.5' }));
+
+    /* tick labels */
+    if (s.showLabels) {
+      for (let tx = Math.ceil(s.xMin); tx <= s.xMax; tx++) {
+        if (tx === 0) continue;
+        const sx = mapX(tx);
+        svg.appendChild(svgEl('line', { x1: sx, y1: mapY(originY) - 3, x2: sx, y2: mapY(originY) + 3, stroke: '#333', 'stroke-width': '1' }));
+        svg.appendChild(svgText(String(tx), sx, mapY(originY) + 16, { 'font-size': '10', fill: '#555' }));
+      }
+      for (let ty = Math.ceil(s.yMin); ty <= s.yMax; ty++) {
+        if (ty === 0) continue;
+        const sy = mapY(ty);
+        svg.appendChild(svgEl('line', { x1: mapX(originX) - 3, y1: sy, x2: mapX(originX) + 3, y2: sy, stroke: '#333', 'stroke-width': '1' }));
+        svg.appendChild(svgText(String(ty), mapX(originX) - 8, sy + 4, { 'font-size': '10', fill: '#555', 'text-anchor': 'end' }));
+      }
+      svg.appendChild(svgText('0', mapX(originX) - 8, mapY(originY) + 14, { 'font-size': '10', fill: '#555', 'text-anchor': 'end' }));
+    }
+
+    /* draw shape helper */
+    function drawShape(verts, colour, opacity) {
+      if (verts.length < 2) return;
+      const pts = verts.map(v => `${mapX(v.x)},${mapY(v.y)}`).join(' ');
+      svg.appendChild(svgEl('polygon', {
+        points: pts, fill: colour, 'fill-opacity': String(opacity),
+        stroke: colour, 'stroke-width': '2', 'stroke-linejoin': 'round',
+      }));
+      /* vertex dots */
+      verts.forEach((v, i) => {
+        svg.appendChild(svgEl('circle', {
+          cx: mapX(v.x), cy: mapY(v.y), r: '3',
+          fill: colour, stroke: '#fff', 'stroke-width': '1',
+        }));
+      });
+    }
+
+    /* object shape */
+    drawShape(s.vertices, s.colObj, 0.3);
+
+    /* image shape */
+    if (s.showImage && s.vertices.length >= 2) {
+      const imageVerts = this._applyTransform(s.vertices, s.type, s.params);
+      drawShape(imageVerts, s.colImg, 0.3);
+
+      /* draw mirror line for reflection */
+      if (s.type === 'reflection') {
+        let lx1, ly1, lx2, ly2;
+        if (s.params === 'x-axis') {
+          lx1 = mapX(s.xMin); ly1 = mapY(0); lx2 = mapX(s.xMax); ly2 = mapY(0);
+        } else if (s.params === 'y-axis') {
+          lx1 = mapX(0); ly1 = mapY(s.yMin); lx2 = mapX(0); ly2 = mapY(s.yMax);
+        } else if (s.params.startsWith('x=')) {
+          const n = parseFloat(s.params.slice(2)) || 0;
+          lx1 = mapX(n); ly1 = mapY(s.yMin); lx2 = mapX(n); ly2 = mapY(s.yMax);
+        } else if (s.params.startsWith('y=')) {
+          const n = parseFloat(s.params.slice(2)) || 0;
+          lx1 = mapX(s.xMin); ly1 = mapY(n); lx2 = mapX(s.xMax); ly2 = mapY(n);
+        }
+        if (lx1 !== undefined) {
+          svg.appendChild(svgEl('line', {
+            x1: lx1, y1: ly1, x2: lx2, y2: ly2,
+            stroke: '#9b59b6', 'stroke-width': '1.5', 'stroke-dasharray': '6,4',
+          }));
+        }
+      }
+    }
+
+    return svg;
+  },
+};
+
+/* ================================================================
    Export
    ================================================================ */
 
@@ -1773,4 +2107,5 @@ export const interactiveTemplates = [
   coordinateGrid,
   areaModelMult,
   fractionNumberLine,
+  transformationGrid,
 ];

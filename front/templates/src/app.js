@@ -387,6 +387,9 @@ TEMPLATES['hundreds-chart'] = {
       { type: 'number', id: 'hc-rows', label: 'Rows', value: 10, min: 1, max: 15 },
       { type: 'number', id: 'hc-cols', label: 'Cols', value: 10, min: 1, max: 15 },
       { type: 'row-end' },
+      { type: 'divider' },
+      { type: 'text', id: 'hc-highlight', label: 'Highlight numbers (comma sep)', value: '', placeholder: 'e.g. 2,3,5,7,11,13' },
+      { type: 'colour', id: 'hc-hl-colour', value: '#fff59d' },
     ]);
   },
 
@@ -395,6 +398,9 @@ TEMPLATES['hundreds-chart'] = {
     const showNum = checked('hc-numbers');
     const rows = parseInt(val('hc-rows'), 10) || 10;
     const cols = parseInt(val('hc-cols'), 10) || 10;
+    const hlRaw = val('hc-highlight') || '';
+    const hlSet = new Set(hlRaw.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n)));
+    const hlColour = val('hc-hl-colour') || '#fff59d';
     const cellSize = 38, pad = 12;
     const totalW = pad * 2 + cols * cellSize;
     const totalH = pad * 2 + rows * cellSize;
@@ -406,10 +412,11 @@ TEMPLATES['hundreds-chart'] = {
       for (let c = 0; c < cols; c++) {
         const x = pad + c * cellSize;
         const y = pad + r * cellSize;
-        const bg = (r + c) % 2 === 0 ? '#f8f9ff' : '#fff';
+        const isHighlighted = hlSet.has(n);
+        const bg = isHighlighted ? hlColour : ((r + c) % 2 === 0 ? '#f8f9ff' : '#fff');
         svg.appendChild(svgEl('rect', { x, y, width: cellSize, height: cellSize, fill: bg, stroke: '#bbb', 'stroke-width': 1 }));
         if (showNum) {
-          svg.appendChild(textEl(String(n), x + cellSize / 2, y + cellSize / 2, { 'font-size': '12', fill: '#333' }));
+          svg.appendChild(textEl(String(n), x + cellSize / 2, y + cellSize / 2, { 'font-size': '12', fill: '#333', 'font-weight': isHighlighted ? '700' : '400' }));
         }
         n++;
       }
@@ -502,15 +509,19 @@ TEMPLATES['function-machine'] = {
     const updateOps = () => {
       const n = parseInt($('fm-stages').value, 10) || 2;
       const ct2 = $('fm-ops');
-      const existing = ct2.querySelectorAll('input[type="text"]');
-      const vals = [];
-      existing.forEach(e => vals.push(e.value));
+      const existingOps = ct2.querySelectorAll('[data-fm-op-type]');
+      const existingVals = ct2.querySelectorAll('[data-fm-op-val]');
+      const oldOps = []; existingOps.forEach(e => oldOps.push(e.value));
+      const oldVals = []; existingVals.forEach(e => oldVals.push(e.value));
+      const defaultOps = ['+', '\u00D7'];
+      const defaultVals = ['3', '2'];
       let html = '';
       for (let i = 0; i < n; i++) {
-        html += `<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">Stage ${i + 1}</label><input type="text" class="cfg-input" value="${vals[i] ?? (i === 0 ? '+ 3' : '\u00D7 2')}" data-fm-op="${i}" /></div></div>`;
+        const opVal = oldOps[i] ?? defaultOps[i] ?? '+';
+        const numVal = oldVals[i] ?? defaultVals[i] ?? '1';
+        html += `<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">Stage ${i + 1}</label><select class="cfg-select" data-fm-op-type="${i}"><option value="+"${opVal === '+' ? ' selected' : ''}>+</option><option value="-"${opVal === '-' ? ' selected' : ''}>\u2212</option><option value="\u00D7"${opVal === '\u00D7' ? ' selected' : ''}>\u00D7</option><option value="\u00F7"${opVal === '\u00F7' ? ' selected' : ''}>\u00F7</option></select></div><div class="cfg-field"><label class="cfg-field-label">Value</label><input type="number" class="cfg-input cfg-input-sm" value="${numVal}" data-fm-op-val="${i}" step="any" /></div></div>`;
       }
       ct2.innerHTML = html;
-      ct2.querySelectorAll('input').forEach(el => { el.addEventListener('input', schedulePreview); });
     };
     $('fm-stages').addEventListener('input', () => { $('fm-stages-val').textContent = $('fm-stages').value; updateOps(); });
     updateOps();
@@ -522,7 +533,12 @@ TEMPLATES['function-machine'] = {
     const outputVal = val('fm-output') || '?';
     const showInverse = checked('fm-inverse');
     const ops = [];
-    document.querySelectorAll('[data-fm-op]').forEach((el, i) => { ops[i] = el.value || '?'; });
+    document.querySelectorAll('[data-fm-op-type]').forEach((el, i) => {
+      const opSymbol = el.value || '+';
+      const valEl = document.querySelector(`[data-fm-op-val="${i}"]`);
+      const opValue = valEl ? valEl.value : '?';
+      ops[i] = opSymbol + ' ' + opValue;
+    });
 
     const boxW = 90, boxH = 44, arrowLen = 40, pad = 30;
     const totalW = pad * 2 + arrowLen + nStages * boxW + (nStages - 1) * arrowLen + arrowLen;
@@ -593,8 +609,8 @@ TEMPLATES['function-machine'] = {
 
 function invertOp(op) {
   const s = op.trim();
-  if (s.startsWith('+')) return '- ' + s.slice(1).trim();
-  if (s.startsWith('-')) return '+ ' + s.slice(1).trim();
+  if (s.startsWith('+')) return '\u2212 ' + s.slice(1).trim();
+  if (s.startsWith('-') || s.startsWith('\u2212')) return '+ ' + s.slice(1).trim();
   if (s.startsWith('\u00D7') || s.startsWith('*')) return '\u00F7 ' + s.slice(1).trim();
   if (s.startsWith('\u00F7') || s.startsWith('/')) return '\u00D7 ' + s.slice(1).trim();
   if (s.startsWith('x') || s.startsWith('X')) return '\u00F7 ' + s.slice(1).trim();
@@ -728,7 +744,29 @@ TEMPLATES['venn-diagram'] = {
       { type: 'colour', id: 'vn-col-b', value: '#ff6b6b' },
       { type: 'colour', id: 'vn-col-c', value: '#43a047' },
       { type: 'row-end' },
+      { type: 'range', id: 'vn-opacity', label: 'Circle opacity %', value: 20, min: 0, max: 100, step: 5 },
+      { type: 'divider' },
+      { type: 'heading', label: 'Region contents' },
+      { type: 'container', id: 'vn-regions' },
     ]);
+
+    const buildRegionInputs = () => {
+      const n = parseInt(val('vn-circles'), 10) || 2;
+      const ct2 = $('vn-regions');
+      let html = '';
+      if (n === 2) {
+        html += '<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">A only</label><input type="text" id="vn-r-aonly" class="cfg-input cfg-input-sm" value="" placeholder="" /></div><div class="cfg-field"><label class="cfg-field-label">A\u2229B</label><input type="text" id="vn-r-ab" class="cfg-input cfg-input-sm" value="" placeholder="" /></div><div class="cfg-field"><label class="cfg-field-label">B only</label><input type="text" id="vn-r-bonly" class="cfg-input cfg-input-sm" value="" placeholder="" /></div></div>';
+        html += '<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">Outside</label><input type="text" id="vn-r-outside" class="cfg-input cfg-input-sm" value="" placeholder="" /></div></div>';
+      } else {
+        html += '<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">A only</label><input type="text" id="vn-r-aonly" class="cfg-input cfg-input-sm" value="" placeholder="" /></div><div class="cfg-field"><label class="cfg-field-label">B only</label><input type="text" id="vn-r-bonly" class="cfg-input cfg-input-sm" value="" placeholder="" /></div><div class="cfg-field"><label class="cfg-field-label">C only</label><input type="text" id="vn-r-conly" class="cfg-input cfg-input-sm" value="" placeholder="" /></div></div>';
+        html += '<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">A\u2229B</label><input type="text" id="vn-r-ab" class="cfg-input cfg-input-sm" value="" placeholder="" /></div><div class="cfg-field"><label class="cfg-field-label">A\u2229C</label><input type="text" id="vn-r-ac" class="cfg-input cfg-input-sm" value="" placeholder="" /></div><div class="cfg-field"><label class="cfg-field-label">B\u2229C</label><input type="text" id="vn-r-bc" class="cfg-input cfg-input-sm" value="" placeholder="" /></div></div>';
+        html += '<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">A\u2229B\u2229C</label><input type="text" id="vn-r-abc" class="cfg-input cfg-input-sm" value="" placeholder="" /></div><div class="cfg-field"><label class="cfg-field-label">Outside</label><input type="text" id="vn-r-outside" class="cfg-input cfg-input-sm" value="" placeholder="" /></div></div>';
+      }
+      ct2.innerHTML = html;
+      ct2.querySelectorAll('input').forEach(el => { el.addEventListener('input', schedulePreview); el.addEventListener('change', schedulePreview); });
+    };
+    $('vn-circles').addEventListener('change', () => { buildRegionInputs(); schedulePreview(); });
+    buildRegionInputs();
   },
 
   generateSVG() {
@@ -737,8 +775,9 @@ TEMPLATES['venn-diagram'] = {
     const uniLabel = val('vn-universal') || '\u03BE';
     const showRect = checked('vn-rect');
     const colours = [val('vn-col-a') || '#4262ff', val('vn-col-b') || '#ff6b6b', val('vn-col-c') || '#43a047'];
+    const opacity = (num('vn-opacity', 20) / 100).toFixed(2);
 
-    const W = 460, H = nCircles === 3 ? 360 : 300, pad = 20;
+    const W = nCircles === 3 ? 650 : 500, H = nCircles === 3 ? 450 : 350, pad = 20;
     const svg = makeSVG(W, H);
     svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: '#fff' }));
 
@@ -747,23 +786,22 @@ TEMPLATES['venn-diagram'] = {
       svg.appendChild(textEl(uniLabel, pad + 14, pad + 14, { 'font-size': '16', 'font-weight': '700', fill: '#555', 'text-anchor': 'start' }));
     }
 
-    const r = nCircles === 3 ? 85 : 95;
+    const r = nCircles === 3 ? 120 : 95;
     const cx = W / 2, cy = nCircles === 3 ? H / 2 + 5 : H / 2;
-    const offset = nCircles === 3 ? 50 : 55;
+    const offset = nCircles === 3 ? 65 : 55;
 
     const positions = nCircles === 2
       ? [{ x: cx - offset, y: cy }, { x: cx + offset, y: cy }]
-      : [{ x: cx - offset, y: cy + 20 }, { x: cx + offset, y: cy + 20 }, { x: cx, y: cy - offset + 10 }];
+      : [{ x: cx - offset, y: cy + 25 }, { x: cx + offset, y: cy + 25 }, { x: cx, y: cy - offset + 10 }];
 
     for (let i = 0; i < nCircles; i++) {
       const col = colours[i];
-      // Convert hex to rgba for transparency
       const rr = parseInt(col.slice(1, 3), 16);
       const gg = parseInt(col.slice(3, 5), 16);
       const bb = parseInt(col.slice(5, 7), 16);
       svg.appendChild(svgEl('circle', {
         cx: positions[i].x, cy: positions[i].y, r,
-        fill: `rgba(${rr},${gg},${bb},0.18)`,
+        fill: `rgba(${rr},${gg},${bb},${opacity})`,
         stroke: col, 'stroke-width': 2,
       }));
     }
@@ -771,10 +809,33 @@ TEMPLATES['venn-diagram'] = {
     // Labels
     const labelPositions = nCircles === 2
       ? [{ x: cx - offset - r + 20, y: cy - r + 10 }, { x: cx + offset + r - 20, y: cy - r + 10 }]
-      : [{ x: cx - offset - r + 15, y: cy + 20 + r - 10 }, { x: cx + offset + r - 15, y: cy + 20 + r - 10 }, { x: cx, y: cy - offset + 10 - r + 5 }];
+      : [{ x: cx - offset - r + 15, y: cy + 25 + r - 10 }, { x: cx + offset + r - 15, y: cy + 25 + r - 10 }, { x: cx, y: cy - offset + 10 - r + 5 }];
 
     for (let i = 0; i < nCircles; i++) {
       svg.appendChild(textEl(labels[i], labelPositions[i].x, labelPositions[i].y, { 'font-size': '15', 'font-weight': '700', fill: colours[i] }));
+    }
+
+    // Region contents
+    const regionStyle = { 'font-size': '13', 'font-weight': '600', fill: '#222' };
+    if (nCircles === 2) {
+      const aOnly = val('vn-r-aonly'), ab = val('vn-r-ab'), bOnly = val('vn-r-bonly'), outside = val('vn-r-outside');
+      if (aOnly) svg.appendChild(textEl(aOnly, positions[0].x - offset / 2, cy, regionStyle));
+      if (ab) svg.appendChild(textEl(ab, cx, cy, regionStyle));
+      if (bOnly) svg.appendChild(textEl(bOnly, positions[1].x + offset / 2, cy, regionStyle));
+      if (outside) svg.appendChild(textEl(outside, pad + 30, H - pad - 10, { ...regionStyle, 'font-size': '11', fill: '#666' }));
+    } else {
+      const aOnly = val('vn-r-aonly'), bOnly = val('vn-r-bonly'), cOnly = val('vn-r-conly');
+      const ab = val('vn-r-ab'), ac = val('vn-r-ac'), bc = val('vn-r-bc');
+      const abc = val('vn-r-abc'), outside = val('vn-r-outside');
+      const ctrX = cx, ctrY = cy + 5;
+      if (aOnly) svg.appendChild(textEl(aOnly, positions[0].x - 45, positions[0].y, regionStyle));
+      if (bOnly) svg.appendChild(textEl(bOnly, positions[1].x + 45, positions[1].y, regionStyle));
+      if (cOnly) svg.appendChild(textEl(cOnly, positions[2].x, positions[2].y - 55, regionStyle));
+      if (ab) svg.appendChild(textEl(ab, ctrX, positions[0].y + 38, regionStyle));
+      if (ac) svg.appendChild(textEl(ac, ctrX - 50, ctrY - 25, regionStyle));
+      if (bc) svg.appendChild(textEl(bc, ctrX + 50, ctrY - 25, regionStyle));
+      if (abc) svg.appendChild(textEl(abc, ctrX, ctrY, regionStyle));
+      if (outside) svg.appendChild(textEl(outside, pad + 30, H - pad - 10, { ...regionStyle, 'font-size': '11', fill: '#666' }));
     }
 
     return svg;
@@ -794,6 +855,16 @@ TEMPLATES['carroll-diagram'] = {
       { type: 'text', id: 'cd-row-neg', label: 'Row negation', value: 'Not even', placeholder: 'e.g. Not even' },
       { type: 'text', id: 'cd-col-crit', label: 'Column criteria', value: 'Prime', placeholder: 'e.g. Prime' },
       { type: 'text', id: 'cd-col-neg', label: 'Column negation', value: 'Not prime', placeholder: 'e.g. Not prime' },
+      { type: 'divider' },
+      { type: 'heading', label: 'Cell contents' },
+      { type: 'row-start' },
+      { type: 'text', id: 'cd-cell-tl', label: 'Top-left', value: '', placeholder: 'e.g. 2' },
+      { type: 'text', id: 'cd-cell-tr', label: 'Top-right', value: '', placeholder: 'e.g. 4, 6, 8' },
+      { type: 'row-end' },
+      { type: 'row-start' },
+      { type: 'text', id: 'cd-cell-bl', label: 'Bottom-left', value: '', placeholder: 'e.g. 3, 5, 7' },
+      { type: 'text', id: 'cd-cell-br', label: 'Bottom-right', value: '', placeholder: 'e.g. 1, 9' },
+      { type: 'row-end' },
     ]);
   },
 
@@ -803,6 +874,7 @@ TEMPLATES['carroll-diagram'] = {
     const rowNeg  = val('cd-row-neg') || 'No';
     const colCrit = val('cd-col-crit') || 'Yes';
     const colNeg  = val('cd-col-neg') || 'No';
+    const cellTexts = [val('cd-cell-tl'), val('cd-cell-tr'), val('cd-cell-bl'), val('cd-cell-br')];
 
     const cellW = 130, cellH = 80, headerW = 80, headerH = 30, pad = 20;
     const titleH = title ? 28 : 0;
@@ -835,12 +907,16 @@ TEMPLATES['carroll-diagram'] = {
     svg.appendChild(svgEl('rect', { x: baseX, y: rowY2, width: headerW, height: cellH, fill: '#fce4ec', stroke: '#aaa', 'stroke-width': 1 }));
     svg.appendChild(textEl(rowNeg, baseX + headerW / 2, rowY2 + cellH / 2, { 'font-size': '12', 'font-weight': '700', fill: '#333' }));
 
-    // 4 data cells
+    // 4 data cells with content
     for (let r = 0; r < 2; r++) {
       for (let c = 0; c < 2; c++) {
         const x = baseX + headerW + c * cellW;
         const y = baseY + headerH + r * cellH;
         svg.appendChild(svgEl('rect', { x, y, width: cellW, height: cellH, fill: '#fff', stroke: '#bbb', 'stroke-width': 1 }));
+        const txt = cellTexts[r * 2 + c];
+        if (txt) {
+          svg.appendChild(textEl(txt, x + cellW / 2, y + cellH / 2, { 'font-size': '12', fill: '#333' }));
+        }
       }
     }
 
@@ -855,16 +931,20 @@ TEMPLATES['carroll-diagram'] = {
 TEMPLATES['tree-diagram'] = {
   renderConfig(ct) {
     ct.innerHTML = buildConfig('Tree Diagram', [
+      { type: 'select', id: 'td-preset', label: 'Preset', value: 'custom', options: [
+        { v: 'custom', l: 'Custom' }, { v: 'coin', l: 'Coin flip' }, { v: 'dice', l: 'Dice' },
+        { v: 'spinner', l: 'Spinner (R/G/B)' }, { v: 'biased', l: 'Biased coin' },
+      ]},
       { type: 'row-start' },
       { type: 'select', id: 'td-stages', label: 'Stages', value: '2', options: [{ v: '1', l: '1' }, { v: '2', l: '2' }, { v: '3', l: '3' }] },
-      { type: 'select', id: 'td-branches', label: 'Branches per node', value: '2', options: [{ v: '2', l: '2' }, { v: '3', l: '3' }] },
+      { type: 'select', id: 'td-branches', label: 'Branches per node', value: '2', options: [{ v: '2', l: '2' }, { v: '3', l: '3' }, { v: '6', l: '6' }] },
       { type: 'row-end' },
       { type: 'checkbox', id: 'td-combined', label: 'Show combined outcomes', checked: true },
       { type: 'divider' },
       { type: 'heading', label: 'Branch labels & probabilities' },
       { type: 'container', id: 'td-fields' },
     ]);
-    const updateFields = () => {
+    const updateFields = (presetLabels, presetProbs) => {
       const stages = parseInt($('td-stages').value, 10) || 2;
       const bpn = parseInt($('td-branches').value, 10) || 2;
       const ct2 = $('td-fields');
@@ -872,14 +952,34 @@ TEMPLATES['tree-diagram'] = {
       for (let s = 0; s < stages; s++) {
         html += `<div class="cfg-label" style="margin-top:6px">Stage ${s + 1}</div>`;
         for (let b = 0; b < bpn; b++) {
-          html += `<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">Label</label><input type="text" class="cfg-input" value="${s === 0 ? (b === 0 ? 'H' : 'T') : (b === 0 ? 'H' : 'T')}" data-td-label="${s}-${b}" /></div><div class="cfg-field"><label class="cfg-field-label">P</label><input type="text" class="cfg-input" value="1/${bpn}" data-td-prob="${s}-${b}" /></div></div>`;
+          const lbl = presetLabels ? (presetLabels[s] && presetLabels[s][b]) || '' : (b === 0 ? 'H' : 'T');
+          const prob = presetProbs ? (presetProbs[s] && presetProbs[s][b]) || '' : `1/${bpn}`;
+          html += `<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">Label</label><input type="text" class="cfg-input" value="${lbl}" data-td-label="${s}-${b}" /></div><div class="cfg-field"><label class="cfg-field-label">P</label><input type="text" class="cfg-input" value="${prob}" data-td-prob="${s}-${b}" /></div></div>`;
         }
       }
       ct2.innerHTML = html;
       ct2.querySelectorAll('input').forEach(el => el.addEventListener('input', schedulePreview));
     };
-    $('td-stages').addEventListener('change', updateFields);
-    $('td-branches').addEventListener('change', updateFields);
+    const TD_PRESETS = {
+      coin:    { stages: 2, bpn: 2, labels: [['H','T'],['H','T']], probs: [['1/2','1/2'],['1/2','1/2']] },
+      dice:    { stages: 1, bpn: 6, labels: [['1','2','3','4','5','6']], probs: [['1/6','1/6','1/6','1/6','1/6','1/6']] },
+      spinner: { stages: 1, bpn: 3, labels: [['R','G','B']], probs: [['1/3','1/3','1/3']] },
+      biased:  { stages: 2, bpn: 2, labels: [['H','T'],['H','T']], probs: [['3/4','1/4'],['3/4','1/4']] },
+    };
+    $('td-stages').addEventListener('change', () => updateFields());
+    $('td-branches').addEventListener('change', () => updateFields());
+    $('td-preset').addEventListener('change', () => {
+      const key = $('td-preset').value;
+      if (key !== 'custom') {
+        const p = TD_PRESETS[key];
+        if (p) {
+          $('td-stages').value = String(p.stages);
+          $('td-branches').value = String(p.bpn);
+          updateFields(p.labels, p.probs);
+          schedulePreview();
+        }
+      }
+    });
     updateFields();
   },
 
@@ -969,15 +1069,15 @@ TEMPLATES['tree-diagram'] = {
 TEMPLATES['box-whisker'] = {
   renderConfig(ct) {
     ct.innerHTML = buildConfig('Box & Whisker', [
+      { type: 'heading', label: 'Input mode' },
       { type: 'row-start' },
-      { type: 'number', id: 'bw-min', label: 'Min', value: 12, step: 1 },
-      { type: 'number', id: 'bw-q1', label: 'Q1', value: 25, step: 1 },
-      { type: 'number', id: 'bw-median', label: 'Median', value: 35, step: 1 },
+      { type: 'select', id: 'bw-mode', label: 'Input mode', value: 'summary', options: [
+        { v: 'summary', l: 'Summary values' }, { v: 'paste', l: 'Paste data' },
+      ]},
       { type: 'row-end' },
-      { type: 'row-start' },
-      { type: 'number', id: 'bw-q3', label: 'Q3', value: 48, step: 1 },
-      { type: 'number', id: 'bw-max', label: 'Max', value: 62, step: 1 },
-      { type: 'row-end' },
+      { type: 'range', id: 'bw-count', label: 'Number of plots', value: 1, min: 1, max: 3, step: 1 },
+      { type: 'container', id: 'bw-summary-panel' },
+      { type: 'container', id: 'bw-paste-panel' },
       { type: 'divider' },
       { type: 'row-start' },
       { type: 'number', id: 'bw-amin', label: 'Axis min', value: 0, step: 5 },
@@ -985,27 +1085,128 @@ TEMPLATES['box-whisker'] = {
       { type: 'number', id: 'bw-step', label: 'Axis step', value: 10, step: 1 },
       { type: 'row-end' },
       { type: 'checkbox', id: 'bw-labels', label: 'Show value labels', checked: true },
+      { type: 'checkbox', id: 'bw-blank', label: 'Blank (no values)', checked: false },
       { type: 'text', id: 'bw-title', label: 'Title', value: '', placeholder: 'Optional title' },
     ]);
+
+    const bwPlotColours = ['#4262ff', '#e63946', '#2a9d8f'];
+    const bwDefaults = [
+      { min: 12, q1: 25, med: 35, q3: 48, max: 62, label: '' },
+      { min: 18, q1: 30, med: 40, q3: 52, max: 65, label: '' },
+      { min: 8, q1: 20, med: 32, q3: 45, max: 58, label: '' },
+    ];
+
+    // Build summary panels for all plots
+    const buildSummaryPanels = () => {
+      const count = parseInt(val('bw-count'), 10) || 1;
+      const sp = $('bw-summary-panel');
+      let html = '';
+      for (let i = 0; i < count; i++) {
+        const suffix = i === 0 ? '' : String(i + 1);
+        const d = bwDefaults[i];
+        const colDot = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${bwPlotColours[i]};margin-right:4px;vertical-align:middle;"></span>`;
+        if (count > 1) html += `<div class="cfg-label" style="margin-top:6px;">${colDot}Plot ${i + 1}</div>`;
+        html += `<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">Label${suffix ? ' ' + (i+1) : ''}</label><input type="text" id="bw-plabel${suffix}" class="cfg-input cfg-input-sm" value="${d.label}" placeholder="${count > 1 ? 'e.g. Boys' : 'Optional'}" /></div></div>`;
+        html += `<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">Min</label><input type="number" id="bw-min${suffix}" class="cfg-input cfg-input-sm" value="${d.min}" step="1" /></div><div class="cfg-field"><label class="cfg-field-label">Q1</label><input type="number" id="bw-q1${suffix}" class="cfg-input cfg-input-sm" value="${d.q1}" step="1" /></div><div class="cfg-field"><label class="cfg-field-label">Median</label><input type="number" id="bw-median${suffix}" class="cfg-input cfg-input-sm" value="${d.med}" step="1" /></div></div>`;
+        html += `<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">Q3</label><input type="number" id="bw-q3${suffix}" class="cfg-input cfg-input-sm" value="${d.q3}" step="1" /></div><div class="cfg-field"><label class="cfg-field-label">Max</label><input type="number" id="bw-max${suffix}" class="cfg-input cfg-input-sm" value="${d.max}" step="1" /></div></div>`;
+      }
+      sp.innerHTML = html;
+      sp.querySelectorAll('input').forEach(el => { el.addEventListener('input', schedulePreview); el.addEventListener('change', schedulePreview); });
+    };
+
+    buildSummaryPanels();
+
+    // Build paste panel (hidden by default)
+    const pp = $('bw-paste-panel');
+    pp.innerHTML = '<div class="cfg-field"><label class="cfg-field-label">Paste comma-separated numbers</label><textarea id="bw-rawdata" class="cfg-input" rows="3" placeholder="e.g. 12, 25, 30, 35, 48, 50, 62" style="width:100%;resize:vertical;font-family:monospace;font-size:12px;"></textarea></div><div id="bw-computed-stats" style="font-size:11px;color:#666;padding:4px 0;"></div>';
+    pp.style.display = 'none';
+
+    // Wire mode toggle
+    const modeSelect = $('bw-mode');
+    const toggleMode = () => {
+      const isPaste = modeSelect.value === 'paste';
+      $('bw-summary-panel').style.display = isPaste ? 'none' : '';
+      pp.style.display = isPaste ? '' : 'none';
+      if (isPaste) bwComputeFromRaw();
+      schedulePreview();
+    };
+    modeSelect.addEventListener('change', toggleMode);
+
+    // Wire count slider
+    $('bw-count').addEventListener('input', () => {
+      $('bw-count-val').textContent = val('bw-count');
+      buildSummaryPanels();
+      schedulePreview();
+    });
+
+    // Wire raw data textarea
+    const rawArea = $('bw-rawdata');
+    rawArea.addEventListener('input', () => { bwComputeFromRaw(); schedulePreview(); });
+
+    function bwComputeFromRaw() {
+      const raw = ($('bw-rawdata') || {}).value || '';
+      const nums = raw.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+      if (nums.length < 2) { $('bw-computed-stats').textContent = 'Enter at least 2 numbers.'; return; }
+      nums.sort((a, b) => a - b);
+      const median = arr => {
+        const n = arr.length;
+        if (n === 0) return 0;
+        if (n % 2 === 1) return arr[Math.floor(n / 2)];
+        return (arr[n / 2 - 1] + arr[n / 2]) / 2;
+      };
+      const dMin = nums[0], dMax = nums[nums.length - 1];
+      const med = median(nums);
+      const mid = Math.floor(nums.length / 2);
+      const lower = nums.length % 2 === 0 ? nums.slice(0, mid) : nums.slice(0, mid);
+      const upper = nums.length % 2 === 0 ? nums.slice(mid) : nums.slice(mid + 1);
+      const q1 = median(lower), q3 = median(upper);
+      // Set summary fields so generateSVG works
+      $('bw-min').value = dMin; $('bw-q1').value = q1; $('bw-median').value = med;
+      $('bw-q3').value = q3; $('bw-max').value = dMax;
+      // Auto-set axis
+      const range = dMax - dMin;
+      const step = Math.max(1, Math.round(range / 7));
+      $('bw-amin').value = Math.floor(dMin / step) * step;
+      $('bw-amax').value = Math.ceil(dMax / step) * step + step;
+      $('bw-step').value = step;
+      $('bw-computed-stats').textContent = `n=${nums.length}  Min=${dMin}  Q1=${q1}  Med=${med}  Q3=${q3}  Max=${dMax}`;
+    }
   },
 
   generateSVG() {
-    const dMin = num('bw-min', 12), q1 = num('bw-q1', 25), med = num('bw-median', 35);
-    const q3 = num('bw-q3', 48), dMax = num('bw-max', 62);
+    const plotCount = parseInt(val('bw-count'), 10) || 1;
     const aMin = num('bw-amin', 0), aMax = num('bw-amax', 70), aStep = num('bw-step', 10);
-    const showLabels = checked('bw-labels');
+    const showLabels = checked('bw-labels') && !checked('bw-blank');
+    const isBlank = checked('bw-blank');
     const title = val('bw-title');
+    const plotColours = ['#4262ff', '#e63946', '#2a9d8f'];
+    const fillColours = ['rgba(66,98,255,0.15)', 'rgba(230,57,70,0.15)', 'rgba(42,157,143,0.15)'];
 
-    const padL = 30, padR = 30, padT = title ? 40 : 20, padB = 40;
+    // Gather data for each plot
+    const plots = [];
+    for (let i = 0; i < plotCount; i++) {
+      const suffix = i === 0 ? '' : String(i + 1);
+      plots.push({
+        dMin: num('bw-min' + suffix, 12), q1: num('bw-q1' + suffix, 25), med: num('bw-median' + suffix, 35),
+        q3: num('bw-q3' + suffix, 48), dMax: num('bw-max' + suffix, 62),
+        label: val('bw-plabel' + suffix) || '',
+      });
+    }
+
+    const hasPlotLabels = plots.some(p => p.label);
+    const padL = hasPlotLabels ? 90 : 30;
+    const padR = 30, padT = title ? 40 : 20, padB = 40;
     const plotW = 460;
     const W = padL + plotW + padR;
-    const boxY = padT + 10, boxH = 36;
-    const axisY = boxY + boxH + 20;
+    const boxH = 36, boxGap = 14;
+    const totalPlotH = plotCount * boxH + (plotCount - 1) * boxGap;
+    const plotStartY = padT + 10;
+    const axisY = plotStartY + totalPlotH + 20;
     const H = axisY + padB;
     const svg = makeSVG(W, H);
     svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: '#fff' }));
 
-    if (title) svg.appendChild(textEl(title, W / 2, 18, { 'font-size': '14', 'font-weight': '700' }));
+    if (title && !isBlank) svg.appendChild(textEl(title, W / 2, 18, { 'font-size': '14', 'font-weight': '700' }));
 
     function mapX(v) { return padL + ((v - aMin) / (aMax - aMin)) * plotW; }
 
@@ -1016,29 +1217,44 @@ TEMPLATES['box-whisker'] = {
     for (let v = aMin; v <= aMax + aStep * 0.01; v += aStep) {
       const x = mapX(v);
       svg.appendChild(svgEl('line', { x1: x, y1: axisY - 4, x2: x, y2: axisY + 4, stroke: '#555', 'stroke-width': 1 }));
-      svg.appendChild(textEl(String(Math.round(v)), x, axisY + 16, { 'font-size': '11', fill: '#555' }));
+      if (!isBlank) {
+        svg.appendChild(textEl(String(Math.round(v)), x, axisY + 16, { 'font-size': '11', fill: '#555' }));
+      }
     }
 
-    // Whiskers
-    const wY = boxY + boxH / 2;
-    svg.appendChild(svgEl('line', { x1: mapX(dMin), y1: wY, x2: mapX(q1), y2: wY, stroke: '#333', 'stroke-width': 2 }));
-    svg.appendChild(svgEl('line', { x1: mapX(q3), y1: wY, x2: mapX(dMax), y2: wY, stroke: '#333', 'stroke-width': 2 }));
-    // Whisker end caps
-    svg.appendChild(svgEl('line', { x1: mapX(dMin), y1: boxY + 6, x2: mapX(dMin), y2: boxY + boxH - 6, stroke: '#333', 'stroke-width': 2 }));
-    svg.appendChild(svgEl('line', { x1: mapX(dMax), y1: boxY + 6, x2: mapX(dMax), y2: boxY + boxH - 6, stroke: '#333', 'stroke-width': 2 }));
+    // Draw each plot
+    for (let i = 0; i < plotCount; i++) {
+      const p = plots[i];
+      const colour = plotColours[i % plotColours.length];
+      const fill = fillColours[i % fillColours.length];
+      const boxY = plotStartY + i * (boxH + boxGap);
+      const wY = boxY + boxH / 2;
 
-    // Box
-    svg.appendChild(svgEl('rect', { x: mapX(q1), y: boxY, width: mapX(q3) - mapX(q1), height: boxH, fill: '#e3f2fd', stroke: '#333', 'stroke-width': 2 }));
+      // Plot label (left side)
+      if (p.label && !isBlank) {
+        svg.appendChild(textEl(p.label, padL - 8, wY, { 'font-size': '12', 'font-weight': '600', fill: colour, 'text-anchor': 'end' }));
+      }
 
-    // Median line
-    svg.appendChild(svgEl('line', { x1: mapX(med), y1: boxY, x2: mapX(med), y2: boxY + boxH, stroke: '#e53935', 'stroke-width': 2.5 }));
+      // Whiskers
+      svg.appendChild(svgEl('line', { x1: mapX(p.dMin), y1: wY, x2: mapX(p.q1), y2: wY, stroke: colour, 'stroke-width': 2 }));
+      svg.appendChild(svgEl('line', { x1: mapX(p.q3), y1: wY, x2: mapX(p.dMax), y2: wY, stroke: colour, 'stroke-width': 2 }));
+      // Whisker end caps
+      svg.appendChild(svgEl('line', { x1: mapX(p.dMin), y1: boxY + 6, x2: mapX(p.dMin), y2: boxY + boxH - 6, stroke: colour, 'stroke-width': 2 }));
+      svg.appendChild(svgEl('line', { x1: mapX(p.dMax), y1: boxY + 6, x2: mapX(p.dMax), y2: boxY + boxH - 6, stroke: colour, 'stroke-width': 2 }));
 
-    // Labels
-    if (showLabels) {
-      const lY = boxY - 6;
-      [dMin, q1, med, q3, dMax].forEach(v => {
-        svg.appendChild(textEl(String(v), mapX(v), lY, { 'font-size': '10', 'font-weight': '600', fill: '#333' }));
-      });
+      // Box
+      svg.appendChild(svgEl('rect', { x: mapX(p.q1), y: boxY, width: mapX(p.q3) - mapX(p.q1), height: boxH, fill, stroke: colour, 'stroke-width': 2 }));
+
+      // Median line
+      svg.appendChild(svgEl('line', { x1: mapX(p.med), y1: boxY, x2: mapX(p.med), y2: boxY + boxH, stroke: colour, 'stroke-width': 2.5 }));
+
+      // Value labels
+      if (showLabels) {
+        const lY = boxY - 6;
+        [p.dMin, p.q1, p.med, p.q3, p.dMax].forEach(v => {
+          svg.appendChild(textEl(String(v), mapX(v), lY, { 'font-size': '10', 'font-weight': '600', fill: colour }));
+        });
+      }
     }
 
     return svg;
@@ -1193,7 +1409,7 @@ function selectTemplate(name) {
   tpl.renderConfig(configPanel);
 
   // Wire up live preview on all inputs
-  configPanel.querySelectorAll('input, select').forEach(el => {
+  configPanel.querySelectorAll('input, select, textarea').forEach(el => {
     el.addEventListener('input', schedulePreview);
     el.addEventListener('change', schedulePreview);
   });
@@ -1236,11 +1452,13 @@ async function placeOnBoard() {
 
   // Store template name + all config input values for edit
   const settings = { _tplGen: true, template: activeTemplate, inputs: {} };
-  configPanel.querySelectorAll('input, select').forEach(el => {
+  configPanel.querySelectorAll('input, select, textarea').forEach(el => {
     const key = el.id || el.getAttribute('data-seg-label') || el.getAttribute('data-seg-colour')
       || el.getAttribute('data-fm-op') || el.getAttribute('data-tw-row') || el.getAttribute('data-tw-col')
       || el.getAttribute('data-td-label') || el.getAttribute('data-td-prob')
       || el.getAttribute('data-ps-label') || el.getAttribute('data-ps-pos')
+      || el.getAttribute('data-tc-label') || el.getAttribute('data-tc-tally')
+      || el.getAttribute('data-ft-interval') || el.getAttribute('data-di-val')
       || el.getAttribute('data-group');
     if (!key) return;
     if (el.type === 'checkbox') {
@@ -1314,7 +1532,11 @@ async function editSelected() {
       || document.querySelector(`[data-td-label="${key}"]`)
       || document.querySelector(`[data-td-prob="${key}"]`)
       || document.querySelector(`[data-ps-label="${key}"]`)
-      || document.querySelector(`[data-ps-pos="${key}"]`);
+      || document.querySelector(`[data-ps-pos="${key}"]`)
+      || document.querySelector(`[data-tc-label="${key}"]`)
+      || document.querySelector(`[data-tc-tally="${key}"]`)
+      || document.querySelector(`[data-ft-interval="${key}"]`)
+      || document.querySelector(`[data-di-val="${key}"]`);
     if (!el) continue;
     if (el.type === 'checkbox') {
       el.checked = !!value;
@@ -1362,6 +1584,9 @@ function init() {
   // Event delegation for live preview — covers dynamically created inputs too
   configPanel.addEventListener('input', schedulePreview);
   configPanel.addEventListener('change', schedulePreview);
+
+  // Expose schedulePreview for dynamic inputs in extra templates
+  window._tplSchedulePreview = schedulePreview;
 
   // Bottom bar
   placeBtn.addEventListener('click', placeOnBoard);
