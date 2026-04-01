@@ -1,7 +1,7 @@
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
-const root = 'front/';
+const root = 'apps/';
 
 export default defineConfig({
   root,
