@@ -1,7 +1,7 @@
 /* ── Interactive Maths Templates ──────────────────── */
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const $ = (id) => document.getElementById(id);
+function getEl(id) { return document.getElementById(id); }
 
 function svgEl(tag, attrs) {
   const el = document.createElementNS(SVG_NS, tag);
@@ -188,19 +188,19 @@ const numberLine = {
   },
 
   readConfig() {
-    const highlights = ($('nl-highlights')?.value || '').split(',')
+    const highlights = (getEl('nl-highlights')?.value || '').split(',')
       .map((s) => s.trim()).filter(Boolean).map(Number).filter((n) => !isNaN(n)).slice(0, 5);
     return {
-      min: parseFloat($('nl-min')?.value) || -10,
-      max: parseFloat($('nl-max')?.value) || 10,
-      step: parseFloat($('nl-step')?.value) || 1,
-      minor: parseInt($('nl-minor')?.value, 10) || 0,
-      orientation: $('nl-orient')?.value || 'horizontal',
-      showLabels: $('nl-labels')?.checked ?? true,
-      showArrows: $('nl-arrows')?.checked ?? true,
-      numberFormat: $('nl-format')?.value || 'integer',
+      min: parseFloat(getEl('nl-min')?.value) || -10,
+      max: parseFloat(getEl('nl-max')?.value) || 10,
+      step: parseFloat(getEl('nl-step')?.value) || 1,
+      minor: parseInt(getEl('nl-minor')?.value, 10) || 0,
+      orientation: getEl('nl-orient')?.value || 'horizontal',
+      showLabels: getEl('nl-labels')?.checked ?? true,
+      showArrows: getEl('nl-arrows')?.checked ?? true,
+      numberFormat: getEl('nl-format')?.value || 'integer',
       highlights,
-      title: $('nl-title')?.value || '',
+      title: getEl('nl-title')?.value || '',
     };
   },
 
@@ -357,14 +357,14 @@ const redYellowCounters = {
     this._buildToggles(6);
 
     // Rebuild on count change
-    const numInput = $('ryc-num');
+    const numInput = getEl('ryc-num');
     numInput.addEventListener('change', () => {
       this._buildToggles(parseInt(numInput.value, 10) || 6);
     });
   },
 
   _buildToggles(n) {
-    const wrap = $('ryc-toggles');
+    const wrap = getEl('ryc-toggles');
     if (!wrap) return;
     // Preserve existing states
     const old = [];
@@ -388,7 +388,7 @@ const redYellowCounters = {
   },
 
   readConfig() {
-    const n = Math.min(parseInt($('ryc-num')?.value, 10) || 6, 20);
+    const n = Math.min(parseInt(getEl('ryc-num')?.value, 10) || 6, 20);
     const colours = [];
     for (let i = 0; i < n; i++) {
       const cb = $(`ryc-c${i}`);
@@ -396,8 +396,8 @@ const redYellowCounters = {
     }
     return {
       num: n,
-      size: parseInt($('ryc-size')?.value, 10) || 40,
-      layout: $('ryc-layout')?.value || 'row',
+      size: parseInt(getEl('ryc-size')?.value, 10) || 40,
+      layout: getEl('ryc-layout')?.value || 'row',
       colours,
     };
   },
@@ -503,11 +503,11 @@ const algebraTiles = {
 
   readConfig() {
     return {
-      expression: $('at-expr')?.value || '2x^2 + 3x - 1',
-      layout: $('at-layout')?.value || 'horizontal',
-      posColour: $('at-pos-col')?.value || '#3498db',
-      negColour: $('at-neg-col')?.value || '#e74c3c',
-      showLabels: $('at-labels')?.checked ?? true,
+      expression: getEl('at-expr')?.value || '2x^2 + 3x - 1',
+      layout: getEl('at-layout')?.value || 'horizontal',
+      posColour: getEl('at-pos-col')?.value || '#3498db',
+      negColour: getEl('at-neg-col')?.value || '#e74c3c',
+      showLabels: getEl('at-labels')?.checked ?? true,
     };
   },
 
@@ -656,18 +656,18 @@ const rightAngledTriangle = {
 
   readConfig() {
     return {
-      base: parseFloat($('rat-base')?.value) || 5,
-      height: parseFloat($('rat-height')?.value) || 4,
-      anglePos: $('rat-angle-pos')?.value || 'bottom-left',
-      labelStyle: $('rat-label-style')?.value || 'abc',
-      customBase: $('rat-lbl-base')?.value || '',
-      customHeight: $('rat-lbl-height')?.value || '',
-      customHyp: $('rat-lbl-hyp')?.value || '',
-      showHyp: $('rat-show-hyp')?.checked ?? true,
-      showAngle: $('rat-show-angle')?.checked ?? true,
-      showRA: $('rat-show-ra')?.checked ?? true,
-      showDim: $('rat-show-dim')?.checked ?? true,
-      showArea: $('rat-show-area')?.checked ?? false,
+      base: parseFloat(getEl('rat-base')?.value) || 5,
+      height: parseFloat(getEl('rat-height')?.value) || 4,
+      anglePos: getEl('rat-angle-pos')?.value || 'bottom-left',
+      labelStyle: getEl('rat-label-style')?.value || 'abc',
+      customBase: getEl('rat-lbl-base')?.value || '',
+      customHeight: getEl('rat-lbl-height')?.value || '',
+      customHyp: getEl('rat-lbl-hyp')?.value || '',
+      showHyp: getEl('rat-show-hyp')?.checked ?? true,
+      showAngle: getEl('rat-show-angle')?.checked ?? true,
+      showRA: getEl('rat-show-ra')?.checked ?? true,
+      showDim: getEl('rat-show-dim')?.checked ?? true,
+      showArea: getEl('rat-show-area')?.checked ?? false,
     };
   },
 
@@ -823,12 +823,12 @@ const doubleNumberLine = {
   readConfig() {
     const parseVals = (str) => (str || '').split(',').map((s) => s.trim()).filter(Boolean);
     return {
-      topLabel: $('dnl-top-label')?.value || '',
-      bottomLabel: $('dnl-bottom-label')?.value || '',
-      topValues: parseVals($('dnl-top-vals')?.value),
-      bottomValues: parseVals($('dnl-bottom-vals')?.value),
-      showArrows: $('dnl-arrows')?.checked ?? true,
-      title: $('dnl-title')?.value || '',
+      topLabel: getEl('dnl-top-label')?.value || '',
+      bottomLabel: getEl('dnl-bottom-label')?.value || '',
+      topValues: parseVals(getEl('dnl-top-vals')?.value),
+      bottomValues: parseVals(getEl('dnl-bottom-vals')?.value),
+      showArrows: getEl('dnl-arrows')?.checked ?? true,
+      title: getEl('dnl-title')?.value || '',
     };
   },
 
@@ -929,12 +929,12 @@ const placeValueCounters = {
 
   readConfig() {
     return {
-      thousands: Math.min(9, Math.max(0, parseInt($('pvc-th')?.value, 10) || 0)),
-      hundreds: Math.min(9, Math.max(0, parseInt($('pvc-h')?.value, 10) || 0)),
-      tens: Math.min(9, Math.max(0, parseInt($('pvc-t')?.value, 10) || 0)),
-      ones: Math.min(9, Math.max(0, parseInt($('pvc-o')?.value, 10) || 0)),
-      showHeadings: $('pvc-headings')?.checked ?? true,
-      layout: $('pvc-layout')?.value || 'columns',
+      thousands: Math.min(9, Math.max(0, parseInt(getEl('pvc-th')?.value, 10) || 0)),
+      hundreds: Math.min(9, Math.max(0, parseInt(getEl('pvc-h')?.value, 10) || 0)),
+      tens: Math.min(9, Math.max(0, parseInt(getEl('pvc-t')?.value, 10) || 0)),
+      ones: Math.min(9, Math.max(0, parseInt(getEl('pvc-o')?.value, 10) || 0)),
+      showHeadings: getEl('pvc-headings')?.checked ?? true,
+      layout: getEl('pvc-layout')?.value || 'columns',
     };
   },
 
@@ -1023,9 +1023,9 @@ const tenFrames = {
     container.appendChild(filledDiv);
     this._buildFilledInputs(1, filledDiv);
 
-    $('tf-frames').addEventListener('change', () => {
-      const n = Math.min(4, Math.max(1, parseInt($('tf-frames').value, 10) || 1));
-      this._buildFilledInputs(n, $('tf-filled-wrap'));
+    getEl('tf-frames').addEventListener('change', () => {
+      const n = Math.min(4, Math.max(1, parseInt(getEl('tf-frames').value, 10) || 1));
+      this._buildFilledInputs(n, getEl('tf-filled-wrap'));
     });
 
     container.appendChild(makeRow(
@@ -1048,7 +1048,7 @@ const tenFrames = {
   },
 
   readConfig() {
-    const nFrames = Math.min(4, Math.max(1, parseInt($('tf-frames')?.value, 10) || 1));
+    const nFrames = Math.min(4, Math.max(1, parseInt(getEl('tf-frames')?.value, 10) || 1));
     const filled = [];
     for (let i = 0; i < nFrames; i++) {
       filled.push(Math.min(10, Math.max(0, parseInt($(`tf-filled-${i}`)?.value, 10) || 0)));
@@ -1056,8 +1056,8 @@ const tenFrames = {
     return {
       nFrames,
       filled,
-      colour: $('tf-colour')?.value || '#e74c3c',
-      showNum: $('tf-show-num')?.checked ?? false,
+      colour: getEl('tf-colour')?.value || '#e74c3c',
+      showNum: getEl('tf-show-num')?.checked ?? false,
     };
   },
 
@@ -1152,11 +1152,11 @@ const partWholeModel = {
 
   readConfig() {
     return {
-      whole: $('pw-whole')?.value || '',
-      part1: $('pw-part1')?.value || '',
-      part2: $('pw-part2')?.value || '',
-      showWholeLabel: $('pw-whole-label')?.checked ?? true,
-      showPartLabels: $('pw-part-labels')?.checked ?? true,
+      whole: getEl('pw-whole')?.value || '',
+      part1: getEl('pw-part1')?.value || '',
+      part2: getEl('pw-part2')?.value || '',
+      showWholeLabel: getEl('pw-whole-label')?.checked ?? true,
+      showPartLabels: getEl('pw-part-labels')?.checked ?? true,
     };
   },
 
@@ -1239,15 +1239,15 @@ const ratioBar = {
   },
 
   readConfig() {
-    const ratioParts = ($('rb-ratio')?.value || '3:2').split(':').map((s) => parseInt(s.trim(), 10) || 1);
-    const labels = ($('rb-labels')?.value || '').split(',').map((s) => s.trim());
-    const colours = ($('rb-colours')?.value || '#3498db,#e74c3c').split(',').map((s) => s.trim());
+    const ratioParts = (getEl('rb-ratio')?.value || '3:2').split(':').map((s) => parseInt(s.trim(), 10) || 1);
+    const labels = (getEl('rb-labels')?.value || '').split(',').map((s) => s.trim());
+    const colours = (getEl('rb-colours')?.value || '#3498db,#e74c3c').split(',').map((s) => s.trim());
     return {
       ratioParts,
       labels,
       colours,
-      total: parseFloat($('rb-total')?.value) || 0,
-      showValues: $('rb-values')?.checked ?? true,
+      total: parseFloat(getEl('rb-total')?.value) || 0,
+      showValues: getEl('rb-values')?.checked ?? true,
     };
   },
 
@@ -1390,14 +1390,14 @@ const coordinateGrid = {
       }
     }
     return {
-      xMin: parseFloat($('cg-xmin')?.value) || -6,
-      xMax: parseFloat($('cg-xmax')?.value) || 6,
-      yMin: parseFloat($('cg-ymin')?.value) || -6,
-      yMax: parseFloat($('cg-ymax')?.value) || 6,
-      step: parseFloat($('cg-step')?.value) || 1,
-      showGrid: $('cg-grid')?.checked ?? true,
-      showLabels: $('cg-labels')?.checked ?? true,
-      connect: $('cg-connect')?.checked ?? false,
+      xMin: parseFloat(getEl('cg-xmin')?.value) || -6,
+      xMax: parseFloat(getEl('cg-xmax')?.value) || 6,
+      yMin: parseFloat(getEl('cg-ymin')?.value) || -6,
+      yMax: parseFloat(getEl('cg-ymax')?.value) || 6,
+      step: parseFloat(getEl('cg-step')?.value) || 1,
+      showGrid: getEl('cg-grid')?.checked ?? true,
+      showLabels: getEl('cg-labels')?.checked ?? true,
+      connect: getEl('cg-connect')?.checked ?? false,
       points,
     };
   },
@@ -1528,15 +1528,15 @@ const areaModelMult = {
 
   readConfig() {
     return {
-      a: Math.max(1, parseInt($('am-a')?.value, 10) || 23),
-      b: Math.max(1, parseInt($('am-b')?.value, 10) || 14),
-      showPartial: $('am-partial')?.checked ?? true,
-      showDims: $('am-dims')?.checked ?? true,
+      a: Math.max(1, parseInt(getEl('am-a')?.value, 10) || 23),
+      b: Math.max(1, parseInt(getEl('am-b')?.value, 10) || 14),
+      showPartial: getEl('am-partial')?.checked ?? true,
+      showDims: getEl('am-dims')?.checked ?? true,
       colours: [
-        $('am-col1')?.value || '#3498db',
-        $('am-col2')?.value || '#2ecc71',
-        $('am-col3')?.value || '#f39c12',
-        $('am-col4')?.value || '#e74c3c',
+        getEl('am-col1')?.value || '#3498db',
+        getEl('am-col2')?.value || '#2ecc71',
+        getEl('am-col3')?.value || '#f39c12',
+        getEl('am-col4')?.value || '#e74c3c',
       ],
     };
   },
@@ -1655,17 +1655,17 @@ const fractionNumberLine = {
   },
 
   readConfig() {
-    const marked = ($('fnl-marks')?.value || '').split(',').map((s) => s.trim()).filter(Boolean).map((s) => {
+    const marked = (getEl('fnl-marks')?.value || '').split(',').map((s) => s.trim()).filter(Boolean).map((s) => {
       const parts = s.split('/');
       if (parts.length === 2) return { n: parseInt(parts[0], 10), d: parseInt(parts[1], 10) };
       return { n: parseFloat(s), d: 1 };
     }).filter((f) => !isNaN(f.n) && !isNaN(f.d) && f.d !== 0).slice(0, 5);
 
     return {
-      min: parseFloat($('fnl-min')?.value) ?? 0,
-      max: parseFloat($('fnl-max')?.value) ?? 2,
-      denom: Math.min(12, Math.max(2, parseInt($('fnl-denom')?.value, 10) || 4)),
-      showImproper: $('fnl-improper')?.checked ?? false,
+      min: parseFloat(getEl('fnl-min')?.value) ?? 0,
+      max: parseFloat(getEl('fnl-max')?.value) ?? 2,
+      denom: Math.min(12, Math.max(2, parseInt(getEl('fnl-denom')?.value, 10) || 4)),
+      showImproper: getEl('fnl-improper')?.checked ?? false,
       marked,
     };
   },
