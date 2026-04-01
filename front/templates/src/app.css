@@ -23,7 +23,7 @@ html, body {
 
 .tpl-layout {
   display: flex;
-  height: calc(100% - 46px);
+  height: calc(100vh - 46px);
   overflow: hidden;
 }
 

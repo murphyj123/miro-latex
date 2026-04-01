@@ -1165,7 +1165,11 @@ function updatePreview() {
   if (!activeTemplate || !TEMPLATES[activeTemplate]) return;
   previewArea.innerHTML = '';
   try {
-    previewArea.appendChild(TEMPLATES[activeTemplate].generateSVG());
+    const tpl = TEMPLATES[activeTemplate];
+    // Extra/interactive templates use readConfig() + generateSVG(settings)
+    // Phase 1 templates use generateSVG() with no args (reads DOM directly)
+    const settings = tpl.readConfig ? tpl.readConfig() : undefined;
+    previewArea.appendChild(tpl.generateSVG(settings));
   } catch (e) {
     previewArea.innerHTML = `<span style="color:#c00;font-size:12px;">Error: ${e.message}</span>`;
   }
@@ -1216,7 +1220,9 @@ async function placeOnBoard() {
     return;
   }
 
-  const svg = TEMPLATES[activeTemplate].generateSVG();
+  const tpl = TEMPLATES[activeTemplate];
+  const cfg = tpl.readConfig ? tpl.readConfig() : undefined;
+  const svg = tpl.generateSVG(cfg);
   const serializer = new XMLSerializer();
   const svgStr = serializer.serializeToString(svg);
   const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
