@@ -1,0 +1,147 @@
+/* ══════════════════════════════════════════════════════
+   JMATHS MIRO APPS — SHARED BRAND THEME
+   Used by: LaTeX, Axes, Templates, Timer
+   ══════════════════════════════════════════════════════ */
+
+:root {
+  /* Primary — Teal (matches jmaths.xyz) */
+  --primary: #14b8a6;
+  --primary-hover: #0d9488;
+  --primary-dark: #0f766e;
+  --primary-light: #99f6e4;
+  --primary-bg: rgba(20, 184, 166, 0.08);
+
+  /* Success — Emerald */
+  --success: #10b981;
+  --success-hover: #059669;
+
+  /* Warning — Amber */
+  --warning: #f59e0b;
+  --warning-hover: #d97706;
+
+  /* Danger — Red */
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+
+  /* Info — Cyan */
+  --info: #06b6d4;
+
+  /* Neutrals — Slate */
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+  --bg: #ffffff;
+  --bg-subtle: #f8fafc;
+  --bg-muted: #f1f5f9;
+
+  /* Shared */
+  --radius: 8px;
+  --radius-lg: 12px;
+  --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+
+  /* Gradient */
+  --gradient-primary: linear-gradient(135deg, #0f766e, #14b8a6);
+  --gradient-primary-hover: linear-gradient(135deg, #0d5c56, #0d9488);
+}
+
+/* ── Base reset ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Shared button styles ────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--gradient-primary);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(20,184,166,0.25);
+  letter-spacing: 0.02em;
+}
+
+.btn-primary:hover {
+  background: var(--gradient-primary-hover);
+  box-shadow: 0 4px 12px rgba(20,184,166,0.35);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.btn-secondary:hover {
+  background: var(--primary-bg);
+  color: var(--primary);
+  border-color: var(--primary-light);
+}
+
+/* ── Shared form inputs ──────────────────────────────── */
+.input {
+  padding: 7px 12px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.12s;
+}
+
+.input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.12);
+}
+
+.input::placeholder {
+  color: var(--text-light);
+}
+
+/* ── Shared header bar ───────────────────────────────── */
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--gradient-primary);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.app-header-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
