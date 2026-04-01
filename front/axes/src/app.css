@@ -1,0 +1,393 @@
+/* ── Axes Generator Styles ─────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans,
+    sans-serif;
+  font-size: 13px;
+  color: #333;
+  background: #f5f5f5;
+}
+
+/* ── Layout ──────────────────────────────────────── */
+
+.axes-layout {
+  display: flex;
+  height: calc(100% - 46px); /* leave room for bottom bar */
+  overflow: hidden;
+}
+
+.controls-panel {
+  width: 340px;
+  min-width: 340px;
+  overflow-y: auto;
+  padding: 14px 16px;
+  background: #f7f8fa;
+  border-right: 1px solid #e3e5ea;
+}
+
+.preview-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #fff;
+}
+
+.preview-area {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e8eaee;
+  overflow: hidden;
+}
+
+.preview-area svg {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* ── Section & Labels ────────────────────────────── */
+
+.ctrl-section {
+  padding: 4px 0 6px;
+}
+
+.ctrl-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 8px;
+}
+
+.ctrl-divider {
+  border: none;
+  border-top: 1px solid #e3e5ea;
+  margin: 6px 0;
+}
+
+/* ── Rows & Fields ───────────────────────────────── */
+
+.ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ctrl-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ctrl-field-full {
+  flex: unset;
+  width: 100%;
+}
+
+.ctrl-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+}
+
+/* ── Inputs ──────────────────────────────────────── */
+
+.ctrl-input {
+  width: 100%;
+  height: 30px;
+  padding: 2px 8px;
+  font-size: 12px;
+  border: 1px solid #d0d4dc;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  transition: border-color 0.12s;
+}
+
+.ctrl-input:focus {
+  outline: none;
+  border-color: #4262ff;
+  box-shadow: 0 0 0 2px rgba(66, 98, 255, 0.12);
+}
+
+.ctrl-input-sm {
+  width: 64px;
+  flex: none;
+}
+
+.ctrl-select {
+  height: 28px;
+  padding: 2px 6px;
+  font-size: 11px;
+  border: 1px solid #d0d4dc;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+}
+
+.ctrl-select:focus {
+  outline: none;
+  border-color: #4262ff;
+}
+
+/* ── Range sliders ───────────────────────────────── */
+
+.ctrl-range {
+  flex: 1;
+  height: 4px;
+  accent-color: #4262ff;
+  cursor: pointer;
+}
+
+.range-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: #4262ff;
+  min-width: 22px;
+  text-align: center;
+}
+
+/* ── Checkboxes & Radios ─────────────────────────── */
+
+.ctrl-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ctrl-check input[type="checkbox"] {
+  accent-color: #4262ff;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.ctrl-check span {
+  user-select: none;
+}
+
+.radio-group {
+  display: flex;
+  gap: 10px;
+}
+
+.ctrl-radio {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ctrl-radio input[type="radio"] {
+  accent-color: #4262ff;
+  cursor: pointer;
+}
+
+/* ── Colour swatches ─────────────────────────────── */
+
+.ctrl-swatch {
+  position: relative;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ctrl-swatch input[type="color"] {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.swatch-dot {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  transition: transform 0.1s;
+}
+
+.ctrl-swatch:hover .swatch-dot {
+  transform: scale(1.1);
+  border-color: #4262ff;
+}
+
+/* ── Preset chips ────────────────────────────────── */
+
+.preset-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.preset-strip::-webkit-scrollbar {
+  height: 4px;
+}
+
+.preset-strip::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 2px;
+}
+
+.preset-chip {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #d0d4dc;
+  border-radius: 20px;
+  background: #fff;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.preset-chip:hover {
+  border-color: #4262ff;
+  color: #4262ff;
+  background: #f0f3ff;
+}
+
+.preset-chip.active {
+  background: linear-gradient(135deg, #4262ff, #6c3dff);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 6px rgba(66, 98, 255, 0.25);
+}
+
+/* ── Bottom bar ──────────────────────────────────── */
+
+.axes-bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  background: #fff;
+  border-top: 1px solid #e3e5ea;
+  z-index: 10;
+}
+
+.place-btn {
+  height: 30px;
+  padding: 0 20px;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #4262ff, #6c3dff);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(66, 98, 255, 0.3);
+  letter-spacing: 0.3px;
+}
+
+.place-btn:hover {
+  background: linear-gradient(135deg, #3150dd, #5a2de0);
+  box-shadow: 0 4px 12px rgba(66, 98, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.place-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(66, 98, 255, 0.3);
+}
+
+.bar-btn {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #d0d4dc;
+  border-radius: 6px;
+  background: #f5f6f8;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.bar-btn:hover {
+  background: #e8f0ff;
+  color: #3a56d4;
+  border-color: #b0bfff;
+}
+
+.size-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.size-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #777;
+}
+
+.size-control input[type="range"] {
+  width: 100px;
+  accent-color: #4262ff;
+  cursor: pointer;
+}
+
+.size-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: #4262ff;
+  min-width: 28px;
+  text-align: center;
+}
+
+/* ── Scrollbar for controls ──────────────────────── */
+
+.controls-panel::-webkit-scrollbar {
+  width: 5px;
+}
+
+.controls-panel::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.controls-panel::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/axes/src/app.css" />
+    <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+  </head>
+  <body>
+    <div class="axes-layout">
+
+      <!-- Left: Controls panel -->
+      <div class="controls-panel">
+
+        <!-- Presets -->
+        <section class="ctrl-section">
+          <label class="ctrl-label">Presets</label>
+          <div class="preset-strip">
+            <button class="preset-chip active" data-preset="standard">Standard</button>
+            <button class="preset-chip" data-preset="positive">Positive</button>
+            <button class="preset-chip" data-preset="numberline">Number line</button>
+            <button class="preset-chip" data-preset="trig">Trig</button>
+            <button class="preset-chip" data-preset="stats">Stats</button>
+            <button class="preset-chip" data-preset="graphpaper">Graph paper</button>
+          </div>
+        </section>
+
+        <hr class="ctrl-divider" />
+
+        <!-- Window -->
+        <section class="ctrl-section">
+          <label class="ctrl-label">Window</label>
+          <div class="ctrl-row">
+            <div class="ctrl-field">
+              <label class="ctrl-field-label" for="x-min">x min</label>
+              <input type="number" id="x-min" class="ctrl-input" value="-10" step="1" />
+            </div>
+            <div class="ctrl-field">
+              <label class="ctrl-field-label" for="x-max">x max</label>
+              <input type="number" id="x-max" class="ctrl-input" value="10" step="1" />
+            </div>
+          </div>
+          <div class="ctrl-row">
+            <div class="ctrl-field">
+              <label class="ctrl-field-label" for="y-min">y min</label>
+              <input type="number" id="y-min" class="ctrl-input" value="-10" step="1" />
+            </div>
+            <div class="ctrl-field">
+              <label class="ctrl-field-label" for="y-max">y max</label>
+              <input type="number" id="y-max" class="ctrl-input" value="10" step="1" />
+            </div>
+          </div>
+          <div class="ctrl-row">
+            <label class="ctrl-check">
+              <input type="checkbox" id="square-scale" />
+              <span>Square scale (equal units)</span>
+            </label>
+          </div>
+        </section>
+
+        <hr class="ctrl-divider" />
+
+        <!-- Axes -->
+        <section class="ctrl-section">
+          <label class="ctrl-label">Axes</label>
+          <div class="ctrl-row">
+            <span class="ctrl-field-label">Quadrants</span>
+            <div class="radio-group">
+              <label class="ctrl-radio"><input type="radio" name="quadrants" value="1" /> 1</label>
+              <label class="ctrl-radio"><input type="radio" name="quadrants" value="2" /> 2</label>
+              <label class="ctrl-radio"><input type="radio" name="quadrants" value="4" checked /> 4</label>
+            </div>
+          </div>
+          <div class="ctrl-row">
+            <label class="ctrl-check">
+              <input type="checkbox" id="arrow-heads" checked />
+              <span>Arrow heads</span>
+            </label>
+          </div>
+          <div class="ctrl-row">
+            <label class="ctrl-field-label" for="axis-thickness">Thickness</label>
+            <input type="range" id="axis-thickness" min="1" max="4" value="2" step="0.5" class="ctrl-range" />
+            <span class="range-value" id="axis-thickness-val">2</span>
+          </div>
+          <div class="ctrl-row">
+            <label class="ctrl-field-label">Colour</label>
+            <label class="ctrl-swatch">
+              <input type="color" id="axis-colour" value="#000000" />
+              <span class="swatch-dot" id="axis-colour-dot" style="background:#000000"></span>
+            </label>
+          </div>
+        </section>
+
+        <hr class="ctrl-divider" />
+
+        <!-- Grid -->
+        <section class="ctrl-section">
+          <label class="ctrl-label">Grid</label>
+          <div class="ctrl-row">
+            <label class="ctrl-check">
+              <input type="checkbox" id="major-grid" checked />
+              <span>Major grid</span>
+            </label>
+            <label class="ctrl-swatch">
+              <input type="color" id="major-grid-colour" value="#cccccc" />
+              <span class="swatch-dot" id="major-grid-colour-dot" style="background:#cccccc"></span>
+            </label>
+            <select id="major-grid-style" class="ctrl-select">
+              <option value="solid">Solid</option>
+              <option value="dashed">Dashed</option>
+              <option value="dotted">Dotted</option>
+            </select>
+          </div>
+          <div class="ctrl-row">
+            <label class="ctrl-check">
+              <input type="checkbox" id="minor-grid" />
+              <span>Minor grid</span>
+            </label>
+            <label class="ctrl-swatch">
+              <input type="color" id="minor-grid-colour" value="#e8e8e8" />
+              <span class="swatch-dot" id="minor-grid-colour-dot" style="background:#e8e8e8"></span>
+            </label>
+            <select id="minor-grid-style" class="ctrl-select">
+              <option value="solid">Solid</option>
+              <option value="dashed">Dashed</option>
+              <option value="dotted">Dotted</option>
+            </select>
+          </div>
+          <div class="ctrl-row">
+            <label class="ctrl-field-label" for="minor-subdivisions">Subdivisions</label>
+            <input type="number" id="minor-subdivisions" class="ctrl-input ctrl-input-sm" value="5" min="2" max="10" step="1" />
+          </div>
+        </section>
+
+        <hr class="ctrl-divider" />
+
+        <!-- Scale & Numbers -->
+        <section class="ctrl-section">
+          <label class="ctrl-label">Scale &amp; Numbers</label>
+          <div class="ctrl-row">
+            <div class="ctrl-field">
+              <label class="ctrl-field-label" for="x-step">X step</label>
+              <input type="number" id="x-step" class="ctrl-input" value="1" min="0.1" step="0.5" />
+            </div>
+            <div class="ctrl-field">
+              <label class="ctrl-field-label" for="y-step">Y step</label>
+              <input type="number" id="y-step" class="ctrl-input" value="1" min="0.1" step="0.5" />
+            </div>
+          </div>
+          <div class="ctrl-row">
+            <label class="ctrl-check">
+              <input type="checkbox" id="show-numbers" checked />
+              <span>Show numbers</span>
+            </label>
+          </div>
+          <div class="ctrl-row">
+            <label class="ctrl-field-label" for="font-size">Font size</label>
+            <input type="range" id="font-size" min="8" max="16" value="11" step="1" class="ctrl-range" />
+            <span class="range-value" id="font-size-val">11</span>
+          </div>
+          <div class="ctrl-row">
+            <label class="ctrl-check">
+              <input type="checkbox" id="show-origin" checked />
+              <span>Show origin (0)</span>
+            </label>
+          </div>
+        </section>
+
+        <hr class="ctrl-divider" />
+
+        <!-- Labels -->
+        <section class="ctrl-section">
+          <label class="ctrl-label">Labels</label>
+          <div class="ctrl-row">
+            <div class="ctrl-field ctrl-field-full">
+              <label class="ctrl-field-label" for="title-text">Title</label>
+              <input type="text" id="title-text" class="ctrl-input" placeholder="Optional title" />
+            </div>
+          </div>
+          <div class="ctrl-row">
+            <div class="ctrl-field">
+              <label class="ctrl-field-label" for="x-label">X axis</label>
+              <input type="text" id="x-label" class="ctrl-input" placeholder="x" />
+            </div>
+            <div class="ctrl-field">
+              <label class="ctrl-field-label" for="y-label">Y axis</label>
+              <input type="text" id="y-label" class="ctrl-input" placeholder="y" />
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Right: Preview -->
+      <div class="preview-panel">
+        <div class="preview-area" id="preview-area"></div>
+      </div>
+
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="axes-bottom-bar">
+      <button type="button" id="place-btn" class="place-btn">Place on Board</button>
+      <button type="button" id="edit-selected-btn" class="bar-btn">Edit Selected</button>
+      <label class="size-control" title="Image size when placed on board">
+        <span class="size-label">Size</span>
+        <input type="range" id="img-size" min="100" max="1000" value="500" step="50" />
+        <span class="size-value" id="size-value">500</span>
+      </label>
+    </div>
+
+    <script type="module" src="/axes/src/app.js"></script>
+  </body>
+</html>

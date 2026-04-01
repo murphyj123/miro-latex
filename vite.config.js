@@ -14,6 +14,8 @@ export default defineConfig({
         app: resolve(import.meta.dirname, root, 'app.html'),
         modal: resolve(import.meta.dirname, root, 'modal.html'),
         privacy: resolve(import.meta.dirname, root, 'privacy.html'),
+        'axes-index': resolve(import.meta.dirname, root, 'axes/index.html'),
+        'axes-app': resolve(import.meta.dirname, root, 'axes/app.html'),
       },
     },
   },
