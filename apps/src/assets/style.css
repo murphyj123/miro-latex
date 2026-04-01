@@ -1,4 +1,5 @@
 @import 'mirotone/dist/styles.css';
+@import '../../shared/theme.css';
 
 *,
 *:before,
@@ -15,7 +16,9 @@ html {
 }
 
 body {
+  /* override shared/panel.css: latex panel is full height, not just scrollable */
   height: 100%;
+  max-width: 100%;
   line-height: 1.5;
   margin: 0;
   padding: 0;
@@ -72,9 +75,9 @@ textarea {
 }
 
 textarea:focus {
-  border-color: #4262ff;
+  border-color: #14b8a6;
   outline: none;
-  box-shadow: 0 0 0 2px rgba(66, 98, 255, 0.15);
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.15);
 }
 
 /* Buttons */
@@ -96,23 +99,23 @@ textarea:focus {
   font-weight: 700;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #4262ff, #6c3dff);
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
   color: #fff;
   cursor: pointer;
   transition: all 0.15s;
-  box-shadow: 0 2px 8px rgba(66, 98, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
   letter-spacing: 0.3px;
 }
 
 .place-btn:hover {
-  background: linear-gradient(135deg, #3150dd, #5a2de0);
-  box-shadow: 0 4px 12px rgba(66, 98, 255, 0.4);
+  background: linear-gradient(135deg, #0d9488, #0f766e);
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.4);
   transform: translateY(-1px);
 }
 
 .place-btn:active {
   transform: translateY(0);
-  box-shadow: 0 1px 4px rgba(66, 98, 255, 0.3);
+  box-shadow: 0 1px 4px rgba(20, 184, 166, 0.3);
 }
 
 .place-btn:disabled {
@@ -141,7 +144,7 @@ textarea:focus {
 }
 
 .swatch:hover {
-  border-color: #4262ff;
+  border-color: #14b8a6;
 }
 
 .swatch input[type="color"] {
@@ -192,9 +195,9 @@ textarea:focus {
 }
 
 .preview-toggle-btn:hover {
-  background: #4262ff;
+  background: #14b8a6;
   color: #fff;
-  border-color: #4262ff;
+  border-color: #14b8a6;
 }
 
 /* Preview popup */
@@ -320,7 +323,7 @@ mjx-container {
 }
 
 .accordion-header:hover {
-  color: #4262ff;
+  color: #14b8a6;
 }
 
 .accordion-body {
@@ -353,9 +356,9 @@ mjx-container {
 }
 
 .template-btn:hover {
-  background: #4262ff;
+  background: #14b8a6;
   color: #fff;
-  border-color: #4262ff;
+  border-color: #14b8a6;
 }
 
 .template-label {
@@ -383,9 +386,9 @@ mjx-container {
 }
 
 .template-insert:hover {
-  background: #4262ff;
+  background: #14b8a6;
   color: #fff;
-  border-color: #4262ff;
+  border-color: #14b8a6;
 }
 
 /* Modal layout */
@@ -443,10 +446,10 @@ mjx-container {
 }
 
 .fmt-btn:hover {
-  background: #e8f0ff;
-  border-color: #b0c0f0;
-  color: #3a56d4;
-  box-shadow: 0 1px 3px rgba(66, 98, 255, 0.1);
+  background: #e6faf8;
+  border-color: #99f6e4;
+  color: #0d9488;
+  box-shadow: 0 1px 3px rgba(20, 184, 166, 0.1);
 }
 
 .fmt-btn:hover::after {
@@ -456,12 +459,12 @@ mjx-container {
   left: 20%;
   right: 20%;
   height: 2px;
-  background: #4262ff;
+  background: #14b8a6;
   border-radius: 1px;
 }
 
 .fmt-btn:active {
-  background: #4262ff;
+  background: #14b8a6;
   color: #fff;
   transform: scale(0.95);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -512,37 +515,37 @@ mjx-container {
 
 .toolbar-dropdown-trigger:hover,
 .toolbar-dropdown-trigger:focus {
-  background: #e8f0ff;
-  color: #3a56d4;
-  border-color: #b0c0f0;
+  background: #e6faf8;
+  color: #0d9488;
+  border-color: #99f6e4;
 }
 
 .toolbar-dropdown-menu.open + .toolbar-dropdown-trigger,
 .toolbar-dropdown .toolbar-dropdown-menu.open ~ .toolbar-dropdown-trigger {
-  background: #e0e8ff;
-  border-color: #4262ff;
-  color: #4262ff;
+  background: #d5f5f2;
+  border-color: #14b8a6;
+  color: #14b8a6;
 }
 
 /* Active state when menu is open — applied via sibling adjacency workaround:
    since trigger comes before menu, we use a parent-level class instead */
 .toolbar-dropdown:has(.toolbar-dropdown-menu.open) > .toolbar-dropdown-trigger {
-  background: #dce4ff;
-  border-color: #4262ff;
-  color: #4262ff;
+  background: #d5f5f2;
+  border-color: #14b8a6;
+  color: #14b8a6;
 }
 
 .template-trigger {
-  color: #4262ff;
-  border-color: #c0ccff;
-  background: #f0f3ff;
+  color: #14b8a6;
+  border-color: #99f6e4;
+  background: #e6faf8;
 }
 
 .template-trigger:hover,
 .template-trigger:focus {
-  background: #dce4ff;
-  color: #3a56d4;
-  border-color: #a0b8f0;
+  background: #d5f5f2;
+  color: #0d9488;
+  border-color: #5eead4;
 }
 
 .toolbar-dropdown-menu {
@@ -589,9 +592,9 @@ mjx-container {
 }
 
 .toolbar-btn:hover {
-  background: #4262ff;
+  background: #14b8a6;
   color: #fff;
-  border-color: #4262ff;
+  border-color: #14b8a6;
 }
 
 .toolbar-menu-item {
@@ -608,7 +611,7 @@ mjx-container {
 }
 
 .toolbar-menu-item:hover {
-  background: #4262ff;
+  background: #14b8a6;
   color: #fff;
 }
 
@@ -715,9 +718,9 @@ mjx-container {
 }
 
 .bar-btn:hover {
-  background: #4262ff;
+  background: #14b8a6;
   color: #fff;
-  border-color: #4262ff;
+  border-color: #14b8a6;
 }
 
 .modal-bottom-bar .place-btn {
@@ -734,9 +737,9 @@ mjx-container {
 }
 
 .modal-bottom-bar .bar-btn:hover {
-  background: #e8f0ff;
-  color: #3a56d4;
-  border-color: #b0c0f0;
+  background: #e6faf8;
+  color: #0d9488;
+  border-color: #99f6e4;
 }
 
 .modal-bottom-bar .help-icon {
@@ -780,9 +783,9 @@ mjx-container {
 }
 
 .edit-selected-btn:hover {
-  background: #4262ff;
+  background: #14b8a6;
   color: #fff;
-  border-color: #4262ff;
+  border-color: #14b8a6;
 }
 
 /* Modal help overlay */
@@ -916,20 +919,20 @@ kbd {
 }
 
 .action-btn:hover {
-  background: #4262ff;
+  background: #14b8a6;
   color: #fff;
-  border-color: #4262ff;
+  border-color: #14b8a6;
 }
 
 .action-btn-primary {
-  background: linear-gradient(135deg, #4262ff, #6c3dff);
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 2px 6px rgba(66, 98, 255, 0.25);
+  box-shadow: 0 2px 6px rgba(20, 184, 166, 0.25);
 }
 
 .action-btn-primary:hover {
-  background: linear-gradient(135deg, #3150dd, #5a2de0);
+  background: linear-gradient(135deg, #0d9488, #0f766e);
 }
 
 .action-btn svg {
@@ -958,8 +961,8 @@ kbd {
 }
 
 .panel-subject-btn:hover {
-  border-color: #4262ff;
-  background: #f8f9ff;
+  border-color: #14b8a6;
+  background: #f0fdfa;
   transform: translateX(2px);
 }
 
@@ -967,7 +970,7 @@ kbd {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #4262ff, #6c3dff);
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
   color: #fff;
   font-size: 14px;
   font-weight: 700;
@@ -1018,8 +1021,8 @@ kbd {
 }
 
 .lib-search:focus {
-  border-color: #4262ff;
-  box-shadow: 0 0 0 2px rgba(66, 98, 255, 0.12);
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.12);
 }
 
 .lib-search::placeholder {
@@ -1059,7 +1062,7 @@ kbd {
 }
 
 .lib-subject-header:hover {
-  color: #4262ff;
+  color: #14b8a6;
 }
 
 .lib-category {
@@ -1095,7 +1098,7 @@ kbd {
 }
 
 .lib-category-header:hover {
-  color: #4262ff;
+  color: #14b8a6;
 }
 
 .lib-formulae {
@@ -1117,7 +1120,7 @@ kbd {
 }
 
 .lib-formula:hover {
-  background: #f0f3ff;
+  background: #e6faf8;
 }
 
 .lib-formula-name {
@@ -1170,9 +1173,9 @@ footer {
 }
 
 .help-icon:hover {
-  border-color: #4262ff;
-  color: #4262ff;
-  background: #f0f3ff;
+  border-color: #14b8a6;
+  color: #14b8a6;
+  background: #e6faf8;
 }
 
 /* Help overlay */
@@ -1239,7 +1242,7 @@ footer {
 .help-section h4 {
   font-size: 12px;
   font-weight: 600;
-  color: #4262ff;
+  color: #14b8a6;
   margin: 0 0 3px 0;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -1325,8 +1328,8 @@ footer {
 }
 
 .lib-modal-search:focus {
-  border-color: #4262ff;
-  box-shadow: 0 0 0 2px rgba(66, 98, 255, 0.12);
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.12);
 }
 
 .lib-modal-close {
@@ -1369,14 +1372,14 @@ footer {
 }
 
 .lib-sidebar-subject:hover {
-  background: #f0f3ff;
-  color: #4262ff;
+  background: #e6faf8;
+  color: #14b8a6;
 }
 
 .lib-sidebar-subject.active {
-  background: #f0f3ff;
-  color: #4262ff;
-  border-left-color: #4262ff;
+  background: #e6faf8;
+  color: #14b8a6;
+  border-left-color: #14b8a6;
 }
 
 .lib-sidebar-category {
@@ -1393,14 +1396,14 @@ footer {
 }
 
 .lib-sidebar-category:hover {
-  background: #f0f3ff;
-  color: #4262ff;
+  background: #e6faf8;
+  color: #14b8a6;
 }
 
 .lib-sidebar-category.active {
-  background: #e8edff;
-  color: #4262ff;
-  border-left-color: #4262ff;
+  background: #d5f5f2;
+  color: #14b8a6;
+  border-left-color: #14b8a6;
 }
 
 .lib-sidebar-count {
@@ -1414,7 +1417,7 @@ footer {
 }
 
 .lib-sidebar-category.active .lib-sidebar-count {
-  background: #4262ff;
+  background: #14b8a6;
   color: #fff;
 }
 
@@ -1463,8 +1466,8 @@ footer {
 }
 
 .lib-content-card:hover {
-  border-color: #4262ff;
-  box-shadow: 0 2px 8px rgba(66, 98, 255, 0.12);
+  border-color: #14b8a6;
+  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.12);
   transform: translateY(-1px);
 }
 
@@ -1509,7 +1512,7 @@ footer {
 }
 
 .lib-formula-rendered:hover {
-  background: #f0f3ff;
+  background: #e6faf8;
 }
 
 .lib-formula-rendered .lib-formula-name {
@@ -1535,7 +1538,7 @@ footer {
 .size-control input[type="range"] {
   width: 60px;
   height: 4px;
-  accent-color: #4262ff;
+  accent-color: #14b8a6;
 }
 .size-value {
   font-size: 10px;
@@ -1565,8 +1568,8 @@ footer {
   transition: all 0.1s;
 }
 .recent-item:hover {
-  border-color: #4262ff;
-  color: #4262ff;
+  border-color: #14b8a6;
+  color: #14b8a6;
 }
 
 /* Graph overlay */
@@ -1695,8 +1698,8 @@ footer {
 }
 
 .graph-fn-input:focus {
-  border-color: #4262ff;
-  box-shadow: 0 0 0 2px rgba(66, 98, 255, 0.12);
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.12);
 }
 
 .graph-fn-color {
@@ -1738,9 +1741,9 @@ footer {
 }
 
 .graph-add-fn-btn:hover {
-  border-color: #4262ff;
-  color: #4262ff;
-  background: #f8f9ff;
+  border-color: #14b8a6;
+  color: #14b8a6;
+  background: #f0fdfa;
 }
 
 /* Range inputs */
@@ -1775,8 +1778,8 @@ footer {
 }
 
 .graph-range-input:focus {
-  border-color: #4262ff;
-  box-shadow: 0 0 0 2px rgba(66, 98, 255, 0.12);
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.12);
 }
 
 .graph-check {
@@ -1791,7 +1794,7 @@ footer {
 
 .graph-check input {
   margin: 0;
-  accent-color: #4262ff;
+  accent-color: #14b8a6;
 }
 
 .graph-place-btn {

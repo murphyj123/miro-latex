@@ -35,6 +35,7 @@ const placeBtn      = document.getElementById('place-btn');
 const editBtn       = document.getElementById('edit-selected-btn');
 const imgSizeEl     = document.getElementById('img-size');
 const sizeValueEl   = document.getElementById('size-value');
+const favBtn        = document.getElementById('fav-btn');
 
 let activeTemplate = null;
 let debounceTimer  = null;
@@ -286,82 +287,159 @@ function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'
 
 TEMPLATES['bar-model'] = {
   renderConfig(ct) {
-    ct.innerHTML = buildConfig('Bar Model', [
-      { type: 'row-start' },
-      { type: 'range', id: 'bm-bars', label: 'Number of bars', value: 1, min: 1, max: 3 },
-      { type: 'row-end' },
-      { type: 'row-start' },
-      { type: 'range', id: 'bm-segs', label: 'Segments per bar', value: 4, min: 2, max: 8 },
-      { type: 'row-end' },
-      { type: 'checkbox', id: 'bm-equal', label: 'Equal width segments', checked: true },
-      { type: 'checkbox', id: 'bm-brace', label: 'Show brace with total', checked: false },
-      { type: 'text', id: 'bm-total', label: 'Total label', value: '', placeholder: 'e.g. 24' },
-      { type: 'divider' },
-      { type: 'heading', label: 'Segment Labels & Colours' },
-      { type: 'container', id: 'bm-seg-rows' },
-    ]);
-    const update = () => {
-      const n = parseInt($('bm-segs').value, 10) || 4;
-      const ct2 = $('bm-seg-rows');
-      // preserve existing
-      const existing = ct2.querySelectorAll('.seg-row');
-      const labels = []; const colours = [];
-      existing.forEach((r, i) => {
-        labels.push(r.querySelector('input[type="text"]')?.value ?? '');
-        colours.push(r.querySelector('input[type="color"]')?.value ?? SEG_COLOURS[i % SEG_COLOURS.length]);
+    ct.innerHTML = `
+      <div class="cfg-title">Bar Model</div>
+      <div class="cfg-row" style="gap:14px;">
+        <label class="cfg-check"><input type="checkbox" id="bm-equal" checked/><span>Equal width</span></label>
+        <label class="cfg-check"><input type="checkbox" id="bm-brace"/><span>Show total</span></label>
+      </div>
+      <div class="cfg-field" id="bm-total-field" style="display:none;margin-bottom:8px;">
+        <label class="cfg-field-label">Total label</label>
+        <input type="text" id="bm-total" class="cfg-input" placeholder="e.g. 24 or 3x+5" />
+      </div>
+      <hr class="cfg-divider"/>
+      <div id="bm-bars-container"></div>
+      <button type="button" class="cfg-add-btn" id="bm-add-bar">+ Add Bar</button>
+    `;
+
+    const braceChk = $('bm-brace');
+    const totalField = $('bm-total-field');
+    braceChk.addEventListener('change', () => {
+      totalField.style.display = braceChk.checked ? '' : 'none';
+      window._tplSchedulePreview?.();
+    });
+    $('bm-equal').addEventListener('change', () => window._tplSchedulePreview?.());
+    $('bm-total').addEventListener('input', () => window._tplSchedulePreview?.());
+
+    function makeSegRow(label = '', colour) {
+      const segCount = $('bm-bars-container').querySelectorAll('.bm-seg-row').length;
+      const col = colour || SEG_COLOURS[segCount % SEG_COLOURS.length];
+      const row = document.createElement('div');
+      row.className = 'bm-seg-row';
+      const safeLabel = escHtml(label);
+      row.innerHTML = `
+        <input type="text" class="cfg-input bm-seg-label" placeholder="Label (e.g. x, 2x)" value="${safeLabel}" />
+        <label class="cfg-swatch">
+          <input type="color" class="bm-seg-colour" value="${col}" />
+          <span class="cfg-swatch-dot" style="background:${col}"></span>
+        </label>
+        <button type="button" class="bm-del-seg" title="Remove segment">×</button>
+      `;
+      const colInput = row.querySelector('.bm-seg-colour');
+      const dot = row.querySelector('.cfg-swatch-dot');
+      colInput.addEventListener('input', () => { dot.style.background = colInput.value; window._tplSchedulePreview?.(); });
+      row.querySelector('.bm-seg-label').addEventListener('input', () => window._tplSchedulePreview?.());
+      row.querySelector('.bm-del-seg').addEventListener('click', () => {
+        const list = row.closest('.bm-segs-list');
+        if (list.querySelectorAll('.bm-seg-row').length > 1) { row.remove(); window._tplSchedulePreview?.(); }
       });
-      let html = '';
-      for (let i = 0; i < n; i++) {
-        const lbl = labels[i] ?? '';
-        const col = colours[i] ?? SEG_COLOURS[i % SEG_COLOURS.length];
-        html += `<div class="seg-row"><input type="text" class="cfg-input" value="${lbl}" placeholder="Seg ${i+1}" data-seg-label="${i}" /><label class="cfg-swatch"><input type="color" value="${col}" data-seg-colour="${i}" /><span class="cfg-swatch-dot" style="background:${col}"></span></label></div>`;
-      }
-      ct2.innerHTML = html;
-      ct2.querySelectorAll('input').forEach(el => { el.addEventListener('input', schedulePreview); el.addEventListener('change', schedulePreview); });
-      ct2.querySelectorAll('.cfg-swatch input[type="color"]').forEach(inp => {
-        inp.addEventListener('input', () => { inp.nextElementSibling.style.background = inp.value; });
+      return row;
+    }
+
+    function renumberBars() {
+      $('bm-bars-container').querySelectorAll('.bm-bar-title').forEach((t, i) => { t.textContent = `Bar ${i + 1}`; });
+    }
+
+    function addBar(initialSegs) {
+      const container = $('bm-bars-container');
+      const block = document.createElement('div');
+      block.className = 'bm-bar-block';
+
+      const header = document.createElement('div');
+      header.className = 'bm-bar-header';
+      header.innerHTML = `<span class="bm-bar-title">Bar ${container.querySelectorAll('.bm-bar-block').length + 1}</span><button type="button" class="bm-del-bar" title="Remove bar">×</button>`;
+
+      const segsList = document.createElement('div');
+      segsList.className = 'bm-segs-list';
+
+      const addSegBtn = document.createElement('button');
+      addSegBtn.type = 'button';
+      addSegBtn.className = 'cfg-add-btn bm-add-seg-btn';
+      addSegBtn.textContent = '+ Add Segment';
+      addSegBtn.addEventListener('click', () => {
+        segsList.appendChild(makeSegRow());
+        window._tplSchedulePreview?.();
       });
-    };
-    $('bm-segs').addEventListener('input', () => { $('bm-segs-val').textContent = $('bm-segs').value; update(); });
-    $('bm-bars').addEventListener('input', () => { $('bm-bars-val').textContent = $('bm-bars').value; });
-    update();
+
+      header.querySelector('.bm-del-bar').addEventListener('click', () => {
+        if (container.querySelectorAll('.bm-bar-block').length > 1) {
+          block.remove();
+          renumberBars();
+          window._tplSchedulePreview?.();
+        }
+      });
+
+      const segs = initialSegs || [
+        { label: '', colour: SEG_COLOURS[0] },
+        { label: '', colour: SEG_COLOURS[1] },
+        { label: '', colour: SEG_COLOURS[2] },
+      ];
+      segs.forEach(s => segsList.appendChild(makeSegRow(s.label, s.colour)));
+
+      block.appendChild(header);
+      block.appendChild(segsList);
+      block.appendChild(addSegBtn);
+      container.appendChild(block);
+    }
+
+    addBar();
+    $('bm-add-bar').addEventListener('click', () => {
+      addBar();
+      renumberBars();
+      window._tplSchedulePreview?.();
+    });
   },
 
   generateSVG() {
-    const nBars = parseInt(val('bm-bars'), 10) || 1;
-    const nSegs = parseInt(val('bm-segs'), 10) || 4;
     const equalW = checked('bm-equal');
     const showBrace = checked('bm-brace');
     const totalLabel = val('bm-total');
 
-    const barW = 500, barH = 40, gap = 12, padL = 30, padT = showBrace ? 50 : 20, padB = 20, padR = 30;
+    // Read bars from DOM
+    const bars = [];
+    document.querySelectorAll('.bm-bar-block').forEach(block => {
+      const segs = [];
+      block.querySelectorAll('.bm-seg-row').forEach(row => {
+        segs.push({
+          label:  row.querySelector('.bm-seg-label')?.value || '',
+          colour: row.querySelector('.bm-seg-colour')?.value || '#90caf9',
+        });
+      });
+      if (segs.length) bars.push(segs);
+    });
+
+    if (!bars.length) return makeSVG(100, 50);
+
+    const nBars = bars.length;
+    const maxSegs = Math.max(...bars.map(b => b.length));
+    const barW = 500, barH = 44, gap = 14;
+    const padL = 30, padR = 30;
+    const padT = showBrace ? 54 : 22;
+    const padB = 22;
     const totalH = padT + nBars * barH + (nBars - 1) * gap + padB;
     const totalW = padL + barW + padR;
     const svg = makeSVG(totalW, totalH);
     svg.appendChild(svgEl('rect', { x: 0, y: 0, width: totalW, height: totalH, fill: '#fff' }));
 
-    const labels = [];
-    const colours = [];
-    document.querySelectorAll('[data-seg-label]').forEach((el, i) => { labels[i] = el.value; });
-    document.querySelectorAll('[data-seg-colour]').forEach((el, i) => { colours[i] = el.value; });
-
     for (let b = 0; b < nBars; b++) {
+      const segs = bars[b];
+      const nSegs = segs.length;
       const y = padT + b * (barH + gap);
-      let segW = barW / nSegs;
+      const denominator = equalW ? maxSegs : nSegs;
       for (let s = 0; s < nSegs; s++) {
+        const segW = barW / denominator;
         const x = padL + s * segW;
-        const col = colours[s] || SEG_COLOURS[s % SEG_COLOURS.length];
+        const col = segs[s].colour || SEG_COLOURS[s % SEG_COLOURS.length];
         svg.appendChild(svgEl('rect', { x, y, width: segW, height: barH, fill: col, stroke: '#555', 'stroke-width': 1.5 }));
-        const lbl = labels[s] || '';
-        if (lbl) svg.appendChild(textEl(lbl, x + segW / 2, y + barH / 2, { 'font-size': '11', fill: '#333' }));
+        const lbl = segs[s].label;
+        if (lbl) svg.appendChild(textEl(lbl, x + segW / 2, y + barH / 2, { 'font-size': '13', fill: '#333', 'font-weight': '500' }));
       }
     }
 
     if (showBrace && totalLabel) {
       const braceY = padT - 8;
-      // simple curly brace approx
       const x1 = padL, x2 = padL + barW, mid = padL + barW / 2;
-      let d = `M ${x1},${braceY} Q ${x1},${braceY - 15} ${mid - 5},${braceY - 15} L ${mid},${braceY - 22} L ${mid + 5},${braceY - 15} Q ${x2},${braceY - 15} ${x2},${braceY}`;
+      const d = `M ${x1},${braceY} Q ${x1},${braceY-15} ${mid-5},${braceY-15} L ${mid},${braceY-22} L ${mid+5},${braceY-15} Q ${x2},${braceY-15} ${x2},${braceY}`;
       svg.appendChild(svgEl('path', { d, fill: 'none', stroke: '#555', 'stroke-width': 1.5 }));
       svg.appendChild(textEl(totalLabel, mid, braceY - 32, { 'font-size': '13', 'font-weight': '600' }));
     }
@@ -1609,6 +1687,18 @@ function selectTemplate(name) {
   });
 
   updatePreview();
+
+  // Update favourite button state
+  if (favBtn) {
+    const favs = JSON.parse(localStorage.getItem('tpl-favourites') || '[]');
+    if (favs.includes(name)) {
+      favBtn.textContent = '\u2605';
+      favBtn.classList.add('active');
+    } else {
+      favBtn.textContent = '\u2606';
+      favBtn.classList.remove('active');
+    }
+  }
 }
 
 // ── Place on Board ──────────────────────────────────
@@ -1662,6 +1752,20 @@ async function placeOnBoard() {
     width: size,
     title: titleJson,
   });
+
+  // Save to recents
+  const recents = JSON.parse(localStorage.getItem('tpl-recents') || '[]');
+  const recentEntry = { id: activeTemplate, name: DISPLAY_NAMES[activeTemplate] || activeTemplate, time: Date.now() };
+  const recentInputs = {};
+  configPanel.querySelectorAll('input, select, textarea').forEach(el => {
+    const key = el.id || el.name;
+    if (!key) return;
+    recentInputs[key] = el.type === 'checkbox' ? el.checked : el.value;
+  });
+  recentEntry.settings = recentInputs;
+  const filteredRecents = recents.filter(r => r.id !== recentEntry.id);
+  filteredRecents.unshift(recentEntry);
+  localStorage.setItem('tpl-recents', JSON.stringify(filteredRecents.slice(0, 8)));
 
   miro.board.ui.closeModal();
 }
@@ -1771,11 +1875,35 @@ function filterGallery() {
 function buildGallery() {
   galleryGrid.innerHTML = '';
 
-  // Use ordered list, then append any templates not in the order list
+  // ── Pre-render SVG thumbnails in a hidden sandbox ──
+  const thumbMap = {};
+  const sandbox = document.createElement('div');
+  sandbox.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;left:-9999px;top:-9999px;width:600px;';
+  document.body.appendChild(sandbox);
+  const prevSchedule = window._tplSchedulePreview;
+  window._tplSchedulePreview = () => {};
+  const ser = new XMLSerializer();
+
+  const allIds = [...new Set([...TEMPLATE_ORDER, ...Object.keys(TEMPLATES)])];
+  for (const id of allIds) {
+    if (!TEMPLATES[id]?.renderConfig || !TEMPLATES[id]?.generateSVG) continue;
+    try {
+      sandbox.innerHTML = '';
+      TEMPLATES[id].renderConfig(sandbox);
+      const svgNode = TEMPLATES[id].generateSVG();
+      if (svgNode) {
+        thumbMap[id] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ser.serializeToString(svgNode));
+      }
+    } catch { /* ignore */ }
+  }
+
+  sandbox.innerHTML = '';
+  document.body.removeChild(sandbox);
+  window._tplSchedulePreview = prevSchedule;
+
+  // ── Build gallery cards ────────────────────────────
   const seen = new Set();
   const orderedIds = [...TEMPLATE_ORDER];
-
-  // Add any TEMPLATES keys not already in TEMPLATE_ORDER
   for (const id of Object.keys(TEMPLATES)) {
     if (!orderedIds.includes(id)) orderedIds.push(id);
   }
@@ -1788,13 +1916,18 @@ function buildGallery() {
     const cat = CATS[id] || 'advanced';
     const name = DISPLAY_NAMES[id] || (TEMPLATES[id].name) || id;
     const icon = CAT_ICONS[cat] || '?';
-    const bgColor = CAT_COLORS[cat] || '#f3f4f6';
+    const thumb = thumbMap[id];
 
     const card = document.createElement('div');
     card.className = 'template-card';
     card.dataset.template = id;
     card.dataset.category = cat;
-    card.innerHTML = `<div class="card-icon" style="background:${bgColor}">${icon}</div><div class="card-name">${name}</div>`;
+
+    if (thumb) {
+      card.innerHTML = `<div class="card-thumb"><img src="${thumb}" alt="${name}" /></div><div class="card-name">${name}</div>`;
+    } else {
+      card.innerHTML = `<div class="card-icon">${icon}</div><div class="card-name">${name}</div>`;
+    }
     card.addEventListener('click', () => showEditor(id));
     galleryGrid.appendChild(card);
   }
@@ -1833,6 +1966,81 @@ function init() {
   placeBtn.addEventListener('click', placeOnBoard);
   editBtn.addEventListener('click', editSelected);
   imgSizeEl.addEventListener('input', () => { sizeValueEl.textContent = imgSizeEl.value; });
+
+  // Favourite toggle button
+  if (favBtn) {
+    favBtn.addEventListener('click', () => {
+      if (!activeTemplate) return;
+      const favs = JSON.parse(localStorage.getItem('tpl-favourites') || '[]');
+      const idx = favs.indexOf(activeTemplate);
+      if (idx >= 0) {
+        favs.splice(idx, 1);
+        favBtn.textContent = '\u2606'; // empty star
+        favBtn.classList.remove('active');
+      } else {
+        favs.unshift(activeTemplate);
+        if (favs.length > 10) favs.length = 10;
+        favBtn.textContent = '\u2605'; // filled star
+        favBtn.classList.add('active');
+      }
+      localStorage.setItem('tpl-favourites', JSON.stringify(favs));
+    });
+  }
+
+  // Check for panel pre-selection (favourite clicked in panel)
+  const panelSelect = localStorage.getItem('tpl-panel-select');
+  if (panelSelect) {
+    localStorage.removeItem('tpl-panel-select');
+    if (TEMPLATES[panelSelect]) {
+      showEditor(panelSelect);
+    }
+  }
+
+  // Check for edit settings from panel (edit selected or recent)
+  const editSettingsJson = localStorage.getItem('tpl-edit-settings');
+  if (editSettingsJson) {
+    localStorage.removeItem('tpl-edit-settings');
+    try {
+      const editSettings = JSON.parse(editSettingsJson);
+      if (editSettings._tplGen && editSettings.template && TEMPLATES[editSettings.template]) {
+        showEditor(editSettings.template);
+        // Wait a tick for DOM to populate, then apply saved input values
+        setTimeout(() => {
+          for (const [key, value] of Object.entries(editSettings.inputs || {})) {
+            if (key.startsWith('_grp_')) {
+              const group = key.slice(5);
+              document.querySelectorAll(`[data-group="${group}"]`).forEach(el => {
+                el.checked = value.includes(el.value);
+              });
+              continue;
+            }
+            const el = document.getElementById(key)
+              || document.querySelector(`[data-seg-label="${key}"]`)
+              || document.querySelector(`[data-seg-colour="${key}"]`)
+              || document.querySelector(`[data-fm-op="${key}"]`)
+              || document.querySelector(`[data-tw-row="${key}"]`)
+              || document.querySelector(`[data-tw-col="${key}"]`)
+              || document.querySelector(`[data-td-label="${key}"]`)
+              || document.querySelector(`[data-td-prob="${key}"]`)
+              || document.querySelector(`[data-ps-label="${key}"]`)
+              || document.querySelector(`[data-ps-pos="${key}"]`)
+              || document.querySelector(`[data-tc-label="${key}"]`)
+              || document.querySelector(`[data-tc-tally="${key}"]`)
+              || document.querySelector(`[data-ft-interval="${key}"]`)
+              || document.querySelector(`[data-di-val="${key}"]`);
+            if (!el) continue;
+            if (el.type === 'checkbox') {
+              el.checked = !!value;
+            } else {
+              el.value = value;
+            }
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          schedulePreview();
+        }, 80);
+      }
+    } catch { /* ignore invalid JSON */ }
+  }
 }
 
 init();
