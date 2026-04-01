@@ -619,7 +619,11 @@ function buildGraphOverlay() {
       });
     } catch (err) {
       const preview = document.getElementById('graph-preview');
-      preview.innerHTML = `<div class="graph-error">${err.message || 'Invalid expression'}</div>`;
+      preview.textContent = '';
+      const div = document.createElement('div');
+      div.className = 'graph-error';
+      div.textContent = err.message || 'Invalid expression';
+      preview.appendChild(div);
     }
   }
 

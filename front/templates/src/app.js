@@ -100,6 +100,7 @@ function checked(id) { const e = $(id); return e ? e.checked : false; }
 function checkedValues(group) {
   return [...document.querySelectorAll(`[data-group="${group}"]:checked`)].map(e => e.value);
 }
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ══════════════════════════════════════════════════════
 // 1. BAR MODEL
@@ -1171,7 +1172,10 @@ function updatePreview() {
     const settings = tpl.readConfig ? tpl.readConfig() : undefined;
     previewArea.appendChild(tpl.generateSVG(settings));
   } catch (e) {
-    previewArea.innerHTML = `<span style="color:#c00;font-size:12px;">Error: ${e.message}</span>`;
+    const errSpan = document.createElement('span');
+    errSpan.style.cssText = 'color:#c00;font-size:12px;';
+    errSpan.textContent = 'Error: ' + e.message;
+    previewArea.appendChild(errSpan);
   }
 }
 
