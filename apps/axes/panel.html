@@ -5,232 +5,431 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
     <style>
+      /* ── Reset & vars ───────────────────────────────── */
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+      :root {
+        --primary:      #14b8a6;
+        --primary-dark: #0f766e;
+        --primary-hover:#0d9488;
+        --primary-light:#99f6e4;
+        --primary-bg:   rgba(20,184,166,0.08);
+        --text:         #1e293b;
+        --text-muted:   #64748b;
+        --text-light:   #94a3b8;
+        --border:       #e2e8f0;
+        --bg:           #ffffff;
+        --bg-subtle:    #f8fafc;
+        --bg-muted:     #f1f5f9;
+        --danger:       #ef4444;
+        --radius:       8px;
+        --gradient:     linear-gradient(135deg, #0f766e, #14b8a6);
+      }
+
       body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #ffffff;
-        color: #1a1a2e;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+        background: var(--bg-subtle);
+        color: var(--text);
         width: 100%;
         max-width: 320px;
         margin: 0 auto;
-        padding: 0;
         overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
       }
 
+      /* ── Header ─────────────────────────────────────── */
       .panel-header {
-        background: linear-gradient(135deg, #0f766e, #14b8a6);
+        background: var(--gradient);
         color: #fff;
-        padding: 18px 16px;
-        text-align: center;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
       }
 
-      .panel-header h1 {
-        font-size: 16px;
-        font-weight: 700;
-        letter-spacing: 0.3px;
-        margin: 0;
-      }
-
-      .panel-header p {
-        font-size: 11px;
-        opacity: 0.7;
-        margin-top: 4px;
-      }
-
-      .panel-body {
-        padding: 16px 12px;
-      }
-
-      .btn {
+      .panel-header-icon {
+        width: 34px;
+        height: 34px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        width: 100%;
-        height: 40px;
-        font-size: 13px;
-        font-weight: 600;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        letter-spacing: 0.2px;
-      }
-
-      .btn svg {
-        width: 16px;
-        height: 16px;
         flex-shrink: 0;
       }
 
-      .btn-primary {
-        background: linear-gradient(135deg, #0f766e, #14b8a6);
-        color: #fff;
-        box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
-        margin-bottom: 8px;
+      .panel-header-text h1 {
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
       }
 
-      .btn-primary:hover {
-        background: linear-gradient(135deg, #0d9488, #0f766e);
-        box-shadow: 0 4px 12px rgba(20, 184, 166, 0.4);
+      .panel-header-text p {
+        font-size: 11px;
+        opacity: 0.75;
+        margin-top: 2px;
+        line-height: 1.3;
+      }
+
+      /* ── Body ───────────────────────────────────────── */
+      .panel-body {
+        padding: 14px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      /* ── Action buttons ─────────────────────────────── */
+      .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        height: 38px;
+        padding: 0 14px;
+        font-size: 12.5px;
+        font-weight: 600;
+        border: none;
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: all 0.14s ease;
+        letter-spacing: 0.01em;
+        text-align: left;
+      }
+
+      .action-btn svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+      }
+
+      .action-btn-primary {
+        background: var(--gradient);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(20,184,166,0.28);
+        margin-bottom: 4px;
+      }
+
+      .action-btn-primary:hover {
+        background: linear-gradient(135deg, #0d5c56, #0d9488);
+        box-shadow: 0 4px 14px rgba(20,184,166,0.38);
         transform: translateY(-1px);
       }
 
-      .btn-primary:active {
-        transform: translateY(0);
-        box-shadow: 0 1px 4px rgba(20, 184, 166, 0.3);
+      .action-btn-primary:active { transform: none; }
+
+      .action-btn-secondary {
+        background: var(--bg);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
       }
 
-      .btn-secondary {
-        background: #f3f4f6;
-        color: #555;
-        border: 1px solid #e5e7eb;
-        margin-bottom: 8px;
+      .action-btn-secondary:hover {
+        background: var(--primary-bg);
+        color: var(--primary-hover);
+        border-color: var(--primary-light);
       }
 
-      .btn-secondary:hover {
-        background: #e6faf8;
-        color: #0d9488;
-        border-color: #99f6e4;
+      /* ── Section ────────────────────────────────────── */
+      .section {
+        margin-top: 10px;
       }
 
-      .divider {
-        border: none;
-        border-top: 1px solid #e5e7eb;
-        margin: 14px 0;
+      .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 2px;
+        cursor: pointer;
+        user-select: none;
       }
 
-      .section-label {
-        font-size: 11px;
+      .section-title {
+        font-size: 10.5px;
         font-weight: 700;
-        color: #555;
+        color: var(--text-muted);
         text-transform: uppercase;
         letter-spacing: 0.6px;
-        margin-bottom: 10px;
       }
 
-      #recents {
+      .section-chevron {
+        color: var(--text-light);
+        transition: transform 0.2s;
+        display: flex;
+      }
+
+      .section-chevron.closed { transform: rotate(-90deg); }
+
+      .section-body {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 5px;
+        padding-top: 4px;
       }
 
+      .section-body.hidden { display: none; }
+
+      /* ── Cards ──────────────────────────────────────── */
       .hint {
-        font-size: 12px;
-        color: #999;
+        font-size: 11.5px;
+        color: var(--text-light);
         text-align: center;
-        padding: 12px 0;
+        padding: 10px 0 6px;
       }
 
+      /* Recent card — full-width clickable */
       .recent-card {
         display: flex;
         align-items: center;
         width: 100%;
-        height: 36px;
-        padding: 0 12px;
-        font-size: 12px;
-        font-weight: 500;
-        color: #444;
-        background: #f5f6f8;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
+        min-height: 34px;
+        padding: 6px 12px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
         cursor: pointer;
-        transition: all 0.12s ease;
         text-align: left;
+        transition: all 0.12s ease;
+        gap: 8px;
       }
 
       .recent-card:hover {
-        background: #e6faf8;
-        color: #0d9488;
-        border-color: #99f6e4;
+        background: var(--primary-bg);
+        border-color: var(--primary-light);
       }
 
+      .recent-card-label {
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--text-muted);
+        flex: 1;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.3;
+      }
+
+      .recent-card:hover .recent-card-label { color: var(--primary-hover); }
+
+      /* Library card row */
       .library-row {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 4px;
       }
 
       .library-card {
         flex: 1;
         min-width: 0;
-        height: 36px;
-        padding: 0 10px;
-        font-size: 12px;
-        font-weight: 500;
-        color: #444;
-        background: #f5f6f8;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
+        min-height: 34px;
+        padding: 6px 12px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
         cursor: pointer;
-        transition: all 0.12s ease;
         text-align: left;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        transition: all 0.12s ease;
+        display: flex;
+        align-items: center;
       }
 
       .library-card:hover {
-        background: #e6faf8;
-        color: #0d9488;
-        border-color: #99f6e4;
+        background: var(--primary-bg);
+        border-color: var(--primary-light);
       }
 
-      .library-delete {
+      .library-card-name {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.3;
+      }
+
+      .library-card:hover .library-card-name { color: var(--primary-hover); }
+
+      .icon-btn {
         flex-shrink: 0;
         width: 28px;
         height: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--border);
         border-radius: 6px;
-        background: none;
-        color: #aaa;
+        background: var(--bg);
+        color: var(--text-light);
         cursor: pointer;
-        font-size: 14px;
-        line-height: 1;
         transition: all 0.12s ease;
       }
 
-      .library-delete:hover {
-        background: #fee2e2;
-        color: #dc2626;
-        border-color: #fca5a5;
+      .icon-btn svg { width: 13px; height: 13px; }
+
+      .icon-btn-rename:hover {
+        background: #eff6ff;
+        color: #3b82f6;
+        border-color: #bfdbfe;
       }
+
+      .icon-btn-delete:hover {
+        background: #fef2f2;
+        color: var(--danger);
+        border-color: #fecaca;
+      }
+
+      /* ── Custom dialog ──────────────────────────────── */
+      .dialog-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15,23,42,0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        padding: 16px;
+      }
+
+      .dialog-overlay.hidden { display: none; }
+
+      .dialog {
+        background: var(--bg);
+        border-radius: 12px;
+        padding: 20px;
+        width: 100%;
+        max-width: 260px;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+      }
+
+      .dialog-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 12px;
+      }
+
+      .dialog-input {
+        width: 100%;
+        padding: 8px 10px;
+        font-size: 12.5px;
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        outline: none;
+        transition: border-color 0.12s;
+        font-family: inherit;
+      }
+
+      .dialog-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(20,184,166,0.12);
+      }
+
+      .dialog-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+        justify-content: flex-end;
+      }
+
+      .dialog-btn {
+        padding: 7px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 7px;
+        cursor: pointer;
+        border: none;
+        transition: all 0.12s;
+        font-family: inherit;
+      }
+
+      .dialog-btn-cancel {
+        background: var(--bg-muted);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+      }
+
+      .dialog-btn-cancel:hover { background: var(--bg-subtle); }
+
+      .dialog-btn-ok {
+        background: var(--gradient);
+        color: #fff;
+        box-shadow: 0 2px 6px rgba(20,184,166,0.3);
+      }
+
+      .dialog-btn-ok:hover { background: linear-gradient(135deg, #0d5c56, #0d9488); }
     </style>
   </head>
   <body>
 
+    <!-- Header -->
     <div class="panel-header">
-      <h1>Graph Axes</h1>
-      <p>Create axis grids for your board</p>
+      <div class="panel-header-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round">
+          <line x1="9" y1="2" x2="9" y2="16"/>
+          <line x1="2" y1="9" x2="16" y2="9"/>
+          <path d="M4 5.5 Q9 3 14 5.5" stroke-dasharray="2 2"/>
+        </svg>
+      </div>
+      <div class="panel-header-text">
+        <h1>Graph Axes</h1>
+        <p>Create &amp; edit axis grids</p>
+      </div>
     </div>
 
+    <!-- Body -->
     <div class="panel-body">
-      <button class="btn btn-primary" id="new-btn">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+
+      <button class="action-btn action-btn-primary" id="new-btn">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
         New Graph
       </button>
 
-      <button class="btn btn-secondary" id="edit-btn">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11.5 2.5l2 2-8 8H3.5v-2l8-8z"/></svg>
+      <button class="action-btn action-btn-secondary" id="edit-btn">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5l2 2-8 8H3.5v-2l8-8z"/></svg>
         Edit Selected
       </button>
 
-      <hr class="divider" />
-
-      <div class="section-label">Recently Used</div>
-      <div id="recents">
-        <p class="hint">No recent graphs yet</p>
+      <!-- Recents -->
+      <div class="section">
+        <div class="section-header" id="recents-header">
+          <span class="section-title">Recently Used</span>
+          <span class="section-chevron" id="recents-chevron">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="2,4 6,8 10,4"/></svg>
+          </span>
+        </div>
+        <div class="section-body" id="recents-body">
+          <p class="hint">No recent graphs yet</p>
+        </div>
       </div>
 
-      <hr class="divider" />
+      <!-- Library -->
+      <div class="section">
+        <div class="section-header" id="library-header">
+          <span class="section-title">Library</span>
+          <span class="section-chevron" id="library-chevron">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="2,4 6,8 10,4"/></svg>
+          </span>
+        </div>
+        <div class="section-body" id="library-body">
+          <p class="hint">No saved graphs yet</p>
+        </div>
+      </div>
 
-      <div class="section-label">Library</div>
-      <div id="library">
-        <p class="hint">No saved graphs yet</p>
+    </div>
+
+    <!-- Rename dialog -->
+    <div class="dialog-overlay hidden" id="rename-overlay">
+      <div class="dialog">
+        <div class="dialog-title">Rename Graph</div>
+        <input type="text" class="dialog-input" id="rename-input" placeholder="Enter a name…" />
+        <div class="dialog-actions">
+          <button class="dialog-btn dialog-btn-cancel" id="rename-cancel">Cancel</button>
+          <button class="dialog-btn dialog-btn-ok" id="rename-ok">Save</button>
+        </div>
       </div>
     </div>
 

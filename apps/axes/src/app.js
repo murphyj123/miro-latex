@@ -681,11 +681,28 @@ async function editSelected() {
 function saveToLibrary() {
   const settings = readSettings();
   const defaultName = `x: ${settings.xMin}–${settings.xMax},  y: ${settings.yMin}–${settings.yMax}`;
-  const name = window.prompt('Name for this graph:', defaultName);
-  if (name === null) return; // cancelled
-  const library = JSON.parse(localStorage.getItem('axes-library') || '[]');
-  library.unshift({ name: name.trim() || defaultName, settings });
-  localStorage.setItem('axes-library', JSON.stringify(library.slice(0, 20)));
+
+  const overlay = document.getElementById('lib-overlay');
+  const input = document.getElementById('lib-name-input');
+  input.value = defaultName;
+  overlay.style.display = 'flex';
+  input.focus();
+  input.select();
+
+  function doSave() {
+    const name = input.value.trim() || defaultName;
+    const library = JSON.parse(localStorage.getItem('axes-library') || '[]');
+    library.unshift({ name, settings });
+    localStorage.setItem('axes-library', JSON.stringify(library.slice(0, 20)));
+    overlay.style.display = 'none';
+  }
+
+  document.getElementById('lib-ok').onclick = doSave;
+  document.getElementById('lib-cancel').onclick = () => { overlay.style.display = 'none'; };
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') doSave();
+    if (e.key === 'Escape') overlay.style.display = 'none';
+  };
 }
 
 // ── Presets ─────────────────────────────────────────
