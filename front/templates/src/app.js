@@ -1354,6 +1354,10 @@ function init() {
     });
   }
 
+  // Event delegation for live preview — covers dynamically created inputs too
+  configPanel.addEventListener('input', schedulePreview);
+  configPanel.addEventListener('change', schedulePreview);
+
   // Bottom bar
   placeBtn.addEventListener('click', placeOnBoard);
   editBtn.addEventListener('click', editSelected);

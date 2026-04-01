@@ -1570,7 +1570,7 @@ extraTemplates['unit-circle'] = {
       }));
 
       /* angle arc */
-      drawAngleArc(svg, cx, cy, 0, -s.highlighted, 25);
+      drawAngleArc(svg, cx, cy, -s.highlighted, 0, 25);
     }
 
     /* quadrant labels */
@@ -2423,7 +2423,7 @@ extraTemplates['thermometer'] = {
     }));
 
     /* mercury level */
-    const range = s.max - s.min;
+    const range = (s.max - s.min) || 1;
     const frac = Math.max(0, Math.min(1, (s.current - s.min) / range));
     const mercH = frac * (tubeH - tubeW / 2);
     const mercTop = tubeBot - mercH;
