@@ -19,6 +19,7 @@ export default defineConfig({
         'axes-panel': resolve(import.meta.dirname, root, 'axes/panel.html'),
         'templates-index': resolve(import.meta.dirname, root, 'templates/index.html'),
         'templates-app': resolve(import.meta.dirname, root, 'templates/app.html'),
+        'templates-panel': resolve(import.meta.dirname, root, 'templates/panel.html'),
         'timer-index': resolve(import.meta.dirname, root, 'timer/index.html'),
         'timer-panel': resolve(import.meta.dirname, root, 'timer/panel.html'),
         'timer-modal': resolve(import.meta.dirname, root, 'timer/modal.html'),

@@ -128,8 +128,8 @@ html, body {
 
 .ctrl-input:focus {
   outline: none;
-  border-color: #4262ff;
-  box-shadow: 0 0 0 2px rgba(66, 98, 255, 0.12);
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.12);
 }
 
 .ctrl-input-sm {
@@ -150,7 +150,7 @@ html, body {
 
 .ctrl-select:focus {
   outline: none;
-  border-color: #4262ff;
+  border-color: #14b8a6;
 }
 
 /* ── Range sliders ───────────────────────────────── */
@@ -158,14 +158,14 @@ html, body {
 .ctrl-range {
   flex: 1;
   height: 4px;
-  accent-color: #4262ff;
+  accent-color: #14b8a6;
   cursor: pointer;
 }
 
 .range-value {
   font-size: 11px;
   font-weight: 600;
-  color: #4262ff;
+  color: #14b8a6;
   min-width: 22px;
   text-align: center;
 }
@@ -181,7 +181,7 @@ html, body {
 }
 
 .ctrl-check input[type="checkbox"] {
-  accent-color: #4262ff;
+  accent-color: #14b8a6;
   width: 14px;
   height: 14px;
   cursor: pointer;
@@ -205,7 +205,7 @@ html, body {
 }
 
 .ctrl-radio input[type="radio"] {
-  accent-color: #4262ff;
+  accent-color: #14b8a6;
   cursor: pointer;
 }
 
@@ -237,7 +237,7 @@ html, body {
 
 .ctrl-swatch:hover .swatch-dot {
   transform: scale(1.1);
-  border-color: #4262ff;
+  border-color: #14b8a6;
 }
 
 /* ── Preset chips ────────────────────────────────── */
@@ -274,16 +274,16 @@ html, body {
 }
 
 .preset-chip:hover {
-  border-color: #4262ff;
-  color: #4262ff;
-  background: #f0f3ff;
+  border-color: #14b8a6;
+  color: #14b8a6;
+  background: #e6faf8;
 }
 
 .preset-chip.active {
-  background: linear-gradient(135deg, #4262ff, #6c3dff);
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 2px 6px rgba(66, 98, 255, 0.25);
+  box-shadow: 0 2px 6px rgba(20, 184, 166, 0.25);
 }
 
 /* ── Bottom bar ──────────────────────────────────── */
@@ -310,23 +310,23 @@ html, body {
   font-weight: 700;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #4262ff, #6c3dff);
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
   color: #fff;
   cursor: pointer;
   transition: all 0.15s;
-  box-shadow: 0 2px 8px rgba(66, 98, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
   letter-spacing: 0.3px;
 }
 
 .place-btn:hover {
-  background: linear-gradient(135deg, #3150dd, #5a2de0);
-  box-shadow: 0 4px 12px rgba(66, 98, 255, 0.4);
+  background: linear-gradient(135deg, #0d9488, #0f766e);
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.4);
   transform: translateY(-1px);
 }
 
 .place-btn:active {
   transform: translateY(0);
-  box-shadow: 0 1px 4px rgba(66, 98, 255, 0.3);
+  box-shadow: 0 1px 4px rgba(20, 184, 166, 0.3);
 }
 
 .bar-btn {
@@ -345,9 +345,9 @@ html, body {
 }
 
 .bar-btn:hover {
-  background: #e8f0ff;
-  color: #3a56d4;
-  border-color: #b0bfff;
+  background: #e6faf8;
+  color: #0d9488;
+  border-color: #99f6e4;
 }
 
 .size-control {
@@ -365,14 +365,14 @@ html, body {
 
 .size-control input[type="range"] {
   width: 100px;
-  accent-color: #4262ff;
+  accent-color: #14b8a6;
   cursor: pointer;
 }
 
 .size-value {
   font-size: 11px;
   font-weight: 600;
-  color: #4262ff;
+  color: #14b8a6;
   min-width: 28px;
   text-align: center;
 }

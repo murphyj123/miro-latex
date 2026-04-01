@@ -894,20 +894,20 @@ kbd {
   height: auto;
 }
 
-/* Top action row */
+/* Top action row — 2×2 grid */
 .action-row {
-  display: flex;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
 }
 
 .action-btn {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 8px 6px;
-  font-size: 11px;
+  gap: 5px;
+  padding: 8px 10px;
+  font-size: 11.5px;
   font-weight: 600;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -916,6 +916,9 @@ kbd {
   cursor: pointer;
   transition: all 0.12s;
   white-space: nowrap;
+  font-family: inherit;
+  width: auto;
+  height: auto;
 }
 
 .action-btn:hover {

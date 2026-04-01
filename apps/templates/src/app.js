@@ -1890,7 +1890,8 @@ function buildGallery() {
     try {
       sandbox.innerHTML = '';
       TEMPLATES[id].renderConfig(sandbox);
-      const svgNode = TEMPLATES[id].generateSVG();
+      const cfg = TEMPLATES[id].readConfig ? TEMPLATES[id].readConfig() : undefined;
+      const svgNode = TEMPLATES[id].generateSVG(cfg);
       if (svgNode) {
         thumbMap[id] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ser.serializeToString(svgNode));
       }
@@ -1921,12 +1922,13 @@ function buildGallery() {
     const card = document.createElement('div');
     card.className = 'template-card';
     card.dataset.template = id;
-    card.dataset.category = cat;
+    card.dataset.cat = cat;
 
     if (thumb) {
       card.innerHTML = `<div class="card-thumb"><img src="${thumb}" alt="${name}" /></div><div class="card-name">${name}</div>`;
     } else {
-      card.innerHTML = `<div class="card-icon">${icon}</div><div class="card-name">${name}</div>`;
+      const catBg = CAT_COLORS[cat] || '#f1f5f9';
+      card.innerHTML = `<div class="card-thumb" style="background:${catBg}"><span class="card-cat-glyph">${icon}</span></div><div class="card-name">${name}</div>`;
     }
     card.addEventListener('click', () => showEditor(id));
     galleryGrid.appendChild(card);

@@ -526,7 +526,7 @@ function buildLibraryOverlay() {
   };
 }
 
-const GRAPH_DEFAULT_COLORS = ['#4262ff', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6'];
+const GRAPH_DEFAULT_COLORS = ['#14b8a6', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6'];
 
 function buildGraphOverlay() {
   const overlay = document.createElement('div');
@@ -544,7 +544,7 @@ function buildGraphOverlay() {
           <div class="graph-functions" id="graph-functions">
             <div class="graph-fn-row" data-index="0">
               <input type="text" class="graph-fn-input" placeholder="e.g. x^2, sin(x), ln(x)" value="x^2" />
-              <input type="color" class="graph-fn-color" value="#4262ff" />
+              <input type="color" class="graph-fn-color" value="#14b8a6" />
               <button type="button" class="graph-fn-remove" title="Remove" style="visibility:hidden">&times;</button>
             </div>
           </div>
@@ -647,7 +647,7 @@ function buildGraphOverlay() {
     row.dataset.index = idx;
     row.innerHTML = `
       <input type="text" class="graph-fn-input" placeholder="e.g. sin(x)" />
-      <input type="color" class="graph-fn-color" value="${GRAPH_DEFAULT_COLORS[idx] || '#4262ff'}" />
+      <input type="color" class="graph-fn-color" value="${GRAPH_DEFAULT_COLORS[idx] || '#14b8a6'}" />
       <button type="button" class="graph-fn-remove" title="Remove">&times;</button>
     `;
     fnContainer.appendChild(row);

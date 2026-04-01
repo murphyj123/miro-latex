@@ -13,7 +13,7 @@
   --color-green: #10b981;
   --color-amber: #f59e0b;
   --color-red: #ef4444;
-  --color-blue: #4262ff;
+  --color-blue: #14b8a6;
   --color-active: var(--color-green);
   --ring-size: 180px;
   --time-font: 36px;
@@ -269,7 +269,7 @@ body {
 .custom-input input:focus {
   outline: none;
   border-color: var(--color-active);
-  box-shadow: 0 0 0 2px rgba(66,98,255,0.15);
+  box-shadow: 0 0 0 2px rgba(20,184,166,0.15);
 }
 
 .custom-input .btn-set {
