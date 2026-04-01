@@ -1,0 +1,1360 @@
+/* ── Maths Templates Generator ────────────────────── */
+import { extraTemplates } from './templates-extra.js';
+import { interactiveTemplates } from './templates-interactive.js';
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function svgEl(tag, attrs = {}) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function makeSVG(w, h) {
+  return svgEl('svg', { xmlns: SVG_NS, viewBox: `0 0 ${w} ${h}`, width: w, height: h });
+}
+
+function textEl(txt, x, y, extra = {}) {
+  const t = svgEl('text', { x, y, 'font-family': 'Inter, Arial, sans-serif', 'font-size': '12', fill: '#333', 'text-anchor': 'middle', 'dominant-baseline': 'central', ...extra });
+  t.textContent = txt;
+  return t;
+}
+
+// ── DOM refs ────────────────────────────────────────
+
+const configPanel = document.getElementById('config-panel');
+const previewArea = document.getElementById('preview-area');
+const placeBtn    = document.getElementById('place-btn');
+const editBtn     = document.getElementById('edit-selected-btn');
+const imgSizeEl   = document.getElementById('img-size');
+const sizeValueEl = document.getElementById('size-value');
+
+let activeTemplate = null;
+let debounceTimer  = null;
+
+// ── Colour palettes ─────────────────────────────────
+
+const ROW_COLOURS = [
+  '#fce4ec','#e3f2fd','#e8f5e9','#fff9c4','#f3e5f5',
+  '#e0f7fa','#fff3e0','#ede7f6','#fbe9e7','#e8eaf6','#f1f8e9',
+];
+
+const SEG_COLOURS = [
+  '#90caf9','#ef9a9a','#a5d6a7','#fff59d','#ce93d8',
+  '#80cbc4','#ffab91','#b0bec5',
+];
+
+// ══════════════════════════════════════════════════════
+// TEMPLATE REGISTRY
+// ══════════════════════════════════════════════════════
+
+const TEMPLATES = {};
+
+// ── Helper: build config HTML from a descriptor ─────
+
+function buildConfig(title, fields) {
+  let html = `<div class="cfg-title">${title}</div>`;
+  for (const f of fields) {
+    if (f.type === 'divider') { html += '<hr class="cfg-divider"/>'; continue; }
+    if (f.type === 'heading') { html += `<div class="cfg-label">${f.label}</div>`; continue; }
+    if (f.type === 'row-start') { html += '<div class="cfg-row">'; continue; }
+    if (f.type === 'row-end')   { html += '</div>'; continue; }
+    if (f.type === 'container') { html += `<div id="${f.id}"></div>`; continue; }
+
+    const wrap = f.noWrap ? '' : '<div class="cfg-field">';
+    const wrapEnd = f.noWrap ? '' : '</div>';
+
+    if (f.type === 'number') {
+      html += `${wrap}<label class="cfg-field-label">${f.label}</label>
+        <input type="number" id="${f.id}" class="cfg-input cfg-input-sm" value="${f.value}" min="${f.min ?? ''}" max="${f.max ?? ''}" step="${f.step ?? 1}" />${wrapEnd}`;
+    } else if (f.type === 'range') {
+      html += `${wrap}<label class="cfg-field-label">${f.label}</label>
+        <div class="cfg-row"><input type="range" id="${f.id}" class="cfg-range" value="${f.value}" min="${f.min}" max="${f.max}" step="${f.step ?? 1}" />
+        <span class="cfg-range-value" id="${f.id}-val">${f.value}</span></div>${wrapEnd}`;
+    } else if (f.type === 'checkbox') {
+      html += `<label class="cfg-check"><input type="checkbox" id="${f.id}" ${f.checked ? 'checked' : ''} /><span>${f.label}</span></label>`;
+    } else if (f.type === 'text') {
+      html += `${wrap}<label class="cfg-field-label">${f.label}</label>
+        <input type="text" id="${f.id}" class="cfg-input" value="${f.value ?? ''}" placeholder="${f.placeholder ?? ''}" />${wrapEnd}`;
+    } else if (f.type === 'select') {
+      const opts = f.options.map(o => `<option value="${o.v}" ${o.v === f.value ? 'selected' : ''}>${o.l}</option>`).join('');
+      html += `${wrap}<label class="cfg-field-label">${f.label}</label>
+        <select id="${f.id}" class="cfg-select">${opts}</select>${wrapEnd}`;
+    } else if (f.type === 'colour') {
+      html += `<label class="cfg-swatch"><input type="color" id="${f.id}" value="${f.value}" /><span class="cfg-swatch-dot" style="background:${f.value}"></span></label>`;
+    } else if (f.type === 'checkboxes') {
+      html += `<div class="cfg-field"><label class="cfg-field-label">${f.label}</label><div class="cfg-row" style="flex-wrap:wrap;gap:6px;">`;
+      for (const o of f.options) {
+        html += `<label class="cfg-check" style="min-width:50px"><input type="checkbox" data-group="${f.id}" value="${o.v}" ${o.checked ? 'checked' : ''} /><span>${o.l}</span></label>`;
+      }
+      html += '</div></div>';
+    }
+  }
+  return html;
+}
+
+function $(id) { return document.getElementById(id); }
+function val(id) { const e = $(id); if (!e) return ''; return e.value; }
+function num(id, fallback = 0) { return parseFloat(val(id)) || fallback; }
+function checked(id) { const e = $(id); return e ? e.checked : false; }
+function checkedValues(group) {
+  return [...document.querySelectorAll(`[data-group="${group}"]:checked`)].map(e => e.value);
+}
+
+// ══════════════════════════════════════════════════════
+// 1. BAR MODEL
+// ══════════════════════════════════════════════════════
+
+TEMPLATES['bar-model'] = {
+  renderConfig(ct) {
+    ct.innerHTML = buildConfig('Bar Model', [
+      { type: 'row-start' },
+      { type: 'range', id: 'bm-bars', label: 'Number of bars', value: 1, min: 1, max: 3 },
+      { type: 'row-end' },
+      { type: 'row-start' },
+      { type: 'range', id: 'bm-segs', label: 'Segments per bar', value: 4, min: 2, max: 8 },
+      { type: 'row-end' },
+      { type: 'checkbox', id: 'bm-equal', label: 'Equal width segments', checked: true },
+      { type: 'checkbox', id: 'bm-brace', label: 'Show brace with total', checked: false },
+      { type: 'text', id: 'bm-total', label: 'Total label', value: '', placeholder: 'e.g. 24' },
+      { type: 'divider' },
+      { type: 'heading', label: 'Segment Labels & Colours' },
+      { type: 'container', id: 'bm-seg-rows' },
+    ]);
+    const update = () => {
+      const n = parseInt($('bm-segs').value, 10) || 4;
+      const ct2 = $('bm-seg-rows');
+      // preserve existing
+      const existing = ct2.querySelectorAll('.seg-row');
+      const labels = []; const colours = [];
+      existing.forEach((r, i) => {
+        labels.push(r.querySelector('input[type="text"]')?.value ?? '');
+        colours.push(r.querySelector('input[type="color"]')?.value ?? SEG_COLOURS[i % SEG_COLOURS.length]);
+      });
+      let html = '';
+      for (let i = 0; i < n; i++) {
+        const lbl = labels[i] ?? '';
+        const col = colours[i] ?? SEG_COLOURS[i % SEG_COLOURS.length];
+        html += `<div class="seg-row"><input type="text" class="cfg-input" value="${lbl}" placeholder="Seg ${i+1}" data-seg-label="${i}" /><label class="cfg-swatch"><input type="color" value="${col}" data-seg-colour="${i}" /><span class="cfg-swatch-dot" style="background:${col}"></span></label></div>`;
+      }
+      ct2.innerHTML = html;
+      ct2.querySelectorAll('input').forEach(el => { el.addEventListener('input', schedulePreview); el.addEventListener('change', schedulePreview); });
+      ct2.querySelectorAll('.cfg-swatch input[type="color"]').forEach(inp => {
+        inp.addEventListener('input', () => { inp.nextElementSibling.style.background = inp.value; });
+      });
+    };
+    $('bm-segs').addEventListener('input', () => { $('bm-segs-val').textContent = $('bm-segs').value; update(); });
+    $('bm-bars').addEventListener('input', () => { $('bm-bars-val').textContent = $('bm-bars').value; });
+    update();
+  },
+
+  generateSVG() {
+    const nBars = parseInt(val('bm-bars'), 10) || 1;
+    const nSegs = parseInt(val('bm-segs'), 10) || 4;
+    const equalW = checked('bm-equal');
+    const showBrace = checked('bm-brace');
+    const totalLabel = val('bm-total');
+
+    const barW = 500, barH = 40, gap = 12, padL = 30, padT = showBrace ? 50 : 20, padB = 20, padR = 30;
+    const totalH = padT + nBars * barH + (nBars - 1) * gap + padB;
+    const totalW = padL + barW + padR;
+    const svg = makeSVG(totalW, totalH);
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: totalW, height: totalH, fill: '#fff' }));
+
+    const labels = [];
+    const colours = [];
+    document.querySelectorAll('[data-seg-label]').forEach((el, i) => { labels[i] = el.value; });
+    document.querySelectorAll('[data-seg-colour]').forEach((el, i) => { colours[i] = el.value; });
+
+    for (let b = 0; b < nBars; b++) {
+      const y = padT + b * (barH + gap);
+      let segW = barW / nSegs;
+      for (let s = 0; s < nSegs; s++) {
+        const x = padL + s * segW;
+        const col = colours[s] || SEG_COLOURS[s % SEG_COLOURS.length];
+        svg.appendChild(svgEl('rect', { x, y, width: segW, height: barH, fill: col, stroke: '#555', 'stroke-width': 1.5 }));
+        const lbl = labels[s] || '';
+        if (lbl) svg.appendChild(textEl(lbl, x + segW / 2, y + barH / 2, { 'font-size': '11', fill: '#333' }));
+      }
+    }
+
+    if (showBrace && totalLabel) {
+      const braceY = padT - 8;
+      // simple curly brace approx
+      const x1 = padL, x2 = padL + barW, mid = padL + barW / 2;
+      let d = `M ${x1},${braceY} Q ${x1},${braceY - 15} ${mid - 5},${braceY - 15} L ${mid},${braceY - 22} L ${mid + 5},${braceY - 15} Q ${x2},${braceY - 15} ${x2},${braceY}`;
+      svg.appendChild(svgEl('path', { d, fill: 'none', stroke: '#555', 'stroke-width': 1.5 }));
+      svg.appendChild(textEl(totalLabel, mid, braceY - 32, { 'font-size': '13', 'font-weight': '600' }));
+    }
+
+    return svg;
+  },
+};
+
+// ══════════════════════════════════════════════════════
+// 2. FRACTION WALL
+// ══════════════════════════════════════════════════════
+
+TEMPLATES['fraction-wall'] = {
+  renderConfig(ct) {
+    ct.innerHTML = buildConfig('Fraction Wall', [
+      { type: 'row-start' },
+      { type: 'range', id: 'fw-max', label: 'Max denominator', value: 6, min: 2, max: 12 },
+      { type: 'row-end' },
+      { type: 'checkbox', id: 'fw-labels', label: 'Show fraction labels', checked: true },
+      { type: 'row-start' },
+      { type: 'number', id: 'fw-width', label: 'Width', value: 560, min: 200, max: 800 },
+      { type: 'row-end' },
+    ]);
+    $('fw-max').addEventListener('input', () => { $('fw-max-val').textContent = $('fw-max').value; });
+  },
+
+  generateSVG() {
+    const maxD = parseInt(val('fw-max'), 10) || 6;
+    const showLabels = checked('fw-labels');
+    const W = num('fw-width', 560);
+    const rowH = 32;
+    const pad = 16;
+    const rows = maxD; // row 1 = 1 whole, row 2 = halves, ... row maxD = maxD-ths
+    const totalH = pad * 2 + rows * rowH;
+    const svg = makeSVG(W + pad * 2, totalH);
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W + pad * 2, height: totalH, fill: '#fff' }));
+
+    for (let d = 1; d <= maxD; d++) {
+      const y = pad + (d - 1) * rowH;
+      const col = ROW_COLOURS[(d - 1) % ROW_COLOURS.length];
+      const segW = W / d;
+      for (let n = 0; n < d; n++) {
+        const x = pad + n * segW;
+        svg.appendChild(svgEl('rect', { x, y, width: segW, height: rowH, fill: col, stroke: '#888', 'stroke-width': 1 }));
+        if (showLabels) {
+          const lbl = d === 1 ? '1' : `${1}/${d}`;
+          if (segW > 24) {
+            svg.appendChild(textEl(lbl, x + segW / 2, y + rowH / 2, { 'font-size': segW < 40 ? '9' : '11', fill: '#444' }));
+          }
+        }
+      }
+    }
+    return svg;
+  },
+};
+
+// ══════════════════════════════════════════════════════
+// 3. FRACTION CIRCLES
+// ══════════════════════════════════════════════════════
+
+TEMPLATES['fraction-circles'] = {
+  renderConfig(ct) {
+    ct.innerHTML = buildConfig('Fraction Circles', [
+      { type: 'row-start' },
+      { type: 'number', id: 'fc-denom', label: 'Denominator', value: 4, min: 2, max: 12 },
+      { type: 'number', id: 'fc-numer', label: 'Numerator', value: 3, min: 0, max: 12 },
+      { type: 'row-end' },
+      { type: 'row-start' },
+      { type: 'number', id: 'fc-circles', label: 'Circles', value: 1, min: 1, max: 4 },
+      { type: 'row-end' },
+      { type: 'checkbox', id: 'fc-label', label: 'Show label', checked: true },
+      { type: 'row-start' },
+      { type: 'colour', id: 'fc-fill', value: '#4262ff' },
+      { type: 'row-end' },
+    ]);
+  },
+
+  generateSVG() {
+    const denom = parseInt(val('fc-denom'), 10) || 4;
+    const numer = Math.min(parseInt(val('fc-numer'), 10) || 0, denom);
+    const nCircles = parseInt(val('fc-circles'), 10) || 1;
+    const showLabel = checked('fc-label');
+    const fillCol = val('fc-fill') || '#4262ff';
+    const r = 60, pad = 20, gap = 20;
+    const totalW = pad * 2 + nCircles * (r * 2) + (nCircles - 1) * gap;
+    const totalH = pad * 2 + r * 2 + (showLabel ? 24 : 0);
+    const svg = makeSVG(totalW, totalH);
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: totalW, height: totalH, fill: '#fff' }));
+
+    for (let c = 0; c < nCircles; c++) {
+      const cx = pad + r + c * (r * 2 + gap);
+      const cy = pad + r;
+      // draw sectors
+      for (let i = 0; i < denom; i++) {
+        const a1 = (i / denom) * Math.PI * 2 - Math.PI / 2;
+        const a2 = ((i + 1) / denom) * Math.PI * 2 - Math.PI / 2;
+        const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+        const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+        const large = (a2 - a1 > Math.PI) ? 1 : 0;
+        const d = `M ${cx},${cy} L ${x1},${y1} A ${r},${r} 0 ${large} 1 ${x2},${y2} Z`;
+        const filled = i < numer;
+        svg.appendChild(svgEl('path', { d, fill: filled ? fillCol : '#f0f0f0', stroke: '#555', 'stroke-width': 1.5 }));
+      }
+      if (showLabel) {
+        svg.appendChild(textEl(`${numer}/${denom}`, cx, cy + r + 16, { 'font-size': '13', 'font-weight': '600' }));
+      }
+    }
+    return svg;
+  },
+};
+
+// ══════════════════════════════════════════════════════
+// 4. PLACE VALUE CHART
+// ══════════════════════════════════════════════════════
+
+TEMPLATES['place-value-chart'] = {
+  renderConfig(ct) {
+    ct.innerHTML = buildConfig('Place Value Chart', [
+      { type: 'checkboxes', id: 'pv-cols', label: 'Columns', options: [
+        { v: 'M', l: 'M', checked: false },
+        { v: 'HTh', l: 'HTh', checked: false },
+        { v: 'TTh', l: 'TTh', checked: false },
+        { v: 'Th', l: 'Th', checked: true },
+        { v: 'H', l: 'H', checked: true },
+        { v: 'T', l: 'T', checked: true },
+        { v: 'U', l: 'U', checked: true },
+        { v: 't', l: 'tenth', checked: false },
+        { v: 'h', l: 'hund', checked: false },
+        { v: 'th', l: 'thous', checked: false },
+      ]},
+      { type: 'row-start' },
+      { type: 'number', id: 'pv-rows', label: 'Rows', value: 3, min: 1, max: 5 },
+      { type: 'row-end' },
+      { type: 'checkbox', id: 'pv-headers', label: 'Show headers', checked: true },
+    ]);
+  },
+
+  generateSVG() {
+    const cols = checkedValues('pv-cols');
+    if (cols.length === 0) cols.push('H', 'T', 'U');
+    const nRows = parseInt(val('pv-rows'), 10) || 3;
+    const showHeaders = checked('pv-headers');
+    const colW = 60, rowH = 34, pad = 16;
+    const headerH = showHeaders ? 30 : 0;
+    const totalW = pad * 2 + cols.length * colW;
+    const totalH = pad * 2 + headerH + nRows * rowH;
+    const svg = makeSVG(totalW, totalH);
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: totalW, height: totalH, fill: '#fff' }));
+
+    const colNames = { M: 'M', HTh: 'HTh', TTh: 'TTh', Th: 'Th', H: 'H', T: 'T', U: 'U', t: 't', h: 'h', th: 'th' };
+    const decimalCols = ['t', 'h', 'th'];
+
+    // Find if there is a decimal boundary (U then t)
+    const uIdx = cols.indexOf('U');
+    const tIdx = cols.indexOf('t');
+    const hasDecimal = uIdx >= 0 && tIdx >= 0 && tIdx === uIdx + 1;
+
+    // Headers
+    if (showHeaders) {
+      for (let c = 0; c < cols.length; c++) {
+        const x = pad + c * colW;
+        const bgCol = decimalCols.includes(cols[c]) ? '#fff3e0' : '#e3f2fd';
+        svg.appendChild(svgEl('rect', { x, y: pad, width: colW, height: headerH, fill: bgCol, stroke: '#aaa', 'stroke-width': 1 }));
+        svg.appendChild(textEl(colNames[cols[c]] || cols[c], x + colW / 2, pad + headerH / 2, { 'font-size': '11', 'font-weight': '700', fill: '#444' }));
+      }
+    }
+
+    // Grid cells
+    for (let r = 0; r < nRows; r++) {
+      for (let c = 0; c < cols.length; c++) {
+        const x = pad + c * colW;
+        const y = pad + headerH + r * rowH;
+        svg.appendChild(svgEl('rect', { x, y, width: colW, height: rowH, fill: '#fff', stroke: '#bbb', 'stroke-width': 1 }));
+      }
+    }
+
+    // Decimal point line
+    if (hasDecimal) {
+      const dx = pad + (uIdx + 1) * colW;
+      const y1 = pad;
+      const y2 = pad + headerH + nRows * rowH;
+      svg.appendChild(svgEl('line', { x1: dx, y1, x2: dx, y2, stroke: '#e53935', 'stroke-width': 2.5, 'stroke-dasharray': '4,3' }));
+    }
+
+    return svg;
+  },
+};
+
+// ══════════════════════════════════════════════════════
+// 5. HUNDREDS CHART
+// ══════════════════════════════════════════════════════
+
+TEMPLATES['hundreds-chart'] = {
+  renderConfig(ct) {
+    ct.innerHTML = buildConfig('Hundreds Chart', [
+      { type: 'row-start' },
+      { type: 'select', id: 'hc-start', label: 'Start from', value: '1', options: [{ v: '0', l: '0' }, { v: '1', l: '1' }] },
+      { type: 'row-end' },
+      { type: 'checkbox', id: 'hc-numbers', label: 'Show numbers', checked: true },
+      { type: 'row-start' },
+      { type: 'number', id: 'hc-rows', label: 'Rows', value: 10, min: 1, max: 15 },
+      { type: 'number', id: 'hc-cols', label: 'Cols', value: 10, min: 1, max: 15 },
+      { type: 'row-end' },
+    ]);
+  },
+
+  generateSVG() {
+    const start = parseInt(val('hc-start'), 10);
+    const showNum = checked('hc-numbers');
+    const rows = parseInt(val('hc-rows'), 10) || 10;
+    const cols = parseInt(val('hc-cols'), 10) || 10;
+    const cellSize = 38, pad = 12;
+    const totalW = pad * 2 + cols * cellSize;
+    const totalH = pad * 2 + rows * cellSize;
+    const svg = makeSVG(totalW, totalH);
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: totalW, height: totalH, fill: '#fff' }));
+
+    let n = start;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x = pad + c * cellSize;
+        const y = pad + r * cellSize;
+        const bg = (r + c) % 2 === 0 ? '#f8f9ff' : '#fff';
+        svg.appendChild(svgEl('rect', { x, y, width: cellSize, height: cellSize, fill: bg, stroke: '#bbb', 'stroke-width': 1 }));
+        if (showNum) {
+          svg.appendChild(textEl(String(n), x + cellSize / 2, y + cellSize / 2, { 'font-size': '12', fill: '#333' }));
+        }
+        n++;
+      }
+    }
+    return svg;
+  },
+};
+
+// ══════════════════════════════════════════════════════
+// 6. MULTIPLICATION GRID
+// ══════════════════════════════════════════════════════
+
+TEMPLATES['multiplication-grid'] = {
+  renderConfig(ct) {
+    ct.innerHTML = buildConfig('Multiplication Grid', [
+      { type: 'row-start' },
+      { type: 'range', id: 'mg-size', label: 'Size', value: 12, min: 5, max: 15 },
+      { type: 'row-end' },
+      { type: 'checkbox', id: 'mg-products', label: 'Show products', checked: true },
+      { type: 'row-start' },
+      { type: 'select', id: 'mg-start', label: 'Start value', value: '1', options: [{ v: '0', l: '0' }, { v: '1', l: '1' }] },
+      { type: 'row-end' },
+    ]);
+    $('mg-size').addEventListener('input', () => { $('mg-size-val').textContent = $('mg-size').value; });
+  },
+
+  generateSVG() {
+    const size = parseInt(val('mg-size'), 10) || 12;
+    const showProd = checked('mg-products');
+    const startVal = parseInt(val('mg-start'), 10);
+    const cellSize = Math.max(24, Math.min(36, 420 / size));
+    const pad = 12;
+    const gridN = size; // number of values beyond header
+    const totalW = pad * 2 + (gridN + 1) * cellSize;
+    const totalH = pad * 2 + (gridN + 1) * cellSize;
+    const svg = makeSVG(totalW, totalH);
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: totalW, height: totalH, fill: '#fff' }));
+
+    const fs = cellSize < 28 ? '9' : '11';
+
+    // top-left corner: multiply symbol
+    svg.appendChild(svgEl('rect', { x: pad, y: pad, width: cellSize, height: cellSize, fill: '#e8eaf6', stroke: '#aaa', 'stroke-width': 1 }));
+    svg.appendChild(textEl('\u00D7', pad + cellSize / 2, pad + cellSize / 2, { 'font-size': '13', 'font-weight': '700', fill: '#555' }));
+
+    // Column headers
+    for (let c = 0; c < gridN; c++) {
+      const x = pad + (c + 1) * cellSize;
+      svg.appendChild(svgEl('rect', { x, y: pad, width: cellSize, height: cellSize, fill: '#e3f2fd', stroke: '#aaa', 'stroke-width': 1 }));
+      svg.appendChild(textEl(String(startVal + c), x + cellSize / 2, pad + cellSize / 2, { 'font-size': fs, 'font-weight': '700', fill: '#333' }));
+    }
+
+    // Row headers + cells
+    for (let r = 0; r < gridN; r++) {
+      const y = pad + (r + 1) * cellSize;
+      // row header
+      svg.appendChild(svgEl('rect', { x: pad, y, width: cellSize, height: cellSize, fill: '#e3f2fd', stroke: '#aaa', 'stroke-width': 1 }));
+      svg.appendChild(textEl(String(startVal + r), pad + cellSize / 2, y + cellSize / 2, { 'font-size': fs, 'font-weight': '700', fill: '#333' }));
+
+      for (let c = 0; c < gridN; c++) {
+        const x = pad + (c + 1) * cellSize;
+        const bg = (r + c) % 2 === 0 ? '#fafafa' : '#fff';
+        svg.appendChild(svgEl('rect', { x, y, width: cellSize, height: cellSize, fill: bg, stroke: '#ccc', 'stroke-width': 0.8 }));
+        if (showProd) {
+          const prod = (startVal + r) * (startVal + c);
+          svg.appendChild(textEl(String(prod), x + cellSize / 2, y + cellSize / 2, { 'font-size': fs, fill: '#555' }));
+        }
+      }
+    }
+    return svg;
+  },
+};
+
+// ══════════════════════════════════════════════════════
+// 7. FUNCTION MACHINE
+// ══════════════════════════════════════════════════════
+
+TEMPLATES['function-machine'] = {
+  renderConfig(ct) {
+    ct.innerHTML = buildConfig('Function Machine', [
+      { type: 'row-start' },
+      { type: 'range', id: 'fm-stages', label: 'Stages', value: 2, min: 1, max: 3 },
+      { type: 'row-end' },
+      { type: 'text', id: 'fm-input', label: 'Input value', value: 'x', placeholder: 'x' },
+      { type: 'text', id: 'fm-output', label: 'Output value', value: '?', placeholder: '?' },
+      { type: 'divider' },
+      { type: 'heading', label: 'Operations' },
+      { type: 'container', id: 'fm-ops' },
+      { type: 'checkbox', id: 'fm-inverse', label: 'Show inverse below', checked: false },
+    ]);
+    const updateOps = () => {
+      const n = parseInt($('fm-stages').value, 10) || 2;
+      const ct2 = $('fm-ops');
+      const existing = ct2.querySelectorAll('input[type="text"]');
+      const vals = [];
+      existing.forEach(e => vals.push(e.value));
+      let html = '';
+      for (let i = 0; i < n; i++) {
+        html += `<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">Stage ${i + 1}</label><input type="text" class="cfg-input" value="${vals[i] ?? (i === 0 ? '+ 3' : '\u00D7 2')}" data-fm-op="${i}" /></div></div>`;
+      }
+      ct2.innerHTML = html;
+      ct2.querySelectorAll('input').forEach(el => { el.addEventListener('input', schedulePreview); });
+    };
+    $('fm-stages').addEventListener('input', () => { $('fm-stages-val').textContent = $('fm-stages').value; updateOps(); });
+    updateOps();
+  },
+
+  generateSVG() {
+    const nStages = parseInt(val('fm-stages'), 10) || 2;
+    const inputVal = val('fm-input') || 'x';
+    const outputVal = val('fm-output') || '?';
+    const showInverse = checked('fm-inverse');
+    const ops = [];
+    document.querySelectorAll('[data-fm-op]').forEach((el, i) => { ops[i] = el.value || '?'; });
+
+    const boxW = 90, boxH = 44, arrowLen = 40, pad = 30;
+    const totalW = pad * 2 + arrowLen + nStages * boxW + (nStages - 1) * arrowLen + arrowLen;
+    const totalH = pad * 2 + boxH + (showInverse ? boxH + 40 : 0);
+    const svg = makeSVG(totalW, totalH);
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: totalW, height: totalH, fill: '#fff' }));
+
+    // Defs for arrowhead
+    const defs = svgEl('defs', {});
+    const marker = svgEl('marker', { id: 'fmarr', markerWidth: '8', markerHeight: '6', refX: '8', refY: '3', orient: 'auto' });
+    marker.appendChild(svgEl('polygon', { points: '0 0, 8 3, 0 6', fill: '#555' }));
+    defs.appendChild(marker);
+    if (showInverse) {
+      const marker2 = svgEl('marker', { id: 'fmarr-inv', markerWidth: '8', markerHeight: '6', refX: '0', refY: '3', orient: 'auto' });
+      marker2.appendChild(svgEl('polygon', { points: '8 0, 0 3, 8 6', fill: '#b71c1c' }));
+      defs.appendChild(marker2);
+    }
+    svg.appendChild(defs);
+
+    const cy = pad + boxH / 2;
+
+    // Input label + arrow
+    svg.appendChild(textEl(inputVal, pad + 6, cy, { 'text-anchor': 'start', 'font-size': '14', 'font-weight': '600', fill: '#4262ff' }));
+    let x = pad + arrowLen - 12;
+    svg.appendChild(svgEl('line', { x1: x - 16, y1: cy, x2: x, y2: cy, stroke: '#555', 'stroke-width': 2, 'marker-end': 'url(#fmarr)' }));
+    x += 4;
+
+    // Operation boxes
+    for (let i = 0; i < nStages; i++) {
+      svg.appendChild(svgEl('rect', { x, y: pad, width: boxW, height: boxH, rx: 10, ry: 10, fill: '#e8eaf6', stroke: '#5c6bc0', 'stroke-width': 2 }));
+      svg.appendChild(textEl(ops[i] || '?', x + boxW / 2, cy, { 'font-size': '14', 'font-weight': '600', fill: '#333' }));
+      x += boxW;
+      // arrow to next
+      if (i < nStages - 1) {
+        svg.appendChild(svgEl('line', { x1: x, y1: cy, x2: x + arrowLen - 4, y2: cy, stroke: '#555', 'stroke-width': 2, 'marker-end': 'url(#fmarr)' }));
+        x += arrowLen;
+      }
+    }
+
+    // Output arrow + label
+    svg.appendChild(svgEl('line', { x1: x, y1: cy, x2: x + arrowLen - 12, y2: cy, stroke: '#555', 'stroke-width': 2, 'marker-end': 'url(#fmarr)' }));
+    svg.appendChild(textEl(outputVal, x + arrowLen - 4, cy, { 'text-anchor': 'start', 'font-size': '14', 'font-weight': '600', fill: '#4262ff' }));
+
+    // Inverse
+    if (showInverse) {
+      const iy = pad + boxH + 30 + boxH / 2;
+      // reverse: output on left, input on right
+      let ix = pad + arrowLen - 12 + 4;
+      svg.appendChild(textEl(outputVal, ix - 22, iy, { 'text-anchor': 'end', 'font-size': '13', 'font-weight': '600', fill: '#b71c1c' }));
+      for (let i = nStages - 1; i >= 0; i--) {
+        svg.appendChild(svgEl('rect', { x: ix, y: iy - boxH / 2, width: boxW, height: boxH, rx: 10, ry: 10, fill: '#fce4ec', stroke: '#e57373', 'stroke-width': 2 }));
+        // inverse op
+        const invOp = invertOp(ops[i] || '');
+        svg.appendChild(textEl(invOp, ix + boxW / 2, iy, { 'font-size': '13', 'font-weight': '600', fill: '#b71c1c' }));
+        ix += boxW;
+        if (i > 0) {
+          svg.appendChild(svgEl('line', { x1: ix, y1: iy, x2: ix + arrowLen - 4, y2: iy, stroke: '#b71c1c', 'stroke-width': 1.5, 'marker-end': 'url(#fmarr)' }));
+          ix += arrowLen;
+        }
+      }
+      svg.appendChild(svgEl('line', { x1: ix, y1: iy, x2: ix + arrowLen - 12, y2: iy, stroke: '#b71c1c', 'stroke-width': 1.5, 'marker-end': 'url(#fmarr)' }));
+      svg.appendChild(textEl(inputVal, ix + arrowLen - 4, iy, { 'text-anchor': 'start', 'font-size': '13', 'font-weight': '600', fill: '#b71c1c' }));
+    }
+
+    return svg;
+  },
+};
+
+function invertOp(op) {
+  const s = op.trim();
+  if (s.startsWith('+')) return '- ' + s.slice(1).trim();
+  if (s.startsWith('-')) return '+ ' + s.slice(1).trim();
+  if (s.startsWith('\u00D7') || s.startsWith('*')) return '\u00F7 ' + s.slice(1).trim();
+  if (s.startsWith('\u00F7') || s.startsWith('/')) return '\u00D7 ' + s.slice(1).trim();
+  if (s.startsWith('x') || s.startsWith('X')) return '\u00F7 ' + s.slice(1).trim();
+  return 'inv(' + s + ')';
+}
+
+// ══════════════════════════════════════════════════════
+// 8. TWO-WAY TABLE
+// ══════════════════════════════════════════════════════
+
+TEMPLATES['two-way-table'] = {
+  renderConfig(ct) {
+    ct.innerHTML = buildConfig('Two-Way Table', [
+      { type: 'text', id: 'tw-title', label: 'Title', value: '', placeholder: 'Optional title' },
+      { type: 'divider' },
+      { type: 'heading', label: 'Row labels' },
+      { type: 'container', id: 'tw-rows-ct' },
+      { type: 'heading', label: 'Column labels' },
+      { type: 'container', id: 'tw-cols-ct' },
+      { type: 'row-start' },
+      { type: 'number', id: 'tw-nrows', label: 'Row count', value: 2, min: 2, max: 4 },
+      { type: 'number', id: 'tw-ncols', label: 'Col count', value: 2, min: 2, max: 4 },
+      { type: 'row-end' },
+      { type: 'checkbox', id: 'tw-totals', label: 'Show totals row/column', checked: true },
+    ]);
+    const updateFields = () => {
+      const nr = parseInt($('tw-nrows').value, 10) || 2;
+      const nc = parseInt($('tw-ncols').value, 10) || 2;
+      const rCt = $('tw-rows-ct');
+      const cCt = $('tw-cols-ct');
+      const rVals = [...rCt.querySelectorAll('input')].map(e => e.value);
+      const cVals = [...cCt.querySelectorAll('input')].map(e => e.value);
+      let rh = '';
+      for (let i = 0; i < nr; i++) rh += `<div class="cfg-row"><input type="text" class="cfg-input" value="${rVals[i] ?? 'Row ' + (i + 1)}" data-tw-row="${i}" /></div>`;
+      rCt.innerHTML = rh;
+      let ch = '';
+      for (let i = 0; i < nc; i++) ch += `<div class="cfg-row"><input type="text" class="cfg-input" value="${cVals[i] ?? 'Col ' + (i + 1)}" data-tw-col="${i}" /></div>`;
+      cCt.innerHTML = ch;
+      rCt.querySelectorAll('input').forEach(el => el.addEventListener('input', schedulePreview));
+      cCt.querySelectorAll('input').forEach(el => el.addEventListener('input', schedulePreview));
+    };
+    $('tw-nrows').addEventListener('change', updateFields);
+    $('tw-ncols').addEventListener('change', updateFields);
+    updateFields();
+  },
+
+  generateSVG() {
+    const title = val('tw-title');
+    const nr = parseInt(val('tw-nrows'), 10) || 2;
+    const nc = parseInt(val('tw-ncols'), 10) || 2;
+    const showTotals = checked('tw-totals');
+    const rowLabels = []; document.querySelectorAll('[data-tw-row]').forEach((e, i) => { rowLabels[i] = e.value; });
+    const colLabels = []; document.querySelectorAll('[data-tw-col]').forEach((e, i) => { colLabels[i] = e.value; });
+
+    const cellW = 80, cellH = 32, headerW = 90, headerH = 30, pad = 16;
+    const totalCols = nc + (showTotals ? 1 : 0);
+    const totalRows = nr + (showTotals ? 1 : 0);
+    const titleH = title ? 28 : 0;
+    const totalW = pad * 2 + headerW + totalCols * cellW;
+    const totalH = pad * 2 + titleH + headerH + totalRows * cellH;
+    const svg = makeSVG(totalW, totalH);
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: totalW, height: totalH, fill: '#fff' }));
+
+    if (title) {
+      svg.appendChild(textEl(title, totalW / 2, pad + 12, { 'font-size': '14', 'font-weight': '700', fill: '#333' }));
+    }
+
+    const baseY = pad + titleH;
+
+    // Top-left blank
+    svg.appendChild(svgEl('rect', { x: pad, y: baseY, width: headerW, height: headerH, fill: '#e8eaf6', stroke: '#aaa', 'stroke-width': 1 }));
+
+    // Column headers
+    for (let c = 0; c < nc; c++) {
+      const x = pad + headerW + c * cellW;
+      svg.appendChild(svgEl('rect', { x, y: baseY, width: cellW, height: headerH, fill: '#e3f2fd', stroke: '#aaa', 'stroke-width': 1 }));
+      svg.appendChild(textEl(colLabels[c] || '', x + cellW / 2, baseY + headerH / 2, { 'font-size': '11', 'font-weight': '700', fill: '#333' }));
+    }
+    if (showTotals) {
+      const x = pad + headerW + nc * cellW;
+      svg.appendChild(svgEl('rect', { x, y: baseY, width: cellW, height: headerH, fill: '#fff9c4', stroke: '#aaa', 'stroke-width': 1 }));
+      svg.appendChild(textEl('Total', x + cellW / 2, baseY + headerH / 2, { 'font-size': '11', 'font-weight': '700', fill: '#555' }));
+    }
+
+    // Rows
+    for (let r = 0; r < nr; r++) {
+      const y = baseY + headerH + r * cellH;
+      svg.appendChild(svgEl('rect', { x: pad, y, width: headerW, height: cellH, fill: '#e3f2fd', stroke: '#aaa', 'stroke-width': 1 }));
+      svg.appendChild(textEl(rowLabels[r] || '', pad + headerW / 2, y + cellH / 2, { 'font-size': '11', 'font-weight': '700', fill: '#333' }));
+      for (let c = 0; c < totalCols; c++) {
+        const x = pad + headerW + c * cellW;
+        const bg = (c === nc && showTotals) ? '#fffde7' : '#fff';
+        svg.appendChild(svgEl('rect', { x, y, width: cellW, height: cellH, fill: bg, stroke: '#bbb', 'stroke-width': 1 }));
+      }
+    }
+
+    // Totals row
+    if (showTotals) {
+      const y = baseY + headerH + nr * cellH;
+      svg.appendChild(svgEl('rect', { x: pad, y, width: headerW, height: cellH, fill: '#fff9c4', stroke: '#aaa', 'stroke-width': 1 }));
+      svg.appendChild(textEl('Total', pad + headerW / 2, y + cellH / 2, { 'font-size': '11', 'font-weight': '700', fill: '#555' }));
+      for (let c = 0; c < totalCols; c++) {
+        const x = pad + headerW + c * cellW;
+        svg.appendChild(svgEl('rect', { x, y, width: cellW, height: cellH, fill: '#fffde7', stroke: '#bbb', 'stroke-width': 1 }));
+      }
+    }
+
+    return svg;
+  },
+};
+
+// ══════════════════════════════════════════════════════
+// 9. VENN DIAGRAM
+// ══════════════════════════════════════════════════════
+
+TEMPLATES['venn-diagram'] = {
+  renderConfig(ct) {
+    ct.innerHTML = buildConfig('Venn Diagram', [
+      { type: 'row-start' },
+      { type: 'select', id: 'vn-circles', label: 'Circles', value: '2', options: [{ v: '2', l: '2' }, { v: '3', l: '3' }] },
+      { type: 'row-end' },
+      { type: 'text', id: 'vn-label-a', label: 'Set A', value: 'A', placeholder: 'A' },
+      { type: 'text', id: 'vn-label-b', label: 'Set B', value: 'B', placeholder: 'B' },
+      { type: 'text', id: 'vn-label-c', label: 'Set C (if 3)', value: 'C', placeholder: 'C' },
+      { type: 'text', id: 'vn-universal', label: 'Universal set label', value: '\u03BE', placeholder: '\u03BE' },
+      { type: 'checkbox', id: 'vn-rect', label: 'Show universal set rectangle', checked: true },
+      { type: 'divider' },
+      { type: 'heading', label: 'Circle colours' },
+      { type: 'row-start' },
+      { type: 'colour', id: 'vn-col-a', value: '#4262ff' },
+      { type: 'colour', id: 'vn-col-b', value: '#ff6b6b' },
+      { type: 'colour', id: 'vn-col-c', value: '#43a047' },
+      { type: 'row-end' },
+    ]);
+  },
+
+  generateSVG() {
+    const nCircles = parseInt(val('vn-circles'), 10) || 2;
+    const labels = [val('vn-label-a') || 'A', val('vn-label-b') || 'B', val('vn-label-c') || 'C'];
+    const uniLabel = val('vn-universal') || '\u03BE';
+    const showRect = checked('vn-rect');
+    const colours = [val('vn-col-a') || '#4262ff', val('vn-col-b') || '#ff6b6b', val('vn-col-c') || '#43a047'];
+
+    const W = 460, H = nCircles === 3 ? 360 : 300, pad = 20;
+    const svg = makeSVG(W, H);
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: '#fff' }));
+
+    if (showRect) {
+      svg.appendChild(svgEl('rect', { x: pad, y: pad, width: W - pad * 2, height: H - pad * 2, fill: 'none', stroke: '#555', 'stroke-width': 1.5, rx: 4 }));
+      svg.appendChild(textEl(uniLabel, pad + 14, pad + 14, { 'font-size': '16', 'font-weight': '700', fill: '#555', 'text-anchor': 'start' }));
+    }
+
+    const r = nCircles === 3 ? 85 : 95;
+    const cx = W / 2, cy = nCircles === 3 ? H / 2 + 5 : H / 2;
+    const offset = nCircles === 3 ? 50 : 55;
+
+    const positions = nCircles === 2
+      ? [{ x: cx - offset, y: cy }, { x: cx + offset, y: cy }]
+      : [{ x: cx - offset, y: cy + 20 }, { x: cx + offset, y: cy + 20 }, { x: cx, y: cy - offset + 10 }];
+
+    for (let i = 0; i < nCircles; i++) {
+      const col = colours[i];
+      // Convert hex to rgba for transparency
+      const rr = parseInt(col.slice(1, 3), 16);
+      const gg = parseInt(col.slice(3, 5), 16);
+      const bb = parseInt(col.slice(5, 7), 16);
+      svg.appendChild(svgEl('circle', {
+        cx: positions[i].x, cy: positions[i].y, r,
+        fill: `rgba(${rr},${gg},${bb},0.18)`,
+        stroke: col, 'stroke-width': 2,
+      }));
+    }
+
+    // Labels
+    const labelPositions = nCircles === 2
+      ? [{ x: cx - offset - r + 20, y: cy - r + 10 }, { x: cx + offset + r - 20, y: cy - r + 10 }]
+      : [{ x: cx - offset - r + 15, y: cy + 20 + r - 10 }, { x: cx + offset + r - 15, y: cy + 20 + r - 10 }, { x: cx, y: cy - offset + 10 - r + 5 }];
+
+    for (let i = 0; i < nCircles; i++) {
+      svg.appendChild(textEl(labels[i], labelPositions[i].x, labelPositions[i].y, { 'font-size': '15', 'font-weight': '700', fill: colours[i] }));
+    }
+
+    return svg;
+  },
+};
+
+// ══════════════════════════════════════════════════════
+// 10. CARROLL DIAGRAM
+// ══════════════════════════════════════════════════════
+
+TEMPLATES['carroll-diagram'] = {
+  renderConfig(ct) {
+    ct.innerHTML = buildConfig('Carroll Diagram', [
+      { type: 'text', id: 'cd-title', label: 'Title', value: '', placeholder: 'Optional title' },
+      { type: 'divider' },
+      { type: 'text', id: 'cd-row-crit', label: 'Row criteria', value: 'Even', placeholder: 'e.g. Even' },
+      { type: 'text', id: 'cd-row-neg', label: 'Row negation', value: 'Not even', placeholder: 'e.g. Not even' },
+      { type: 'text', id: 'cd-col-crit', label: 'Column criteria', value: 'Prime', placeholder: 'e.g. Prime' },
+      { type: 'text', id: 'cd-col-neg', label: 'Column negation', value: 'Not prime', placeholder: 'e.g. Not prime' },
+    ]);
+  },
+
+  generateSVG() {
+    const title = val('cd-title');
+    const rowCrit = val('cd-row-crit') || 'Yes';
+    const rowNeg  = val('cd-row-neg') || 'No';
+    const colCrit = val('cd-col-crit') || 'Yes';
+    const colNeg  = val('cd-col-neg') || 'No';
+
+    const cellW = 130, cellH = 80, headerW = 80, headerH = 30, pad = 20;
+    const titleH = title ? 28 : 0;
+    const W = pad * 2 + headerW + cellW * 2;
+    const H = pad * 2 + titleH + headerH + cellH * 2;
+    const svg = makeSVG(W, H);
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: '#fff' }));
+
+    if (title) svg.appendChild(textEl(title, W / 2, pad + 12, { 'font-size': '14', 'font-weight': '700' }));
+
+    const baseX = pad, baseY = pad + titleH;
+
+    // Top-left corner blank
+    svg.appendChild(svgEl('rect', { x: baseX, y: baseY, width: headerW, height: headerH, fill: '#e8eaf6', stroke: '#aaa', 'stroke-width': 1 }));
+
+    // Col headers
+    svg.appendChild(svgEl('rect', { x: baseX + headerW, y: baseY, width: cellW, height: headerH, fill: '#e3f2fd', stroke: '#aaa', 'stroke-width': 1 }));
+    svg.appendChild(textEl(colCrit, baseX + headerW + cellW / 2, baseY + headerH / 2, { 'font-size': '12', 'font-weight': '700', fill: '#333' }));
+
+    svg.appendChild(svgEl('rect', { x: baseX + headerW + cellW, y: baseY, width: cellW, height: headerH, fill: '#fce4ec', stroke: '#aaa', 'stroke-width': 1 }));
+    svg.appendChild(textEl(colNeg, baseX + headerW + cellW + cellW / 2, baseY + headerH / 2, { 'font-size': '12', 'font-weight': '700', fill: '#333' }));
+
+    // Row headers
+    const rowY1 = baseY + headerH;
+    const rowY2 = baseY + headerH + cellH;
+
+    svg.appendChild(svgEl('rect', { x: baseX, y: rowY1, width: headerW, height: cellH, fill: '#e3f2fd', stroke: '#aaa', 'stroke-width': 1 }));
+    svg.appendChild(textEl(rowCrit, baseX + headerW / 2, rowY1 + cellH / 2, { 'font-size': '12', 'font-weight': '700', fill: '#333' }));
+
+    svg.appendChild(svgEl('rect', { x: baseX, y: rowY2, width: headerW, height: cellH, fill: '#fce4ec', stroke: '#aaa', 'stroke-width': 1 }));
+    svg.appendChild(textEl(rowNeg, baseX + headerW / 2, rowY2 + cellH / 2, { 'font-size': '12', 'font-weight': '700', fill: '#333' }));
+
+    // 4 data cells
+    for (let r = 0; r < 2; r++) {
+      for (let c = 0; c < 2; c++) {
+        const x = baseX + headerW + c * cellW;
+        const y = baseY + headerH + r * cellH;
+        svg.appendChild(svgEl('rect', { x, y, width: cellW, height: cellH, fill: '#fff', stroke: '#bbb', 'stroke-width': 1 }));
+      }
+    }
+
+    return svg;
+  },
+};
+
+// ══════════════════════════════════════════════════════
+// 11. TREE DIAGRAM
+// ══════════════════════════════════════════════════════
+
+TEMPLATES['tree-diagram'] = {
+  renderConfig(ct) {
+    ct.innerHTML = buildConfig('Tree Diagram', [
+      { type: 'row-start' },
+      { type: 'select', id: 'td-stages', label: 'Stages', value: '2', options: [{ v: '1', l: '1' }, { v: '2', l: '2' }, { v: '3', l: '3' }] },
+      { type: 'select', id: 'td-branches', label: 'Branches per node', value: '2', options: [{ v: '2', l: '2' }, { v: '3', l: '3' }] },
+      { type: 'row-end' },
+      { type: 'checkbox', id: 'td-combined', label: 'Show combined outcomes', checked: true },
+      { type: 'divider' },
+      { type: 'heading', label: 'Branch labels & probabilities' },
+      { type: 'container', id: 'td-fields' },
+    ]);
+    const updateFields = () => {
+      const stages = parseInt($('td-stages').value, 10) || 2;
+      const bpn = parseInt($('td-branches').value, 10) || 2;
+      const ct2 = $('td-fields');
+      let html = '';
+      for (let s = 0; s < stages; s++) {
+        html += `<div class="cfg-label" style="margin-top:6px">Stage ${s + 1}</div>`;
+        for (let b = 0; b < bpn; b++) {
+          html += `<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">Label</label><input type="text" class="cfg-input" value="${s === 0 ? (b === 0 ? 'H' : 'T') : (b === 0 ? 'H' : 'T')}" data-td-label="${s}-${b}" /></div><div class="cfg-field"><label class="cfg-field-label">P</label><input type="text" class="cfg-input" value="1/${bpn}" data-td-prob="${s}-${b}" /></div></div>`;
+        }
+      }
+      ct2.innerHTML = html;
+      ct2.querySelectorAll('input').forEach(el => el.addEventListener('input', schedulePreview));
+    };
+    $('td-stages').addEventListener('change', updateFields);
+    $('td-branches').addEventListener('change', updateFields);
+    updateFields();
+  },
+
+  generateSVG() {
+    const stages = parseInt(val('td-stages'), 10) || 2;
+    const bpn = parseInt(val('td-branches'), 10) || 2;
+    const showCombined = checked('td-combined');
+
+    // Gather labels/probs per stage
+    const branchLabels = [];
+    const branchProbs = [];
+    for (let s = 0; s < stages; s++) {
+      branchLabels[s] = [];
+      branchProbs[s] = [];
+      for (let b = 0; b < bpn; b++) {
+        const lEl = document.querySelector(`[data-td-label="${s}-${b}"]`);
+        const pEl = document.querySelector(`[data-td-prob="${s}-${b}"]`);
+        branchLabels[s][b] = lEl ? lEl.value : '';
+        branchProbs[s][b] = pEl ? pEl.value : '';
+      }
+    }
+
+    const totalLeaves = Math.pow(bpn, stages);
+    const leafH = 28;
+    const stageW = 140;
+    const combW = showCombined ? 100 : 0;
+    const pad = 30;
+    const W = pad * 2 + stages * stageW + combW;
+    const H = pad * 2 + totalLeaves * leafH;
+    const svg = makeSVG(W, H);
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: '#fff' }));
+
+    // Recursively draw tree
+    function drawNode(stage, x, yMin, yMax, pathLabels) {
+      if (stage >= stages) {
+        // terminal node
+        const y = (yMin + yMax) / 2;
+        svg.appendChild(svgEl('circle', { cx: x, cy: y, r: 3, fill: '#555' }));
+        if (showCombined) {
+          const combined = pathLabels.join(', ');
+          svg.appendChild(textEl(combined, x + 12, y, { 'text-anchor': 'start', 'font-size': '10', fill: '#333' }));
+        }
+        return;
+      }
+
+      const nodeY = (yMin + yMax) / 2;
+      svg.appendChild(svgEl('circle', { cx: x, cy: nodeY, r: 3, fill: '#555' }));
+
+      const segH = (yMax - yMin) / bpn;
+      for (let b = 0; b < bpn; b++) {
+        const childYMin = yMin + b * segH;
+        const childYMax = yMin + (b + 1) * segH;
+        const childY = (childYMin + childYMax) / 2;
+        const nextX = x + stageW;
+
+        // branch line
+        svg.appendChild(svgEl('line', { x1: x, y1: nodeY, x2: nextX, y2: childY, stroke: '#555', 'stroke-width': 1.5 }));
+
+        // label on branch
+        const midX = (x + nextX) / 2;
+        const midY = (nodeY + childY) / 2;
+        const lbl = branchLabels[stage][b] || '';
+        const prob = branchProbs[stage][b] || '';
+
+        if (lbl) {
+          const offsetY = childY < nodeY ? -8 : (childY > nodeY ? 14 : -8);
+          svg.appendChild(textEl(lbl, midX - 10, midY + offsetY, { 'font-size': '11', 'font-weight': '600', fill: '#4262ff', 'text-anchor': 'end' }));
+        }
+        if (prob) {
+          const offsetY = childY < nodeY ? -8 : (childY > nodeY ? 14 : -8);
+          svg.appendChild(textEl(prob, midX + 10, midY + offsetY, { 'font-size': '10', fill: '#888', 'text-anchor': 'start' }));
+        }
+
+        drawNode(stage + 1, nextX, childYMin, childYMax, [...pathLabels, lbl]);
+      }
+    }
+
+    drawNode(0, pad + 10, pad, H - pad, []);
+    return svg;
+  },
+};
+
+// ══════════════════════════════════════════════════════
+// 12. BOX & WHISKER
+// ══════════════════════════════════════════════════════
+
+TEMPLATES['box-whisker'] = {
+  renderConfig(ct) {
+    ct.innerHTML = buildConfig('Box & Whisker', [
+      { type: 'row-start' },
+      { type: 'number', id: 'bw-min', label: 'Min', value: 12, step: 1 },
+      { type: 'number', id: 'bw-q1', label: 'Q1', value: 25, step: 1 },
+      { type: 'number', id: 'bw-median', label: 'Median', value: 35, step: 1 },
+      { type: 'row-end' },
+      { type: 'row-start' },
+      { type: 'number', id: 'bw-q3', label: 'Q3', value: 48, step: 1 },
+      { type: 'number', id: 'bw-max', label: 'Max', value: 62, step: 1 },
+      { type: 'row-end' },
+      { type: 'divider' },
+      { type: 'row-start' },
+      { type: 'number', id: 'bw-amin', label: 'Axis min', value: 0, step: 5 },
+      { type: 'number', id: 'bw-amax', label: 'Axis max', value: 70, step: 5 },
+      { type: 'number', id: 'bw-step', label: 'Axis step', value: 10, step: 1 },
+      { type: 'row-end' },
+      { type: 'checkbox', id: 'bw-labels', label: 'Show value labels', checked: true },
+      { type: 'text', id: 'bw-title', label: 'Title', value: '', placeholder: 'Optional title' },
+    ]);
+  },
+
+  generateSVG() {
+    const dMin = num('bw-min', 12), q1 = num('bw-q1', 25), med = num('bw-median', 35);
+    const q3 = num('bw-q3', 48), dMax = num('bw-max', 62);
+    const aMin = num('bw-amin', 0), aMax = num('bw-amax', 70), aStep = num('bw-step', 10);
+    const showLabels = checked('bw-labels');
+    const title = val('bw-title');
+
+    const padL = 30, padR = 30, padT = title ? 40 : 20, padB = 40;
+    const plotW = 460;
+    const W = padL + plotW + padR;
+    const boxY = padT + 10, boxH = 36;
+    const axisY = boxY + boxH + 20;
+    const H = axisY + padB;
+    const svg = makeSVG(W, H);
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: '#fff' }));
+
+    if (title) svg.appendChild(textEl(title, W / 2, 18, { 'font-size': '14', 'font-weight': '700' }));
+
+    function mapX(v) { return padL + ((v - aMin) / (aMax - aMin)) * plotW; }
+
+    // Axis line
+    svg.appendChild(svgEl('line', { x1: padL, y1: axisY, x2: padL + plotW, y2: axisY, stroke: '#555', 'stroke-width': 1.5 }));
+
+    // Ticks
+    for (let v = aMin; v <= aMax + aStep * 0.01; v += aStep) {
+      const x = mapX(v);
+      svg.appendChild(svgEl('line', { x1: x, y1: axisY - 4, x2: x, y2: axisY + 4, stroke: '#555', 'stroke-width': 1 }));
+      svg.appendChild(textEl(String(Math.round(v)), x, axisY + 16, { 'font-size': '11', fill: '#555' }));
+    }
+
+    // Whiskers
+    const wY = boxY + boxH / 2;
+    svg.appendChild(svgEl('line', { x1: mapX(dMin), y1: wY, x2: mapX(q1), y2: wY, stroke: '#333', 'stroke-width': 2 }));
+    svg.appendChild(svgEl('line', { x1: mapX(q3), y1: wY, x2: mapX(dMax), y2: wY, stroke: '#333', 'stroke-width': 2 }));
+    // Whisker end caps
+    svg.appendChild(svgEl('line', { x1: mapX(dMin), y1: boxY + 6, x2: mapX(dMin), y2: boxY + boxH - 6, stroke: '#333', 'stroke-width': 2 }));
+    svg.appendChild(svgEl('line', { x1: mapX(dMax), y1: boxY + 6, x2: mapX(dMax), y2: boxY + boxH - 6, stroke: '#333', 'stroke-width': 2 }));
+
+    // Box
+    svg.appendChild(svgEl('rect', { x: mapX(q1), y: boxY, width: mapX(q3) - mapX(q1), height: boxH, fill: '#e3f2fd', stroke: '#333', 'stroke-width': 2 }));
+
+    // Median line
+    svg.appendChild(svgEl('line', { x1: mapX(med), y1: boxY, x2: mapX(med), y2: boxY + boxH, stroke: '#e53935', 'stroke-width': 2.5 }));
+
+    // Labels
+    if (showLabels) {
+      const lY = boxY - 6;
+      [dMin, q1, med, q3, dMax].forEach(v => {
+        svg.appendChild(textEl(String(v), mapX(v), lY, { 'font-size': '10', 'font-weight': '600', fill: '#333' }));
+      });
+    }
+
+    return svg;
+  },
+};
+
+// ══════════════════════════════════════════════════════
+// 13. PROBABILITY SCALE
+// ══════════════════════════════════════════════════════
+
+TEMPLATES['probability-scale'] = {
+  renderConfig(ct) {
+    ct.innerHTML = buildConfig('Probability Scale', [
+      { type: 'select', id: 'ps-format', label: 'Scale format', value: 'fraction', options: [
+        { v: 'fraction', l: 'Fractions' }, { v: 'percentage', l: 'Percentages' }, { v: 'both', l: 'Both' },
+      ]},
+      { type: 'checkbox', id: 'ps-words', label: 'Show word labels', checked: true },
+      { type: 'text', id: 'ps-title', label: 'Title', value: '', placeholder: 'Optional title' },
+      { type: 'divider' },
+      { type: 'heading', label: 'Marked events (up to 5)' },
+      { type: 'container', id: 'ps-events' },
+    ]);
+    // Build 5 event rows
+    const ct2 = $('ps-events');
+    let html = '';
+    for (let i = 0; i < 5; i++) {
+      html += `<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">Label</label><input type="text" class="cfg-input" value="" placeholder="Event ${i + 1}" data-ps-label="${i}" /></div><div class="cfg-field"><label class="cfg-field-label">Position (0-1)</label><input type="number" class="cfg-input cfg-input-sm" value="" step="0.05" min="0" max="1" data-ps-pos="${i}" /></div></div>`;
+    }
+    ct2.innerHTML = html;
+    ct2.querySelectorAll('input').forEach(el => el.addEventListener('input', schedulePreview));
+  },
+
+  generateSVG() {
+    const format = val('ps-format') || 'fraction';
+    const showWords = checked('ps-words');
+    const title = val('ps-title');
+
+    const padL = 40, padR = 40, padT = title ? 40 : 20, padB = showWords ? 50 : 30;
+    const lineW = 460;
+    const W = padL + lineW + padR;
+    const eventsH = 60;
+    const H = padT + eventsH + 40 + padB;
+    const svg = makeSVG(W, H);
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: '#fff' }));
+
+    if (title) svg.appendChild(textEl(title, W / 2, 18, { 'font-size': '14', 'font-weight': '700' }));
+
+    function mapX(p) { return padL + p * lineW; }
+    const lineY = padT + eventsH + 10;
+
+    // Main line
+    svg.appendChild(svgEl('line', { x1: padL, y1: lineY, x2: padL + lineW, y2: lineY, stroke: '#333', 'stroke-width': 2 }));
+
+    // Scale marks
+    const marks = [0, 0.25, 0.5, 0.75, 1];
+    const fracLabels = ['0', '1/4', '1/2', '3/4', '1'];
+    const pctLabels = ['0%', '25%', '50%', '75%', '100%'];
+
+    for (let i = 0; i < marks.length; i++) {
+      const x = mapX(marks[i]);
+      svg.appendChild(svgEl('line', { x1: x, y1: lineY - 6, x2: x, y2: lineY + 6, stroke: '#333', 'stroke-width': 1.5 }));
+      let label = '';
+      if (format === 'fraction') label = fracLabels[i];
+      else if (format === 'percentage') label = pctLabels[i];
+      else label = fracLabels[i] + '\n' + pctLabels[i];
+      svg.appendChild(textEl(format === 'both' ? fracLabels[i] : label, x, lineY + 18, { 'font-size': '10', fill: '#555' }));
+      if (format === 'both') {
+        svg.appendChild(textEl(pctLabels[i], x, lineY + 30, { 'font-size': '10', fill: '#888' }));
+      }
+    }
+
+    // Word labels
+    if (showWords) {
+      const words = [
+        { p: 0, w: 'Impossible' },
+        { p: 0.25, w: 'Unlikely' },
+        { p: 0.5, w: 'Even chance' },
+        { p: 0.75, w: 'Likely' },
+        { p: 1, w: 'Certain' },
+      ];
+      for (const { p, w } of words) {
+        const x = mapX(p);
+        const yOff = format === 'both' ? 44 : 34;
+        svg.appendChild(textEl(w, x, lineY + yOff, { 'font-size': '9', fill: '#4262ff', 'font-style': 'italic' }));
+      }
+    }
+
+    // Marked events
+    const eventColours = ['#e53935', '#43a047', '#ff9800', '#7b1fa2', '#00838f'];
+    for (let i = 0; i < 5; i++) {
+      const lEl = document.querySelector(`[data-ps-label="${i}"]`);
+      const pEl = document.querySelector(`[data-ps-pos="${i}"]`);
+      const lbl = lEl ? lEl.value : '';
+      const pos = pEl ? parseFloat(pEl.value) : NaN;
+      if (!lbl || isNaN(pos)) continue;
+      const x = mapX(Math.max(0, Math.min(1, pos)));
+      const col = eventColours[i % eventColours.length];
+      // Arrow down to line
+      svg.appendChild(svgEl('line', { x1: x, y1: padT + 10, x2: x, y2: lineY - 2, stroke: col, 'stroke-width': 1.5, 'stroke-dasharray': '3,2' }));
+      svg.appendChild(svgEl('circle', { cx: x, cy: lineY, r: 5, fill: col, stroke: '#fff', 'stroke-width': 1.5 }));
+      svg.appendChild(textEl(lbl, x, padT + 4, { 'font-size': '10', 'font-weight': '600', fill: col }));
+    }
+
+    return svg;
+  },
+};
+
+// ── Merge extra templates ──────────────────────────────
+Object.assign(TEMPLATES, extraTemplates);
+for (const tpl of interactiveTemplates) {
+  const id = tpl.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  TEMPLATES[id] = tpl;
+}
+
+// ══════════════════════════════════════════════════════
+// CORE APP LOGIC
+// ══════════════════════════════════════════════════════
+
+function schedulePreview() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(updatePreview, 80);
+}
+
+function updatePreview() {
+  if (!activeTemplate || !TEMPLATES[activeTemplate]) return;
+  previewArea.innerHTML = '';
+  try {
+    previewArea.appendChild(TEMPLATES[activeTemplate].generateSVG());
+  } catch (e) {
+    previewArea.innerHTML = `<span style="color:#c00;font-size:12px;">Error: ${e.message}</span>`;
+  }
+}
+
+function selectTemplate(name) {
+  activeTemplate = name;
+  // Highlight sidebar
+  document.querySelectorAll('.tpl-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`.tpl-btn[data-template="${name}"]`);
+  if (btn) btn.classList.add('active');
+
+  // Render config
+  const tpl = TEMPLATES[name];
+  if (!tpl) return;
+  tpl.renderConfig(configPanel);
+
+  // Wire up live preview on all inputs
+  configPanel.querySelectorAll('input, select').forEach(el => {
+    el.addEventListener('input', schedulePreview);
+    el.addEventListener('change', schedulePreview);
+  });
+
+  // Wire up colour swatches
+  configPanel.querySelectorAll('.cfg-swatch input[type="color"]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const dot = inp.nextElementSibling;
+      if (dot) dot.style.background = inp.value;
+    });
+  });
+
+  // Wire up range value displays
+  configPanel.querySelectorAll('.cfg-range').forEach(r => {
+    r.addEventListener('input', () => {
+      const vEl = document.getElementById(r.id + '-val');
+      if (vEl) vEl.textContent = r.value;
+    });
+  });
+
+  updatePreview();
+}
+
+// ── Place on Board ──────────────────────────────────
+
+async function placeOnBoard() {
+  if (!activeTemplate || !TEMPLATES[activeTemplate]) {
+    await miro.board.notifications.showInfo('Select a template first.');
+    return;
+  }
+
+  const svg = TEMPLATES[activeTemplate].generateSVG();
+  const serializer = new XMLSerializer();
+  const svgStr = serializer.serializeToString(svg);
+  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+
+  const size = parseInt(imgSizeEl.value, 10) || 600;
+
+  // Store template name + all config input values for edit
+  const settings = { _tplGen: true, template: activeTemplate, inputs: {} };
+  configPanel.querySelectorAll('input, select').forEach(el => {
+    const key = el.id || el.getAttribute('data-seg-label') || el.getAttribute('data-seg-colour')
+      || el.getAttribute('data-fm-op') || el.getAttribute('data-tw-row') || el.getAttribute('data-tw-col')
+      || el.getAttribute('data-td-label') || el.getAttribute('data-td-prob')
+      || el.getAttribute('data-ps-label') || el.getAttribute('data-ps-pos')
+      || el.getAttribute('data-group');
+    if (!key) return;
+    if (el.type === 'checkbox') {
+      // For data-group checkboxes, store as array
+      if (el.getAttribute('data-group')) {
+        if (!settings.inputs['_grp_' + key]) settings.inputs['_grp_' + key] = [];
+        if (el.checked) settings.inputs['_grp_' + key].push(el.value);
+      } else {
+        settings.inputs[key] = el.checked;
+      }
+    } else {
+      settings.inputs[key] = el.value;
+    }
+  });
+
+  const titleJson = JSON.stringify(settings);
+
+  const vp = await miro.board.viewport.get();
+  await miro.board.createImage({
+    url: dataUrl,
+    x: vp.x + vp.width / 2,
+    y: vp.y + vp.height / 2,
+    width: size,
+    title: titleJson,
+  });
+
+  miro.board.ui.closeModal();
+}
+
+// ── Edit Selected ───────────────────────────────────
+
+async function editSelected() {
+  const selection = await miro.board.getSelection();
+  const images = selection.filter(item => item.type === 'image');
+  if (images.length === 0) {
+    await miro.board.notifications.showInfo('Select a template image first.');
+    return;
+  }
+
+  const img = images[0];
+  let settings;
+  try {
+    settings = JSON.parse(img.title);
+    if (!settings._tplGen) throw new Error('Not a template image');
+  } catch {
+    await miro.board.notifications.showInfo('Selected image was not created by Maths Templates.');
+    return;
+  }
+
+  // Load the template
+  selectTemplate(settings.template);
+
+  // Wait a tick for DOM to update, then apply saved values
+  await new Promise(r => setTimeout(r, 50));
+
+  for (const [key, value] of Object.entries(settings.inputs)) {
+    if (key.startsWith('_grp_')) {
+      // checkbox group
+      const group = key.slice(5);
+      document.querySelectorAll(`[data-group="${group}"]`).forEach(el => {
+        el.checked = value.includes(el.value);
+      });
+      continue;
+    }
+    const el = document.getElementById(key)
+      || document.querySelector(`[data-seg-label="${key}"]`)
+      || document.querySelector(`[data-seg-colour="${key}"]`)
+      || document.querySelector(`[data-fm-op="${key}"]`)
+      || document.querySelector(`[data-tw-row="${key}"]`)
+      || document.querySelector(`[data-tw-col="${key}"]`)
+      || document.querySelector(`[data-td-label="${key}"]`)
+      || document.querySelector(`[data-td-prob="${key}"]`)
+      || document.querySelector(`[data-ps-label="${key}"]`)
+      || document.querySelector(`[data-ps-pos="${key}"]`);
+    if (!el) continue;
+    if (el.type === 'checkbox') {
+      el.checked = !!value;
+    } else {
+      el.value = value;
+    }
+    // Update swatch dots
+    if (el.type === 'color' && el.nextElementSibling) {
+      el.nextElementSibling.style.background = el.value;
+    }
+    // Update range value displays
+    if (el.type === 'range') {
+      const vEl = document.getElementById(el.id + '-val');
+      if (vEl) vEl.textContent = el.value;
+    }
+  }
+
+  updatePreview();
+}
+
+// ── Init ────────────────────────────────────────────
+
+function init() {
+  // Sidebar template buttons
+  document.querySelectorAll('.tpl-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectTemplate(btn.dataset.template));
+  });
+
+  // Search filter
+  const searchInput = document.getElementById('tpl-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.toLowerCase();
+      document.querySelectorAll('.tpl-btn').forEach(btn => {
+        const match = !q || btn.textContent.toLowerCase().includes(q) || btn.dataset.template.includes(q);
+        btn.style.display = match ? '' : 'none';
+      });
+      document.querySelectorAll('.category').forEach(cat => {
+        const visibleBtns = cat.querySelectorAll('.tpl-btn:not([style*="display: none"])');
+        cat.style.display = visibleBtns.length > 0 ? '' : 'none';
+      });
+    });
+  }
+
+  // Bottom bar
+  placeBtn.addEventListener('click', placeOnBoard);
+  editBtn.addEventListener('click', editSelected);
+  imgSizeEl.addEventListener('input', () => { sizeValueEl.textContent = imgSizeEl.value; });
+
+  // Default selection
+  selectTemplate('bar-model');
+}
+
+init();

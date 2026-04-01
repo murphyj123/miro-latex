@@ -1,0 +1,411 @@
+/* ── Reset & Base ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #ffffff;
+  --bg-secondary: #f5f6f8;
+  --text: #1a1a2e;
+  --text-secondary: #6b7280;
+  --border: #e5e7eb;
+  --ring-track: #e5e7eb;
+  --btn-bg: #f3f4f6;
+  --btn-hover: #e5e7eb;
+  --color-green: #10b981;
+  --color-amber: #f59e0b;
+  --color-red: #ef4444;
+  --color-blue: #4262ff;
+  --color-active: var(--color-green);
+  --ring-size: 180px;
+  --time-font: 36px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --radius: 8px;
+  --radius-pill: 20px;
+  --transition: 0.2s ease;
+}
+
+.dark {
+  --bg: #1a1a2e;
+  --bg-secondary: #16213e;
+  --text: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --border: #334155;
+  --ring-track: #334155;
+  --btn-bg: #1e293b;
+  --btn-hover: #334155;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  padding: 16px 12px;
+  overflow-x: hidden;
+  transition: background var(--transition), color var(--transition);
+}
+
+/* ── Mode Toggle ──────────────────────────────────────── */
+.mode-toggle {
+  display: flex;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.mode-btn.active {
+  background: var(--color-active);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Ring Container ───────────────────────────────────── */
+.ring-container {
+  position: relative;
+  width: var(--ring-size);
+  height: var(--ring-size);
+  margin: 0 auto 16px;
+}
+
+.ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring-track {
+  fill: none;
+  stroke: var(--ring-track);
+  stroke-width: 6;
+}
+
+.ring-progress {
+  fill: none;
+  stroke: var(--color-active);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke 0.4s ease;
+}
+
+.ring-glow {
+  fill: none;
+  stroke: var(--color-active);
+  stroke-width: 6;
+  stroke-linecap: round;
+  opacity: 0.2;
+  filter: blur(4px);
+  transition: stroke 0.4s ease;
+}
+
+.time-display {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.time-digits {
+  font-size: var(--time-font);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text);
+}
+
+.time-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+/* ── Primary Controls ─────────────────────────────────── */
+.primary-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.btn {
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-start {
+  flex: 1;
+  max-width: 160px;
+  padding: 10px 20px;
+  background: var(--color-active);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(16,185,129,0.3);
+}
+
+.btn-start:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 16px rgba(16,185,129,0.4);
+}
+
+.btn-start.running {
+  background: var(--color-amber);
+  box-shadow: 0 2px 8px rgba(245,158,11,0.3);
+}
+
+.btn-start.running:hover {
+  box-shadow: 0 4px 16px rgba(245,158,11,0.4);
+}
+
+.btn-reset {
+  padding: 10px 16px;
+  background: var(--btn-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn-reset:hover {
+  background: var(--btn-hover);
+  color: var(--text);
+}
+
+/* ── Presets ───────────────────────────────────────────── */
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.preset-pill {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.preset-pill:hover {
+  border-color: var(--color-active);
+  color: var(--color-active);
+}
+
+.preset-pill.active {
+  background: var(--color-active);
+  border-color: var(--color-active);
+  color: #fff;
+}
+
+/* ── Custom Input ─────────────────────────────────────── */
+.custom-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.custom-input label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.custom-input input {
+  width: 52px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.custom-input input:focus {
+  outline: none;
+  border-color: var(--color-active);
+  box-shadow: 0 0 0 2px rgba(66,98,255,0.15);
+}
+
+.custom-input .btn-set {
+  padding: 5px 12px;
+  background: var(--color-active);
+  color: #fff;
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+
+.custom-input .btn-set:hover {
+  filter: brightness(1.1);
+}
+
+/* ── Divider ──────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 14px 0;
+}
+
+/* ── Options ──────────────────────────────────────────── */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.option-label {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Toggle Switch */
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--btn-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  transition: all var(--transition);
+}
+
+.toggle input:checked + .toggle-slider {
+  background: var(--color-active);
+  border-color: var(--color-active);
+}
+
+.toggle input:checked + .toggle-slider::before {
+  transform: translateX(16px);
+  background: #fff;
+}
+
+/* ── Open Modal Button ────────────────────────────────── */
+.btn-modal {
+  width: 100%;
+  padding: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-modal:hover {
+  background: var(--btn-hover);
+  border-color: var(--color-active);
+  color: var(--color-active);
+}
+
+.btn-modal svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Alarm Flash ──────────────────────────────────────── */
+@keyframes alarm-flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.alarm-active .time-digits {
+  animation: alarm-flash 0.5s ease-in-out infinite;
+  color: var(--color-red);
+}
+
+.alarm-active .ring-progress,
+.alarm-active .ring-glow {
+  stroke: var(--color-red);
+}
+
+/* ── Scrollbar ────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }

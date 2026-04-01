@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/timer/src/modal.css" />
+    <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+  </head>
+  <body>
+
+    <!-- Mode Toggle -->
+    <div class="mode-toggle">
+      <button class="mode-btn active" data-mode="countdown">Countdown</button>
+      <button class="mode-btn" data-mode="stopwatch">Stopwatch</button>
+    </div>
+
+    <!-- Progress Ring -->
+    <div class="ring-container" id="ring-container">
+      <svg class="ring-svg" viewBox="0 0 280 280">
+        <circle class="ring-track" cx="140" cy="140" r="125" />
+        <circle class="ring-glow" id="ring-glow" cx="140" cy="140" r="125" />
+        <circle class="ring-progress" id="ring-progress" cx="140" cy="140" r="125" />
+      </svg>
+      <div class="time-display">
+        <div class="time-digits" id="time-digits">05:00</div>
+        <div class="time-label" id="time-label">remaining</div>
+      </div>
+    </div>
+
+    <!-- Primary Controls -->
+    <div class="primary-controls">
+      <button class="btn btn-start" id="btn-start">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><polygon id="start-icon" points="4,2 14,8 4,14"/></svg>
+        <span id="start-label">Start</span>
+      </button>
+      <button class="btn btn-reset" id="btn-reset">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2v5h5"/><path d="M3.05 10A6 6 0 1 0 4 4.27L2 7"/></svg>
+        Reset
+      </button>
+    </div>
+
+    <!-- Presets (countdown only) -->
+    <div class="presets-row" id="presets-section">
+      <button class="preset-pill" data-seconds="60">1m</button>
+      <button class="preset-pill" data-seconds="120">2m</button>
+      <button class="preset-pill active" data-seconds="300">5m</button>
+      <button class="preset-pill" data-seconds="600">10m</button>
+      <button class="preset-pill" data-seconds="900">15m</button>
+      <button class="preset-pill" data-seconds="1800">30m</button>
+    </div>
+
+    <!-- Options -->
+    <div class="options-bar">
+      <div class="option-row">
+        <span class="option-label">Tick sound</span>
+        <label class="toggle">
+          <input type="checkbox" id="tick-sound" checked />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="option-row">
+        <span class="option-label">Dark theme</span>
+        <label class="toggle">
+          <input type="checkbox" id="dark-theme" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <p class="footer-note">Timer continues when you close this window.</p>
+
+    <script type="module" src="/timer/src/modal.js"></script>
+  </body>
+</html>

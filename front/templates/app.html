@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/templates/src/app.css" />
+    <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+  </head>
+  <body>
+    <div class="tpl-layout">
+
+      <!-- Left: Template sidebar -->
+      <div class="tpl-sidebar">
+        <div class="sidebar-header">Maths Templates</div>
+        <input type="text" id="tpl-search" class="tpl-search" placeholder="Search..." />
+
+        <div class="category" data-category="number">
+          <div class="category-label">Number</div>
+          <button class="tpl-btn" data-template="bar-model">Bar Model</button>
+          <button class="tpl-btn" data-template="fraction-wall">Fraction Wall</button>
+          <button class="tpl-btn" data-template="fraction-circles">Fraction Circles</button>
+          <button class="tpl-btn" data-template="place-value-chart">Place Value Chart</button>
+          <button class="tpl-btn" data-template="hundreds-chart">Hundreds Chart</button>
+          <button class="tpl-btn" data-template="multiplication-grid">Multiplication Grid</button>
+          <button class="tpl-btn" data-template="number-line">Number Line</button>
+          <button class="tpl-btn" data-template="fraction-number-line">Fraction Number Line</button>
+          <button class="tpl-btn" data-template="double-number-line">Double Number Line</button>
+          <button class="tpl-btn" data-template="ten-frames">Ten Frames</button>
+          <button class="tpl-btn" data-template="place-value-counters">Place Value Counters</button>
+          <button class="tpl-btn" data-template="part-whole-model">Part-Whole Model</button>
+          <button class="tpl-btn" data-template="ratio-bar">Ratio Bar</button>
+          <button class="tpl-btn" data-template="percentage-bar">Percentage Bar</button>
+          <button class="tpl-btn" data-template="red-yellow-counters">Red-Yellow Counters</button>
+          <button class="tpl-btn" data-template="number-pattern">Number Pattern</button>
+          <button class="tpl-btn" data-template="clock-face">Clock Face</button>
+          <button class="tpl-btn" data-template="thermometer">Thermometer</button>
+          <button class="tpl-btn" data-template="dice">Dice</button>
+          <button class="tpl-btn" data-template="spinner">Spinner</button>
+        </div>
+
+        <div class="category" data-category="algebra">
+          <div class="category-label">Algebra</div>
+          <button class="tpl-btn" data-template="function-machine">Function Machine</button>
+          <button class="tpl-btn" data-template="algebra-tiles">Algebra Tiles</button>
+          <button class="tpl-btn" data-template="area-model--multiplication-">Area Model</button>
+          <button class="tpl-btn" data-template="coordinate-grid-with-points">Coordinate Grid</button>
+          <button class="tpl-btn" data-template="two-way-table">Two-Way Table</button>
+        </div>
+
+        <div class="category" data-category="geometry">
+          <div class="category-label">Geometry</div>
+          <button class="tpl-btn" data-template="regular-polygon">Regular Polygon</button>
+          <button class="tpl-btn" data-template="compound-shape">Compound Shape</button>
+          <button class="tpl-btn" data-template="circle-sector">Circle Sector</button>
+          <button class="tpl-btn" data-template="right-angled-triangle">Right-Angled Triangle</button>
+          <button class="tpl-btn" data-template="trig-triangle">Trig Triangle (SOH CAH TOA)</button>
+          <button class="tpl-btn" data-template="parallel-transversal">Parallel Lines</button>
+          <button class="tpl-btn" data-template="circle-theorems">Circle Theorems</button>
+          <button class="tpl-btn" data-template="bearings-diagram">Bearings</button>
+          <button class="tpl-btn" data-template="unit-circle">Unit Circle</button>
+          <button class="tpl-btn" data-template="protractor">Protractor</button>
+          <button class="tpl-btn" data-template="symmetry-grid">Symmetry Grid</button>
+          <button class="tpl-btn" data-template="iso-dot-grid">Isometric Dot Grid</button>
+        </div>
+
+        <div class="category" data-category="3d-shapes">
+          <div class="category-label">3D Shapes</div>
+          <button class="tpl-btn" data-template="cube">Cube</button>
+          <button class="tpl-btn" data-template="cuboid">Cuboid</button>
+          <button class="tpl-btn" data-template="cylinder">Cylinder</button>
+          <button class="tpl-btn" data-template="cone">Cone</button>
+          <button class="tpl-btn" data-template="sphere">Sphere</button>
+          <button class="tpl-btn" data-template="triangular-prism">Triangular Prism</button>
+          <button class="tpl-btn" data-template="square-pyramid">Square Pyramid</button>
+        </div>
+
+        <div class="category" data-category="statistics">
+          <div class="category-label">Statistics</div>
+          <button class="tpl-btn" data-template="venn-diagram">Venn Diagram</button>
+          <button class="tpl-btn" data-template="carroll-diagram">Carroll Diagram</button>
+          <button class="tpl-btn" data-template="tree-diagram">Tree Diagram</button>
+          <button class="tpl-btn" data-template="box-whisker">Box &amp; Whisker</button>
+          <button class="tpl-btn" data-template="probability-scale">Probability Scale</button>
+          <button class="tpl-btn" data-template="stem-leaf">Stem &amp; Leaf</button>
+          <button class="tpl-btn" data-template="normal-distribution">Normal Distribution</button>
+          <button class="tpl-btn" data-template="tally-chart">Tally Chart</button>
+          <button class="tpl-btn" data-template="frequency-table">Frequency Table</button>
+        </div>
+
+        <div class="category" data-category="advanced">
+          <div class="category-label">Advanced / IB</div>
+          <button class="tpl-btn" data-template="transformation-grid">Transformation Grid</button>
+          <button class="tpl-btn" data-template="argand-diagram">Argand Diagram</button>
+        </div>
+      </div>
+
+      <!-- Right: Config + Preview -->
+      <div class="tpl-main">
+        <div class="config-panel" id="config-panel">
+          <div class="config-placeholder">Select a template from the sidebar to begin.</div>
+        </div>
+        <div class="preview-area" id="preview-area"></div>
+      </div>
+
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="tpl-bottom-bar">
+      <button type="button" id="place-btn" class="place-btn">Place on Board</button>
+      <button type="button" id="edit-selected-btn" class="bar-btn">Edit Selected</button>
+      <label class="size-control" title="Image size when placed on board">
+        <span class="size-label">Size</span>
+        <input type="range" id="img-size" min="100" max="1200" value="600" step="50" />
+        <span class="size-value" id="size-value">600</span>
+      </label>
+    </div>
+
+    <script type="module" src="/templates/src/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/timer/src/panel.css" />
+    <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+  </head>
+  <body>
+
+    <!-- Mode Toggle -->
+    <div class="mode-toggle">
+      <button class="mode-btn active" data-mode="countdown">Countdown</button>
+      <button class="mode-btn" data-mode="stopwatch">Stopwatch</button>
+    </div>
+
+    <!-- Progress Ring -->
+    <div class="ring-container" id="ring-container">
+      <svg class="ring-svg" viewBox="0 0 180 180">
+        <circle class="ring-track" cx="90" cy="90" r="80" />
+        <circle class="ring-glow" id="ring-glow" cx="90" cy="90" r="80" />
+        <circle class="ring-progress" id="ring-progress" cx="90" cy="90" r="80" />
+      </svg>
+      <div class="time-display">
+        <div class="time-digits" id="time-digits">05:00</div>
+        <div class="time-label" id="time-label">remaining</div>
+      </div>
+    </div>
+
+    <!-- Primary Controls -->
+    <div class="primary-controls">
+      <button class="btn btn-start" id="btn-start">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><polygon id="start-icon" points="4,2 14,8 4,14"/></svg>
+        <span id="start-label">Start</span>
+      </button>
+      <button class="btn btn-reset" id="btn-reset">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2v5h5"/><path d="M3.05 10A6 6 0 1 0 4 4.27L2 7"/></svg>
+        Reset
+      </button>
+    </div>
+
+    <!-- Presets (countdown only) -->
+    <div id="presets-section">
+      <div class="section-label">Quick Presets</div>
+      <div class="presets">
+        <button class="preset-pill" data-seconds="60">1m</button>
+        <button class="preset-pill" data-seconds="120">2m</button>
+        <button class="preset-pill active" data-seconds="300">5m</button>
+        <button class="preset-pill" data-seconds="600">10m</button>
+        <button class="preset-pill" data-seconds="900">15m</button>
+        <button class="preset-pill" data-seconds="1800">30m</button>
+      </div>
+
+      <!-- Custom Input -->
+      <div class="custom-input">
+        <label for="custom-min">Min</label>
+        <input type="number" id="custom-min" min="0" max="99" value="5" />
+        <label for="custom-sec">Sec</label>
+        <input type="number" id="custom-sec" min="0" max="59" value="0" />
+        <button class="btn btn-set" id="btn-set">Set</button>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Options -->
+    <div class="options">
+      <div class="option-row">
+        <span class="option-label">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v5l3 3"/><circle cx="8" cy="8" r="6.5"/></svg>
+          Tick sound (last 10s)
+        </span>
+        <label class="toggle">
+          <input type="checkbox" id="tick-sound" checked />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="option-row">
+        <span class="option-label">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>
+          Dark theme
+        </span>
+        <label class="toggle">
+          <input type="checkbox" id="dark-theme" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Open Modal -->
+    <button class="btn btn-modal" id="btn-modal">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M6 7l2-2 2 2M6 9l2 2 2-2"/></svg>
+      Open Large View
+    </button>
+
+    <script type="module" src="/timer/src/panel.js"></script>
+  </body>
+</html>
