@@ -552,15 +552,16 @@ async function placeOnBoard() {
   // Store settings in title as JSON so Edit Selected can recover them
   const titleJson = JSON.stringify({ _axesGen: true, ...settings });
 
+  const vp = await miro.board.viewport.get();
   await miro.board.createImage({
     url: dataUrl,
+    x: vp.x + vp.width / 2,
+    y: vp.y + vp.height / 2,
     width: size,
     title: titleJson,
   });
 
-  // Brief visual feedback
-  els.placeBtn.textContent = 'Placed!';
-  setTimeout(() => { els.placeBtn.textContent = 'Place on Board'; }, 1200);
+  miro.board.ui.closeModal();
 }
 
 // ── Edit selected ───────────────────────────────────
