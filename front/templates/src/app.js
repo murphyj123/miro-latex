@@ -1571,7 +1571,8 @@ function init() {
     searchInput.addEventListener('input', () => {
       const q = searchInput.value.toLowerCase();
       document.querySelectorAll('.tpl-btn').forEach(btn => {
-        const match = !q || btn.textContent.toLowerCase().includes(q) || btn.dataset.template.includes(q);
+        const keywords = btn.dataset.keywords || '';
+        const match = !q || btn.textContent.toLowerCase().includes(q) || btn.dataset.template.includes(q) || keywords.toLowerCase().includes(q);
         btn.style.display = match ? '' : 'none';
       });
       document.querySelectorAll('.category').forEach(cat => {

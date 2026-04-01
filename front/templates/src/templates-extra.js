@@ -2334,9 +2334,13 @@ extraTemplates['normal-distribution'] = {
       checkbox('nd-pct', 'Show percentages', true),
     ));
     c.appendChild(row(
-      field('Shade from', numberInput('nd-from', -1, -5, 5, 0.1)),
-      field('Shade to', numberInput('nd-to', 1, -5, 5, 0.1)),
+      field('Shade from (\u03C3 from mean)', numberInput('nd-from', -1, -5, 5, 0.1)),
+      field('Shade to (\u03C3 from mean)', numberInput('nd-to', 1, -5, 5, 0.1)),
     ));
+    const hint = document.createElement('div');
+    hint.style.cssText = 'font-size:11px;color:#888;padding:2px 4px 6px;';
+    hint.textContent = 'e.g. \u22121 to 1 shades the central 68.2%; 0 to 2 shades from the mean to +2\u03C3';
+    c.appendChild(hint);
     c.appendChild(row(
       field('Title', textInput('nd-title', 'Normal Distribution')),
     ));
@@ -2735,7 +2739,8 @@ extraTemplates['clock-face'] = {
   renderConfig(c) {
     c.appendChild(sectionLabel('Clock'));
     c.appendChild(row(
-      field('Time (HH:MM)', textInput('cl-time', '10:10')),
+      field('Hours (1\u201312)', numberInput('cl-hours', 10, 1, 12, 1)),
+      field('Minutes (0\u201359)', numberInput('cl-mins', 10, 0, 59, 5)),
     ));
     c.appendChild(row(
       checkbox('cl-nums', 'Show hour numbers', true),
@@ -2750,8 +2755,10 @@ extraTemplates['clock-face'] = {
     ));
   },
   readConfig() {
+    const h = Math.max(1, Math.min(12, parseInt(val('cl-hours'), 10) || 10));
+    const m = Math.max(0, Math.min(59, parseInt(val('cl-mins'), 10) || 0));
     return {
-      time: val('cl-time') || '10:10',
+      time: `${h}:${String(m).padStart(2, '0')}`,
       showNums: val('cl-nums'),
       showTicks: val('cl-ticks'),
       showDigital: val('cl-digital'),
@@ -3259,18 +3266,77 @@ extraTemplates['number-pattern'] = {
     c.appendChild(row(
       field('Terms', numberInput('np-terms', 5, 4, 8, 1)),
     ));
-    c.appendChild(row(
-      field('Values (comma, use ? for blank)', textInput('np-vals', '3,7,11,?,19')),
-    ));
+    const termContainer = document.createElement('div');
+    termContainer.id = 'np-term-inputs';
+    c.appendChild(termContainer);
     c.appendChild(row(
       checkbox('np-diffs', 'Show differences', true),
       field('Difference label', textInput('np-dlabel', '+4')),
     ));
+
+    const defaultVals = [3, 7, 11, 15, 19];
+    const defaultHidden = [false, false, false, true, true];
+
+    const buildTermInputs = () => {
+      const n = parseInt(document.getElementById('np-terms').value, 10) || 5;
+      const ct2 = document.getElementById('np-term-inputs');
+      const oldVals = [], oldHidden = [];
+      ct2.querySelectorAll('[data-np-val]').forEach(el => oldVals.push(el.value));
+      ct2.querySelectorAll('[data-np-hide]').forEach(el => oldHidden.push(el.checked));
+      ct2.innerHTML = '';
+      const r = document.createElement('div');
+      r.className = 'cfg-row';
+      r.style.flexWrap = 'wrap';
+      r.style.gap = '6px';
+      for (let i = 0; i < n; i++) {
+        const v = i < oldVals.length ? oldVals[i] : (defaultVals[i] !== undefined ? String(defaultVals[i]) : '');
+        const h = i < oldHidden.length ? oldHidden[i] : (defaultHidden[i] !== undefined ? defaultHidden[i] : false);
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;';
+        const lbl = document.createElement('div');
+        lbl.style.cssText = 'font-size:10px;color:#888;';
+        lbl.textContent = 'T' + (i + 1);
+        wrap.appendChild(lbl);
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'cfg-input cfg-input-sm';
+        inp.style.width = '52px';
+        inp.style.textAlign = 'center';
+        inp.value = v;
+        inp.setAttribute('data-np-val', i);
+        wrap.appendChild(inp);
+        const chkLbl = document.createElement('label');
+        chkLbl.style.cssText = 'font-size:10px;color:#888;display:flex;align-items:center;gap:2px;cursor:pointer;';
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.checked = h;
+        chk.setAttribute('data-np-hide', i);
+        chkLbl.appendChild(chk);
+        chkLbl.appendChild(document.createTextNode('Hide'));
+        wrap.appendChild(chkLbl);
+        r.appendChild(wrap);
+      }
+      ct2.appendChild(r);
+      ct2.querySelectorAll('input').forEach(el => {
+        el.addEventListener('input', () => { if (window._tplSchedulePreview) window._tplSchedulePreview(); });
+        el.addEventListener('change', () => { if (window._tplSchedulePreview) window._tplSchedulePreview(); });
+      });
+    };
+
+    document.getElementById('np-terms').addEventListener('change', buildTermInputs);
+    document.getElementById('np-terms').addEventListener('input', buildTermInputs);
+    buildTermInputs();
   },
   readConfig() {
+    const values = [];
+    document.querySelectorAll('[data-np-val]').forEach((el, i) => {
+      const hideEl = document.querySelector(`[data-np-hide="${i}"]`);
+      const hidden = hideEl ? hideEl.checked : false;
+      values.push(hidden ? '?' : el.value.trim());
+    });
     return {
       terms: val('np-terms') || 5,
-      values: (val('np-vals') || '').split(',').map(s => s.trim()),
+      values,
       showDiffs: val('np-diffs'),
       diffLabel: val('np-dlabel') || '',
     };
@@ -3627,6 +3693,1502 @@ extraTemplates['argand-diagram'] = {
       const sign = pt.imag >= 0 ? '+' : '';
       svg.appendChild(svgText(px + 10, py - 8, `${pt.label} (${pt.real}${sign}${pt.imag}i)`, 10, 'start', { fill: col, 'font-weight': '600' }));
     });
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   31. FACTOR TREE
+   ================================================================ */
+extraTemplates['factor-tree'] = {
+  name: 'Factor Tree',
+  category: 'Number',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Factor Tree'));
+    c.appendChild(row(
+      field('Number', numberInput('ft-number', 60, 2, 9999, 1)),
+    ));
+    c.appendChild(row(
+      checkbox('ft-prime-hl', 'Highlight primes', true),
+    ));
+    c.appendChild(row(
+      field('Highlight colour', colourSwatch('ft-hl-colour', '#e63946')),
+    ));
+  },
+  readConfig() {
+    return {
+      number: Math.max(2, Math.round(val('ft-number') || 60)),
+      showPrimeHighlight: val('ft-prime-hl'),
+      highlightColour: val('ft-hl-colour') || '#e63946',
+    };
+  },
+  generateSVG(s) {
+    function isPrime(n) {
+      if (n < 2) return false;
+      if (n < 4) return true;
+      if (n % 2 === 0 || n % 3 === 0) return false;
+      for (let i = 5; i * i <= n; i += 6) {
+        if (n % i === 0 || n % (i + 2) === 0) return false;
+      }
+      return true;
+    }
+
+    function smallestFactor(n) {
+      if (n % 2 === 0) return 2;
+      for (let i = 3; i * i <= n; i += 2) {
+        if (n % i === 0) return i;
+      }
+      return n;
+    }
+
+    function buildTree(n) {
+      if (isPrime(n) || n <= 1) return { value: n, left: null, right: null };
+      const f = smallestFactor(n);
+      return { value: n, left: buildTree(f), right: buildTree(n / f) };
+    }
+
+    function treeDepth(node) {
+      if (!node || (!node.left && !node.right)) return 0;
+      return 1 + Math.max(treeDepth(node.left), treeDepth(node.right));
+    }
+
+    const tree = buildTree(s.number);
+    const depth = treeDepth(tree);
+    const levelH = 70;
+    const nodeR = 20;
+    const W = Math.max(400, Math.pow(2, depth) * 60 + 80);
+    const H = (depth + 1) * levelH + 80;
+    const svg = makeSVG(W, H);
+
+    function drawNode(node, cx, cy, spread) {
+      if (!node) return;
+      const prime = isPrime(node.value);
+
+      if (node.left) {
+        const lx = cx - spread;
+        const ly = cy + levelH;
+        svg.appendChild(svgEl('line', {
+          x1: String(cx), y1: String(cy + nodeR),
+          x2: String(lx), y2: String(ly - nodeR),
+          stroke: '#555', 'stroke-width': '1.5',
+        }));
+        drawNode(node.left, lx, ly, spread / 2);
+      }
+      if (node.right) {
+        const rx = cx + spread;
+        const ry = cy + levelH;
+        svg.appendChild(svgEl('line', {
+          x1: String(cx), y1: String(cy + nodeR),
+          x2: String(rx), y2: String(ry - nodeR),
+          stroke: '#555', 'stroke-width': '1.5',
+        }));
+        drawNode(node.right, rx, ry, spread / 2);
+      }
+
+      const fill = (prime && s.showPrimeHighlight) ? s.highlightColour : '#fff';
+      const textFill = (prime && s.showPrimeHighlight) ? '#fff' : '#333';
+      svg.appendChild(svgEl('circle', {
+        cx: String(cx), cy: String(cy), r: String(nodeR),
+        fill, stroke: prime ? s.highlightColour : '#555', 'stroke-width': '2',
+      }));
+      svg.appendChild(svgText(cx, cy + 5, String(node.value), 14, 'middle', {
+        fill: textFill, 'font-weight': prime ? '700' : '400',
+      }));
+    }
+
+    const startSpread = Math.max(40, (W - 80) / 4);
+    drawNode(tree, W / 2, 40 + nodeR, startSpread);
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   32. PIE CHART FROM DATA
+   ================================================================ */
+extraTemplates['pie-chart-data'] = {
+  name: 'Pie Chart',
+  category: 'Statistics',
+
+  _defaultSegments: [
+    { label: 'A', value: 30, colour: '#4262ff' },
+    { label: 'B', value: 20, colour: '#e63946' },
+    { label: 'C', value: 25, colour: '#2a9d8f' },
+    { label: 'D', value: 25, colour: '#f4a261' },
+  ],
+
+  _buildSegmentRows(container, n) {
+    container.innerHTML = '';
+    const defs = this._defaultSegments;
+    for (let i = 0; i < n; i++) {
+      const d = defs[i] || { label: `Seg ${i + 1}`, value: 10, colour: '#888' };
+      container.appendChild(sectionLabel(`Segment ${i + 1}`));
+      container.appendChild(row(
+        field('Label', textInput(`pc-lbl-${i}`, val(`pc-lbl-${i}`) || d.label)),
+        field('Value', numberInput(`pc-val-${i}`, val(`pc-val-${i}`) || d.value, 0, 9999, 1)),
+        field('Colour', colourSwatch(`pc-col-${i}`, val(`pc-col-${i}`) || d.colour)),
+      ));
+    }
+  },
+
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Pie Chart'));
+    c.appendChild(row(field('Title', textInput('pc-title', 'Pie Chart'))));
+
+    const slider = numberInput('pc-segs', 4, 2, 8, 1);
+    slider.type = 'range';
+    slider.style.width = '100%';
+    const countLabel = document.createElement('span');
+    countLabel.textContent = ' 4 segments';
+    countLabel.style.fontSize = '11px';
+    countLabel.style.color = '#777';
+    const sliderRow = row(field('Segments', slider));
+    sliderRow.appendChild(countLabel);
+    c.appendChild(sliderRow);
+
+    const segContainer = document.createElement('div');
+    segContainer.id = 'pc-seg-container';
+    c.appendChild(segContainer);
+    this._buildSegmentRows(segContainer, 4);
+
+    slider.addEventListener('input', () => {
+      const n = parseInt(slider.value, 10) || 2;
+      countLabel.textContent = ` ${n} segments`;
+      this._buildSegmentRows(segContainer, n);
+    });
+  },
+
+  readConfig() {
+    const n = Math.max(2, Math.min(8, Math.round(val('pc-segs') || 4)));
+    const segments = [];
+    for (let i = 0; i < n; i++) {
+      segments.push({
+        label: val(`pc-lbl-${i}`) || `Seg ${i + 1}`,
+        value: Math.max(0, val(`pc-val-${i}`)) || 10,
+        colour: val(`pc-col-${i}`) || '#888',
+      });
+    }
+    return { title: val('pc-title') || '', segments };
+  },
+
+  generateSVG(s) {
+    const W = 500, H = 450;
+    const svg = makeSVG(W, H);
+    const cx = W / 2, cy = 230;
+    const R = 150;
+
+    if (s.title) {
+      svg.appendChild(svgText(cx, 30, s.title, 18, 'middle', { 'font-weight': '700', fill: '#222' }));
+    }
+
+    const total = s.segments.reduce((a, seg) => a + seg.value, 0);
+    if (total === 0) return svg;
+
+    let currentAngle = -90;
+    s.segments.forEach(seg => {
+      const angleDeg = (seg.value / total) * 360;
+      const startRad = degToRad(currentAngle);
+      const endRad = degToRad(currentAngle + angleDeg);
+
+      const x1 = cx + R * Math.cos(startRad);
+      const y1 = cy + R * Math.sin(startRad);
+      const x2 = cx + R * Math.cos(endRad);
+      const y2 = cy + R * Math.sin(endRad);
+      const largeArc = angleDeg > 180 ? 1 : 0;
+      const d = `M ${cx} ${cy} L ${x1} ${y1} A ${R} ${R} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+      svg.appendChild(svgEl('path', { d, fill: seg.colour, stroke: '#fff', 'stroke-width': '2' }));
+
+      const midAngle = degToRad(currentAngle + angleDeg / 2);
+      const labelR = R * 0.65;
+      const lx = cx + labelR * Math.cos(midAngle);
+      const ly = cy + labelR * Math.sin(midAngle);
+      const pct = Math.round((seg.value / total) * 100);
+      svg.appendChild(svgText(lx, ly - 4, seg.label, 12, 'middle', { fill: '#fff', 'font-weight': '700' }));
+      svg.appendChild(svgText(lx, ly + 12, `${pct}%`, 10, 'middle', { fill: '#fff' }));
+
+      currentAngle += angleDeg;
+    });
+
+    const legendY = cy + R + 30;
+    const legendX = 40;
+    const colW = Math.min(120, (W - 80) / Math.min(s.segments.length, 4));
+    s.segments.forEach((seg, i) => {
+      const col = i % 4;
+      const rowIdx = Math.floor(i / 4);
+      const x = legendX + col * colW;
+      const y = legendY + rowIdx * 20;
+      svg.appendChild(svgEl('rect', { x: String(x), y: String(y - 8), width: '10', height: '10', fill: seg.colour, rx: '2' }));
+      svg.appendChild(svgText(x + 16, y + 1, `${seg.label} (${seg.value})`, 10, 'start', { fill: '#555' }));
+    });
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   33. SCATTER PLOT
+   ================================================================ */
+extraTemplates['scatter-plot'] = {
+  name: 'Scatter Plot',
+  category: 'Statistics',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Scatter Plot'));
+    c.appendChild(row(field('Title', textInput('sp-title', 'Scatter Plot'))));
+    c.appendChild(row(
+      field('X-axis label', textInput('sp-xlabel', 'x')),
+      field('Y-axis label', textInput('sp-ylabel', 'y')),
+    ));
+    const ta = document.createElement('textarea');
+    ta.id = 'sp-data';
+    ta.className = 'cfg-input';
+    ta.rows = 6;
+    ta.placeholder = 'x,y per line e.g.\n1,2\n3,5\n4,4';
+    ta.value = '1,2\n2,4\n3,5\n4,4\n5,8\n6,7\n7,10\n8,9';
+    ta.style.fontFamily = 'monospace';
+    ta.style.fontSize = '11px';
+    c.appendChild(field('Data points (x,y per line)', ta));
+    c.appendChild(row(
+      checkbox('sp-lobf', 'Line of best fit', false),
+    ));
+    c.appendChild(row(
+      field('Point colour', colourSwatch('sp-colour', '#4262ff')),
+    ));
+  },
+  readConfig() {
+    const raw = val('sp-data') || '';
+    const points = raw.split('\n').map(line => {
+      const parts = line.trim().split(',');
+      if (parts.length >= 2) {
+        const x = parseFloat(parts[0]);
+        const y = parseFloat(parts[1]);
+        if (!isNaN(x) && !isNaN(y)) return { x, y };
+      }
+      return null;
+    }).filter(Boolean);
+    return {
+      title: val('sp-title') || '',
+      xLabel: val('sp-xlabel') || 'x',
+      yLabel: val('sp-ylabel') || 'y',
+      points,
+      showLOBF: val('sp-lobf'),
+      pointColour: val('sp-colour') || '#4262ff',
+    };
+  },
+  generateSVG(s) {
+    const W = 520, H = 440;
+    const svg = makeSVG(W, H);
+    const margin = { top: 50, right: 30, bottom: 60, left: 70 };
+    const plotW = W - margin.left - margin.right;
+    const plotH = H - margin.top - margin.bottom;
+
+    if (s.title) {
+      svg.appendChild(svgText(W / 2, 28, s.title, 16, 'middle', { 'font-weight': '700', fill: '#222' }));
+    }
+
+    if (s.points.length === 0) {
+      svg.appendChild(svgText(W / 2, H / 2, 'No data', 14, 'middle', { fill: '#999' }));
+      return svg;
+    }
+
+    const xs = s.points.map(p => p.x);
+    const ys = s.points.map(p => p.y);
+    let xMin = Math.min(...xs), xMax = Math.max(...xs);
+    let yMin = Math.min(...ys), yMax = Math.max(...ys);
+    const xPad = (xMax - xMin) * 0.1 || 1;
+    const yPad = (yMax - yMin) * 0.1 || 1;
+    xMin -= xPad; xMax += xPad;
+    yMin -= yPad; yMax += yPad;
+
+    function px(v) { return margin.left + ((v - xMin) / (xMax - xMin)) * plotW; }
+    function py(v) { return margin.top + plotH - ((v - yMin) / (yMax - yMin)) * plotH; }
+
+    const xTicks = 6, yTicks = 6;
+    for (let i = 0; i <= xTicks; i++) {
+      const v = xMin + (i / xTicks) * (xMax - xMin);
+      const x = px(v);
+      svg.appendChild(svgEl('line', { x1: x, y1: margin.top, x2: x, y2: margin.top + plotH, stroke: '#e9ecef', 'stroke-width': '1' }));
+      svg.appendChild(svgText(x, margin.top + plotH + 18, String(Math.round(v * 10) / 10), 10, 'middle', { fill: '#888' }));
+    }
+    for (let i = 0; i <= yTicks; i++) {
+      const v = yMin + (i / yTicks) * (yMax - yMin);
+      const y = py(v);
+      svg.appendChild(svgEl('line', { x1: margin.left, y1: y, x2: margin.left + plotW, y2: y, stroke: '#e9ecef', 'stroke-width': '1' }));
+      svg.appendChild(svgText(margin.left - 10, y + 4, String(Math.round(v * 10) / 10), 10, 'end', { fill: '#888' }));
+    }
+
+    svg.appendChild(svgEl('line', { x1: margin.left, y1: margin.top, x2: margin.left, y2: margin.top + plotH, stroke: '#333', 'stroke-width': '1.5' }));
+    svg.appendChild(svgEl('line', { x1: margin.left, y1: margin.top + plotH, x2: margin.left + plotW, y2: margin.top + plotH, stroke: '#333', 'stroke-width': '1.5' }));
+
+    svg.appendChild(svgText(W / 2, H - 10, s.xLabel, 13, 'middle', { fill: '#333', 'font-weight': '600' }));
+    const yLbl = svgText(18, H / 2, s.yLabel, 13, 'middle', { fill: '#333', 'font-weight': '600' });
+    yLbl.setAttribute('transform', `rotate(-90, 18, ${H / 2})`);
+    svg.appendChild(yLbl);
+
+    if (s.showLOBF && s.points.length >= 2) {
+      const n = s.points.length;
+      const sumX = xs.reduce((a, b) => a + b, 0);
+      const sumY = ys.reduce((a, b) => a + b, 0);
+      const sumXY = s.points.reduce((a, p) => a + p.x * p.y, 0);
+      const sumX2 = xs.reduce((a, b) => a + b * b, 0);
+      const denom = n * sumX2 - sumX * sumX;
+      if (Math.abs(denom) > 1e-10) {
+        const m = (n * sumXY - sumX * sumY) / denom;
+        const b = (sumY - m * sumX) / n;
+        const lx1 = xMin, ly1 = m * lx1 + b;
+        const lx2 = xMax, ly2 = m * lx2 + b;
+        svg.appendChild(svgEl('line', {
+          x1: px(lx1), y1: py(ly1), x2: px(lx2), y2: py(ly2),
+          stroke: '#e63946', 'stroke-width': '2', 'stroke-dasharray': '6,3',
+        }));
+      }
+    }
+
+    s.points.forEach(p => {
+      svg.appendChild(svgEl('circle', {
+        cx: String(px(p.x)), cy: String(py(p.y)), r: '5',
+        fill: s.pointColour, stroke: '#fff', 'stroke-width': '1.5',
+      }));
+    });
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   34. HISTOGRAM
+   ================================================================ */
+extraTemplates['histogram'] = {
+  name: 'Histogram',
+  category: 'Statistics',
+
+  _defaultBars: [
+    { label: '0-10', fd: 1.2 },
+    { label: '10-20', fd: 2.5 },
+    { label: '20-30', fd: 3.8 },
+    { label: '30-40', fd: 2.1 },
+    { label: '40-50', fd: 0.9 },
+  ],
+
+  _buildBarRows(container, n) {
+    container.innerHTML = '';
+    const defs = this._defaultBars;
+    for (let i = 0; i < n; i++) {
+      const d = defs[i] || { label: `${i * 10}-${(i + 1) * 10}`, fd: 1 };
+      container.appendChild(row(
+        field(`Interval ${i + 1}`, textInput(`hg-lbl-${i}`, val(`hg-lbl-${i}`) || d.label)),
+        field('Freq. density', numberInput(`hg-fd-${i}`, val(`hg-fd-${i}`) || d.fd, 0, 100, 0.1)),
+      ));
+    }
+  },
+
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Histogram'));
+
+    const slider = numberInput('hg-bars', 5, 3, 10, 1);
+    slider.type = 'range';
+    slider.style.width = '100%';
+    const countLabel = document.createElement('span');
+    countLabel.textContent = ' 5 bars';
+    countLabel.style.fontSize = '11px';
+    countLabel.style.color = '#777';
+    const sliderRow = row(field('Number of bars', slider));
+    sliderRow.appendChild(countLabel);
+    c.appendChild(sliderRow);
+
+    c.appendChild(row(
+      field('Bar colour', colourSwatch('hg-colour', '#4262ff')),
+    ));
+
+    const barContainer = document.createElement('div');
+    barContainer.id = 'hg-bar-container';
+    c.appendChild(barContainer);
+    this._buildBarRows(barContainer, 5);
+
+    slider.addEventListener('input', () => {
+      const n = parseInt(slider.value, 10) || 5;
+      countLabel.textContent = ` ${n} bars`;
+      this._buildBarRows(barContainer, n);
+    });
+  },
+
+  readConfig() {
+    const n = Math.max(3, Math.min(10, Math.round(val('hg-bars') || 5)));
+    const bars = [];
+    for (let i = 0; i < n; i++) {
+      bars.push({
+        label: val(`hg-lbl-${i}`) || `${i * 10}-${(i + 1) * 10}`,
+        fd: Math.max(0, val(`hg-fd-${i}`)) || 1,
+      });
+    }
+    return {
+      bars,
+      barColour: val('hg-colour') || '#4262ff',
+    };
+  },
+
+  generateSVG(s) {
+    const W = 520, H = 400;
+    const svg = makeSVG(W, H);
+    const margin = { top: 30, right: 30, bottom: 70, left: 70 };
+    const plotW = W - margin.left - margin.right;
+    const plotH = H - margin.top - margin.bottom;
+
+    const n = s.bars.length;
+    const maxFD = Math.max(...s.bars.map(b => b.fd));
+    const yScale = plotH / (maxFD * 1.15);
+    const barW = plotW / n;
+
+    s.bars.forEach((bar, i) => {
+      const x = margin.left + i * barW;
+      const h = bar.fd * yScale;
+      const y = margin.top + plotH - h;
+      svg.appendChild(svgEl('rect', {
+        x: String(x), y: String(y), width: String(barW), height: String(h),
+        fill: s.barColour, stroke: '#fff', 'stroke-width': '1',
+      }));
+    });
+
+    const yTicks = 5;
+    for (let i = 0; i <= yTicks; i++) {
+      const v = (maxFD * 1.15 / yTicks) * i;
+      const y = margin.top + plotH - v * yScale;
+      svg.appendChild(svgEl('line', { x1: margin.left, y1: y, x2: margin.left + plotW, y2: y, stroke: '#e9ecef', 'stroke-width': '1' }));
+      svg.appendChild(svgText(margin.left - 10, y + 4, String(Math.round(v * 10) / 10), 10, 'end', { fill: '#888' }));
+    }
+
+    svg.appendChild(svgEl('line', { x1: margin.left, y1: margin.top, x2: margin.left, y2: margin.top + plotH, stroke: '#333', 'stroke-width': '1.5' }));
+    svg.appendChild(svgEl('line', { x1: margin.left, y1: margin.top + plotH, x2: margin.left + plotW, y2: margin.top + plotH, stroke: '#333', 'stroke-width': '1.5' }));
+
+    s.bars.forEach((bar, i) => {
+      const x = margin.left + i * barW + barW / 2;
+      const y = margin.top + plotH + 18;
+      svg.appendChild(svgText(x, y, bar.label, 10, 'middle', { fill: '#555' }));
+    });
+
+    svg.appendChild(svgText(W / 2, H - 10, 'Interval', 13, 'middle', { fill: '#333', 'font-weight': '600' }));
+    const yLbl = svgText(18, H / 2, 'Frequency density', 13, 'middle', { fill: '#333', 'font-weight': '600' });
+    yLbl.setAttribute('transform', `rotate(-90, 18, ${H / 2})`);
+    svg.appendChild(yLbl);
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   35. CUMULATIVE FREQUENCY CURVE
+   ================================================================ */
+extraTemplates['cumulative-frequency'] = {
+  name: 'Cumulative Frequency',
+  category: 'Statistics',
+
+  _defaultClasses: [
+    { ub: 10, cf: 5 },
+    { ub: 20, cf: 18 },
+    { ub: 30, cf: 42 },
+    { ub: 40, cf: 67 },
+    { ub: 50, cf: 85 },
+    { ub: 60, cf: 95 },
+    { ub: 70, cf: 100 },
+  ],
+
+  _buildClassRows(container, n) {
+    container.innerHTML = '';
+    const defs = this._defaultClasses;
+    for (let i = 0; i < n; i++) {
+      const d = defs[i] || { ub: (i + 1) * 10, cf: (i + 1) * 15 };
+      container.appendChild(row(
+        field(`Upper bound ${i + 1}`, numberInput(`cf-ub-${i}`, val(`cf-ub-${i}`) || d.ub, 0, 9999, 1)),
+        field('Cum. freq.', numberInput(`cf-cf-${i}`, val(`cf-cf-${i}`) || d.cf, 0, 9999, 1)),
+      ));
+    }
+  },
+
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Cumulative Frequency Curve'));
+    c.appendChild(row(field('Title', textInput('cf-title', 'Cumulative Frequency'))));
+    c.appendChild(row(
+      field('X-axis label', textInput('cf-xlabel', 'Value')),
+      field('Y-axis label', textInput('cf-ylabel', 'Cumulative frequency')),
+    ));
+
+    const slider = numberInput('cf-classes', 7, 4, 10, 1);
+    slider.type = 'range';
+    slider.style.width = '100%';
+    const countLabel = document.createElement('span');
+    countLabel.textContent = ' 7 classes';
+    countLabel.style.fontSize = '11px';
+    countLabel.style.color = '#777';
+    const sliderRow = row(field('Number of classes', slider));
+    sliderRow.appendChild(countLabel);
+    c.appendChild(sliderRow);
+
+    c.appendChild(row(checkbox('cf-quartiles', 'Show quartile lines', true)));
+
+    const classContainer = document.createElement('div');
+    classContainer.id = 'cf-class-container';
+    c.appendChild(classContainer);
+    this._buildClassRows(classContainer, 7);
+
+    slider.addEventListener('input', () => {
+      const n = parseInt(slider.value, 10) || 7;
+      countLabel.textContent = ` ${n} classes`;
+      this._buildClassRows(classContainer, n);
+    });
+  },
+
+  readConfig() {
+    const n = Math.max(4, Math.min(10, Math.round(val('cf-classes') || 7)));
+    const classes = [];
+    for (let i = 0; i < n; i++) {
+      classes.push({
+        ub: val(`cf-ub-${i}`) || (i + 1) * 10,
+        cf: val(`cf-cf-${i}`) || (i + 1) * 15,
+      });
+    }
+    return {
+      title: val('cf-title') || '',
+      xLabel: val('cf-xlabel') || 'Value',
+      yLabel: val('cf-ylabel') || 'Cumulative frequency',
+      classes,
+      showQuartiles: val('cf-quartiles'),
+    };
+  },
+
+  generateSVG(s) {
+    const W = 520, H = 440;
+    const svg = makeSVG(W, H);
+    const margin = { top: 50, right: 30, bottom: 60, left: 70 };
+    const plotW = W - margin.left - margin.right;
+    const plotH = H - margin.top - margin.bottom;
+
+    if (s.title) {
+      svg.appendChild(svgText(W / 2, 28, s.title, 16, 'middle', { 'font-weight': '700', fill: '#222' }));
+    }
+
+    const pts = [...s.classes].sort((a, b) => a.ub - b.ub);
+    if (pts.length === 0) return svg;
+
+    const xMax = pts[pts.length - 1].ub * 1.05;
+    const yMax = Math.max(...pts.map(p => p.cf)) * 1.1;
+
+    function px(v) { return margin.left + (v / xMax) * plotW; }
+    function py(v) { return margin.top + plotH - (v / yMax) * plotH; }
+
+    for (let i = 0; i <= 5; i++) {
+      const v = (xMax / 5) * i;
+      const x = px(v);
+      svg.appendChild(svgEl('line', { x1: x, y1: margin.top, x2: x, y2: margin.top + plotH, stroke: '#e9ecef', 'stroke-width': '1' }));
+      svg.appendChild(svgText(x, margin.top + plotH + 18, String(Math.round(v)), 10, 'middle', { fill: '#888' }));
+    }
+    for (let i = 0; i <= 5; i++) {
+      const v = (yMax / 5) * i;
+      const y = py(v);
+      svg.appendChild(svgEl('line', { x1: margin.left, y1: y, x2: margin.left + plotW, y2: y, stroke: '#e9ecef', 'stroke-width': '1' }));
+      svg.appendChild(svgText(margin.left - 10, y + 4, String(Math.round(v)), 10, 'end', { fill: '#888' }));
+    }
+
+    svg.appendChild(svgEl('line', { x1: margin.left, y1: margin.top, x2: margin.left, y2: margin.top + plotH, stroke: '#333', 'stroke-width': '1.5' }));
+    svg.appendChild(svgEl('line', { x1: margin.left, y1: margin.top + plotH, x2: margin.left + plotW, y2: margin.top + plotH, stroke: '#333', 'stroke-width': '1.5' }));
+
+    svg.appendChild(svgText(W / 2, H - 8, s.xLabel, 13, 'middle', { fill: '#333', 'font-weight': '600' }));
+    const yLbl = svgText(18, H / 2, s.yLabel, 13, 'middle', { fill: '#333', 'font-weight': '600' });
+    yLbl.setAttribute('transform', `rotate(-90, 18, ${H / 2})`);
+    svg.appendChild(yLbl);
+
+    const allPts = [{ ub: 0, cf: 0 }, ...pts];
+    if (allPts.length >= 2) {
+      let pathD = `M ${px(allPts[0].ub)} ${py(allPts[0].cf)}`;
+      for (let i = 0; i < allPts.length - 1; i++) {
+        const p0 = allPts[Math.max(0, i - 1)];
+        const p1 = allPts[i];
+        const p2 = allPts[i + 1];
+        const p3 = allPts[Math.min(allPts.length - 1, i + 2)];
+        const tension = 6;
+        const cp1x = px(p1.ub) + (px(p2.ub) - px(p0.ub)) / tension;
+        const cp1y = py(p1.cf) + (py(p2.cf) - py(p0.cf)) / tension;
+        const cp2x = px(p2.ub) - (px(p3.ub) - px(p1.ub)) / tension;
+        const cp2y = py(p2.cf) - (py(p3.cf) - py(p1.cf)) / tension;
+        pathD += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${px(p2.ub)} ${py(p2.cf)}`;
+      }
+      svg.appendChild(svgEl('path', { d: pathD, fill: 'none', stroke: '#4262ff', 'stroke-width': '2.5' }));
+    }
+
+    allPts.forEach(p => {
+      if (p.cf === 0 && p.ub === 0) return;
+      const pxx = px(p.ub), pyy = py(p.cf);
+      const sz = 4;
+      svg.appendChild(svgEl('line', { x1: pxx - sz, y1: pyy - sz, x2: pxx + sz, y2: pyy + sz, stroke: '#4262ff', 'stroke-width': '2' }));
+      svg.appendChild(svgEl('line', { x1: pxx + sz, y1: pyy - sz, x2: pxx - sz, y2: pyy + sz, stroke: '#4262ff', 'stroke-width': '2' }));
+    });
+
+    if (s.showQuartiles) {
+      const maxCF = pts[pts.length - 1].cf;
+      [0.25, 0.5, 0.75].forEach((frac, qi) => {
+        const qVal = frac * maxCF;
+        let qX = 0;
+        for (let i = 0; i < allPts.length - 1; i++) {
+          if (allPts[i].cf <= qVal && allPts[i + 1].cf >= qVal) {
+            const t = (qVal - allPts[i].cf) / (allPts[i + 1].cf - allPts[i].cf);
+            qX = allPts[i].ub + t * (allPts[i + 1].ub - allPts[i].ub);
+            break;
+          }
+        }
+        const dashStyle = '4,3';
+        svg.appendChild(svgEl('line', {
+          x1: margin.left, y1: py(qVal), x2: px(qX), y2: py(qVal),
+          stroke: '#e63946', 'stroke-width': '1.2', 'stroke-dasharray': dashStyle,
+        }));
+        svg.appendChild(svgEl('line', {
+          x1: px(qX), y1: py(qVal), x2: px(qX), y2: margin.top + plotH,
+          stroke: '#e63946', 'stroke-width': '1.2', 'stroke-dasharray': dashStyle,
+        }));
+        svg.appendChild(svgText(px(qX), margin.top + plotH + 32, `Q${qi + 1}`, 10, 'middle', { fill: '#e63946', 'font-weight': '600' }));
+      });
+    }
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   36. FORMULA TRIANGLE (Speed-Distance-Time etc.)
+   ================================================================ */
+extraTemplates['formula-triangle'] = {
+  name: 'Formula Triangle',
+  category: 'Number',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Formula Triangle'));
+    c.appendChild(row(
+      field('Formula type', select('ftr-type', [
+        ['sdt', 'Speed = Distance / Time'],
+        ['vir', 'V = I \u00D7 R'],
+        ['density', 'Density = Mass / Volume'],
+        ['pressure', 'Pressure = Force / Area'],
+        ['custom', 'Custom'],
+      ])),
+    ));
+    c.appendChild(divider());
+    c.appendChild(sectionLabel('Custom labels (used when type = Custom)'));
+    c.appendChild(row(
+      field('Top', textInput('ftr-top', 'D')),
+    ));
+    c.appendChild(row(
+      field('Bottom-left', textInput('ftr-bl', 'S')),
+      field('Bottom-right', textInput('ftr-br', 'T')),
+    ));
+  },
+  readConfig() {
+    return {
+      formulaType: val('ftr-type') || 'sdt',
+      topLabel: val('ftr-top') || 'D',
+      blLabel: val('ftr-bl') || 'S',
+      brLabel: val('ftr-br') || 'T',
+    };
+  },
+  generateSVG(s) {
+    const W = 360, H = 340;
+    const svg = makeSVG(W, H);
+
+    const presets = {
+      sdt: { top: 'D', bl: 'S', br: 'T', title: 'Speed = Distance \u00F7 Time' },
+      vir: { top: 'V', bl: 'I', br: 'R', title: 'V = I \u00D7 R' },
+      density: { top: 'M', bl: '\u03C1', br: 'V', title: 'Density = Mass \u00F7 Volume' },
+      pressure: { top: 'F', bl: 'P', br: 'A', title: 'Pressure = Force \u00F7 Area' },
+      custom: { top: s.topLabel, bl: s.blLabel, br: s.brLabel, title: '' },
+    };
+    const labels = presets[s.formulaType] || presets.sdt;
+
+    const cx = W / 2;
+    const triTop = 60, triBot = 280;
+    const triLeft = 50, triRight = W - 50;
+    const triMidY = (triTop + triBot) / 2 + 20;
+
+    if (labels.title) {
+      svg.appendChild(svgText(cx, 30, labels.title, 14, 'middle', { fill: '#555', 'font-weight': '600' }));
+    }
+
+    const triPts = `${cx},${triTop} ${triLeft},${triBot} ${triRight},${triBot}`;
+    svg.appendChild(svgEl('polygon', {
+      points: triPts, fill: '#f0f4ff', stroke: '#2b2d42', 'stroke-width': '3',
+    }));
+
+    const divY = triMidY;
+    const t = (divY - triTop) / (triBot - triTop);
+    const divLeftX = cx + (triLeft - cx) * t;
+    const divRightX = cx + (triRight - cx) * t;
+    svg.appendChild(svgEl('line', {
+      x1: String(divLeftX), y1: String(divY),
+      x2: String(divRightX), y2: String(divY),
+      stroke: '#2b2d42', 'stroke-width': '2.5',
+    }));
+
+    const vertX = cx;
+    svg.appendChild(svgEl('line', {
+      x1: String(vertX), y1: String(divY),
+      x2: String(vertX), y2: String(triBot),
+      stroke: '#2b2d42', 'stroke-width': '2.5',
+    }));
+
+    const topCenterY = (triTop + divY) / 2 + 6;
+    svg.appendChild(svgText(cx, topCenterY, labels.top, 32, 'middle', { fill: '#2b2d42', 'font-weight': '700' }));
+
+    const botCenterY = (divY + triBot) / 2 + 8;
+    const botLeftCenterX = (divLeftX + vertX) / 2;
+    const botRightCenterX = (vertX + divRightX) / 2;
+    svg.appendChild(svgText(botLeftCenterX, botCenterY, labels.bl, 28, 'middle', { fill: '#2b2d42', 'font-weight': '700' }));
+    svg.appendChild(svgText(botRightCenterX, botCenterY, labels.br, 28, 'middle', { fill: '#2b2d42', 'font-weight': '700' }));
+
+    svg.appendChild(svgText(vertX, botCenterY, '\u00D7', 16, 'middle', { fill: '#888' }));
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   37. COLUMN ADDITION/SUBTRACTION
+   ================================================================ */
+extraTemplates['column-arithmetic'] = {
+  name: 'Column Arithmetic',
+  category: 'Number',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Column Addition / Subtraction'));
+    c.appendChild(row(
+      field('Operation', select('ca-op', [['+', 'Addition (+)'], ['-', 'Subtraction (\u2212)']])),
+    ));
+    c.appendChild(row(
+      field('Number 1', textInput('ca-n1', '3456')),
+      field('Number 2', textInput('ca-n2', '1278')),
+    ));
+    c.appendChild(row(
+      checkbox('ca-carry', 'Show carry/borrow boxes', true),
+      checkbox('ca-answer', 'Show answer', true),
+    ));
+  },
+  readConfig() {
+    return {
+      op: val('ca-op') || '+',
+      num1: (val('ca-n1') || '3456').replace(/[^0-9.]/g, ''),
+      num2: (val('ca-n2') || '1278').replace(/[^0-9.]/g, ''),
+      showCarry: val('ca-carry'),
+      showAnswer: val('ca-answer'),
+    };
+  },
+  generateSVG(s) {
+    const digits1 = s.num1.split('');
+    const digits2 = s.num2.split('');
+    const maxLen = Math.max(digits1.length, digits2.length);
+    while (digits1.length < maxLen) digits1.unshift(' ');
+    while (digits2.length < maxLen) digits2.unshift(' ');
+
+    const n1 = parseInt(s.num1, 10) || 0;
+    const n2 = parseInt(s.num2, 10) || 0;
+    const result = s.op === '+' ? n1 + n2 : n1 - n2;
+    const answerStr = String(Math.abs(result));
+    const answerDigits = answerStr.split('');
+    const totalCols = Math.max(maxLen, answerDigits.length);
+    while (digits1.length < totalCols) digits1.unshift(' ');
+    while (digits2.length < totalCols) digits2.unshift(' ');
+    while (answerDigits.length < totalCols) answerDigits.unshift(' ');
+
+    const cellW = 44, cellH = 50;
+    const opColW = 36;
+    const carryH = s.showCarry ? 28 : 0;
+    const W = opColW + totalCols * cellW + 40;
+    const startY = 30 + carryH;
+    const answerRows = s.showAnswer ? 1 : 0;
+    const H = startY + (2 + answerRows) * cellH + 30;
+    const svg = makeSVG(W, H);
+    const startX = opColW + 10;
+
+    if (s.showCarry) {
+      for (let i = 0; i < totalCols; i++) {
+        const x = startX + i * cellW;
+        const y = startY - carryH;
+        svg.appendChild(svgEl('rect', {
+          x: String(x), y: String(y), width: String(cellW), height: String(carryH - 2),
+          fill: '#fff8e1', stroke: '#e0d6a8', 'stroke-width': '1', rx: '3',
+        }));
+      }
+    }
+
+    for (let i = 0; i < totalCols; i++) {
+      const x = startX + i * cellW + cellW / 2;
+      const y = startY + cellH / 2 + 6;
+      if (digits1[i] !== ' ') {
+        svg.appendChild(svgText(x, y, digits1[i], 22, 'middle', { fill: '#333', 'font-weight': '600' }));
+      }
+    }
+
+    svg.appendChild(svgText(opColW / 2 + 5, startY + cellH + cellH / 2 + 6, s.op === '+' ? '+' : '\u2212', 22, 'middle', { fill: '#333', 'font-weight': '700' }));
+    for (let i = 0; i < totalCols; i++) {
+      const x = startX + i * cellW + cellW / 2;
+      const y = startY + cellH + cellH / 2 + 6;
+      if (digits2[i] !== ' ') {
+        svg.appendChild(svgText(x, y, digits2[i], 22, 'middle', { fill: '#333', 'font-weight': '600' }));
+      }
+    }
+
+    const lineY = startY + 2 * cellH;
+    svg.appendChild(svgEl('line', {
+      x1: String(startX - 5), y1: String(lineY),
+      x2: String(startX + totalCols * cellW + 5), y2: String(lineY),
+      stroke: '#333', 'stroke-width': '2.5',
+    }));
+
+    if (s.showAnswer) {
+      if (result < 0) {
+        svg.appendChild(svgText(opColW / 2 + 5, lineY + cellH / 2 + 6, '\u2212', 22, 'middle', { fill: '#2a9d8f', 'font-weight': '700' }));
+      }
+      for (let i = 0; i < totalCols; i++) {
+        const x = startX + i * cellW + cellW / 2;
+        const y = lineY + cellH / 2 + 6;
+        if (answerDigits[i] !== ' ') {
+          svg.appendChild(svgText(x, y, answerDigits[i], 22, 'middle', { fill: '#2a9d8f', 'font-weight': '700' }));
+        }
+      }
+      svg.appendChild(svgEl('line', {
+        x1: String(startX - 5), y1: String(lineY + cellH + 2),
+        x2: String(startX + totalCols * cellW + 5), y2: String(lineY + cellH + 2),
+        stroke: '#333', 'stroke-width': '1.5',
+      }));
+      svg.appendChild(svgEl('line', {
+        x1: String(startX - 5), y1: String(lineY + cellH + 6),
+        x2: String(startX + totalCols * cellW + 5), y2: String(lineY + cellH + 6),
+        stroke: '#333', 'stroke-width': '1.5',
+      }));
+    }
+
+    for (let i = 0; i <= totalCols; i++) {
+      const x = startX + i * cellW;
+      svg.appendChild(svgEl('line', {
+        x1: String(x), y1: String(startY - carryH),
+        x2: String(x), y2: String(lineY + (s.showAnswer ? cellH + 8 : 4)),
+        stroke: '#e0e0e0', 'stroke-width': '0.5',
+      }));
+    }
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   38. LONG DIVISION
+   ================================================================ */
+extraTemplates['long-division'] = {
+  name: 'Long Division',
+  category: 'Number',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Long Division (Bus Stop Method)'));
+    c.appendChild(row(
+      field('Dividend', numberInput('ld-dividend', 432, 1, 99999, 1)),
+      field('Divisor', numberInput('ld-divisor', 15, 1, 999, 1)),
+    ));
+    c.appendChild(row(
+      checkbox('ld-working', 'Show working', true),
+      checkbox('ld-answer', 'Show answer', true),
+    ));
+  },
+  readConfig() {
+    return {
+      dividend: Math.max(1, Math.round(val('ld-dividend') || 432)),
+      divisor: Math.max(1, Math.round(val('ld-divisor') || 15)),
+      showWorking: val('ld-working'),
+      showAnswer: val('ld-answer'),
+    };
+  },
+  generateSVG(s) {
+    const dividend = s.dividend;
+    const divisor = s.divisor;
+    const dividendStr = String(dividend);
+    const numDigits = dividendStr.length;
+
+    const steps = [];
+    let remainder = 0;
+    let quotientStr = '';
+    for (let i = 0; i < numDigits; i++) {
+      remainder = remainder * 10 + parseInt(dividendStr[i], 10);
+      const q = Math.floor(remainder / divisor);
+      quotientStr += String(q);
+      const product = q * divisor;
+      steps.push({ bring: remainder, quotientDigit: q, product, remainder: remainder - product });
+      remainder = remainder - product;
+    }
+    const quotientDisplay = quotientStr.replace(/^0+/, '') || '0';
+    const finalRemainder = remainder;
+
+    const cellW = 44, cellH = 44;
+    const divisorW = String(divisor).length * 22 + 20;
+    const leftPad = divisorW + 20;
+    const topPad = 50;
+    const workingRows = s.showWorking ? steps.length * 2 : 0;
+    const W = leftPad + numDigits * cellW + 40;
+    const H = topPad + cellH + workingRows * (cellH * 0.6) + 60;
+    const svg = makeSVG(W, H);
+
+    svg.appendChild(svgText(leftPad - 14, topPad + cellH / 2 + 6, String(divisor), 20, 'end', { fill: '#333', 'font-weight': '600' }));
+
+    svg.appendChild(svgEl('line', {
+      x1: String(leftPad - 6), y1: String(topPad - 4),
+      x2: String(leftPad - 6), y2: String(topPad + cellH + 4),
+      stroke: '#333', 'stroke-width': '2.5',
+    }));
+    svg.appendChild(svgEl('line', {
+      x1: String(leftPad - 6), y1: String(topPad - 4),
+      x2: String(leftPad + numDigits * cellW + 6), y2: String(topPad - 4),
+      stroke: '#333', 'stroke-width': '2.5',
+    }));
+
+    for (let i = 0; i < numDigits; i++) {
+      const x = leftPad + i * cellW + cellW / 2;
+      svg.appendChild(svgText(x, topPad + cellH / 2 + 6, dividendStr[i], 20, 'middle', { fill: '#333', 'font-weight': '600' }));
+    }
+
+    if (s.showAnswer) {
+      const qDigits = quotientStr.split('');
+      for (let i = 0; i < numDigits; i++) {
+        const x = leftPad + i * cellW + cellW / 2;
+        const digit = qDigits[i] || '';
+        if (digit && (digit !== '0' || i >= numDigits - quotientDisplay.length)) {
+          svg.appendChild(svgText(x, topPad - 16, qDigits[i] || '', 18, 'middle', { fill: '#2a9d8f', 'font-weight': '700' }));
+        }
+      }
+      if (finalRemainder > 0) {
+        svg.appendChild(svgText(leftPad + numDigits * cellW + 8, topPad - 16, `r${finalRemainder}`, 13, 'start', { fill: '#e63946', 'font-weight': '600' }));
+      }
+    }
+
+    if (s.showWorking) {
+      let wy = topPad + cellH + 8;
+      const stepH = cellH * 0.6;
+      steps.forEach((step, idx) => {
+        if (step.quotientDigit === 0 && idx < steps.length - 1 && step.product === 0) return;
+        const productStr = String(step.product);
+        const endCol = idx;
+        for (let j = 0; j < productStr.length; j++) {
+          const col = endCol - productStr.length + 1 + j;
+          if (col >= 0 && col < numDigits) {
+            const x = leftPad + col * cellW + cellW / 2;
+            svg.appendChild(svgText(x, wy + 14, productStr[j], 15, 'middle', { fill: '#888' }));
+          }
+        }
+        svg.appendChild(svgEl('line', {
+          x1: String(leftPad + Math.max(0, endCol - productStr.length + 1) * cellW),
+          y1: String(wy + 20),
+          x2: String(leftPad + (endCol + 1) * cellW),
+          y2: String(wy + 20),
+          stroke: '#aaa', 'stroke-width': '1',
+        }));
+
+        wy += stepH;
+
+        const remStr = String(step.remainder);
+        for (let j = 0; j < remStr.length; j++) {
+          const col = endCol - remStr.length + 1 + j;
+          if (col >= 0 && col < numDigits) {
+            const x = leftPad + col * cellW + cellW / 2;
+            svg.appendChild(svgText(x, wy + 14, remStr[j], 15, 'middle', { fill: '#e63946' }));
+          }
+        }
+        wy += stepH;
+      });
+    }
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   39. EQUATION BALANCE
+   ================================================================ */
+extraTemplates['equation-balance'] = {
+  name: 'Equation Balance',
+  category: 'Algebra',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Equation Balance'));
+    c.appendChild(row(
+      field('Left expression', textInput('eb-left', '2x + 3')),
+      field('Right expression', textInput('eb-right', '11')),
+    ));
+    c.appendChild(row(
+      checkbox('eb-scale', 'Show balance/scales', true),
+    ));
+  },
+  readConfig() {
+    return {
+      leftExpr: val('eb-left') || '2x + 3',
+      rightExpr: val('eb-right') || '11',
+      showScale: val('eb-scale'),
+    };
+  },
+  generateSVG(s) {
+    const W = 500, H = 320;
+    const svg = makeSVG(W, H);
+    const cx = W / 2;
+
+    if (s.showScale) {
+      const fulcrumTop = 200;
+      const fulcrumBot = 280;
+      const fulcrumW = 40;
+      svg.appendChild(svgEl('polygon', {
+        points: `${cx},${fulcrumTop} ${cx - fulcrumW},${fulcrumBot} ${cx + fulcrumW},${fulcrumBot}`,
+        fill: '#e9ecef', stroke: '#555', 'stroke-width': '2',
+      }));
+
+      const beamY = fulcrumTop;
+      const beamLeft = 60;
+      const beamRight = W - 60;
+      svg.appendChild(svgEl('line', {
+        x1: String(beamLeft), y1: String(beamY),
+        x2: String(beamRight), y2: String(beamY),
+        stroke: '#2b2d42', 'stroke-width': '4',
+      }));
+
+      const panW = 140, panH = 8;
+      const leftPanX = beamLeft + 30;
+      svg.appendChild(svgEl('line', { x1: String(leftPanX + panW / 2), y1: String(beamY), x2: String(leftPanX + panW / 2), y2: String(beamY + 30), stroke: '#888', 'stroke-width': '1.5' }));
+      svg.appendChild(svgEl('line', { x1: String(leftPanX), y1: String(beamY + 30), x2: String(leftPanX + panW), y2: String(beamY + 30), stroke: '#888', 'stroke-width': '1.5' }));
+      svg.appendChild(svgEl('rect', {
+        x: String(leftPanX), y: String(beamY + 30),
+        width: String(panW), height: String(panH),
+        fill: '#d4edda', stroke: '#555', 'stroke-width': '1', rx: '3',
+      }));
+      svg.appendChild(svgText(leftPanX + panW / 2, beamY + 20, s.leftExpr, 18, 'middle', { fill: '#2b2d42', 'font-weight': '700' }));
+
+      const rightPanX = beamRight - panW - 30;
+      svg.appendChild(svgEl('line', { x1: String(rightPanX + panW / 2), y1: String(beamY), x2: String(rightPanX + panW / 2), y2: String(beamY + 30), stroke: '#888', 'stroke-width': '1.5' }));
+      svg.appendChild(svgEl('line', { x1: String(rightPanX), y1: String(beamY + 30), x2: String(rightPanX + panW), y2: String(beamY + 30), stroke: '#888', 'stroke-width': '1.5' }));
+      svg.appendChild(svgEl('rect', {
+        x: String(rightPanX), y: String(beamY + 30),
+        width: String(panW), height: String(panH),
+        fill: '#dbe9ff', stroke: '#555', 'stroke-width': '1', rx: '3',
+      }));
+      svg.appendChild(svgText(rightPanX + panW / 2, beamY + 20, s.rightExpr, 18, 'middle', { fill: '#2b2d42', 'font-weight': '700' }));
+
+      svg.appendChild(svgText(cx, beamY - 16, '=', 24, 'middle', { fill: '#e63946', 'font-weight': '700' }));
+
+      svg.appendChild(svgEl('rect', {
+        x: String(cx - 60), y: String(fulcrumBot),
+        width: '120', height: '8',
+        fill: '#2b2d42', rx: '3',
+      }));
+    } else {
+      svg.appendChild(svgText(cx, H / 2, `${s.leftExpr}  =  ${s.rightExpr}`, 28, 'middle', { fill: '#2b2d42', 'font-weight': '700' }));
+    }
+
+    svg.appendChild(svgText(cx, 30, `${s.leftExpr} = ${s.rightExpr}`, 16, 'middle', { fill: '#555' }));
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   40. TWO-COLUMN PROOF
+   ================================================================ */
+extraTemplates['two-column-proof'] = {
+  name: 'Two-Column Proof',
+  category: 'Algebra',
+
+  _defaultSteps: [
+    { statement: '2x + 3 = 11', reason: 'Given' },
+    { statement: '2x = 8', reason: 'Subtract 3 from both sides' },
+    { statement: 'x = 4', reason: 'Divide both sides by 2' },
+  ],
+
+  _buildStepRows(container, n) {
+    container.innerHTML = '';
+    const defs = this._defaultSteps;
+    for (let i = 0; i < n; i++) {
+      const d = defs[i] || { statement: '', reason: '' };
+      container.appendChild(sectionLabel(`Step ${i + 1}`));
+      container.appendChild(row(
+        field('Statement', textInput(`tcp-stmt-${i}`, val(`tcp-stmt-${i}`) || d.statement)),
+        field('Reason', textInput(`tcp-reas-${i}`, val(`tcp-reas-${i}`) || d.reason)),
+      ));
+    }
+  },
+
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Two-Column Proof'));
+    c.appendChild(row(field('Title', textInput('tcp-title', 'Proof'))));
+
+    const slider = numberInput('tcp-steps', 3, 2, 8, 1);
+    slider.type = 'range';
+    slider.style.width = '100%';
+    const countLabel = document.createElement('span');
+    countLabel.textContent = ' 3 steps';
+    countLabel.style.fontSize = '11px';
+    countLabel.style.color = '#777';
+    const sliderRow = row(field('Number of steps', slider));
+    sliderRow.appendChild(countLabel);
+    c.appendChild(sliderRow);
+
+    const stepContainer = document.createElement('div');
+    stepContainer.id = 'tcp-step-container';
+    c.appendChild(stepContainer);
+    this._buildStepRows(stepContainer, 3);
+
+    slider.addEventListener('input', () => {
+      const n = parseInt(slider.value, 10) || 3;
+      countLabel.textContent = ` ${n} steps`;
+      this._buildStepRows(stepContainer, n);
+    });
+  },
+
+  readConfig() {
+    const n = Math.max(2, Math.min(8, Math.round(val('tcp-steps') || 3)));
+    const steps = [];
+    for (let i = 0; i < n; i++) {
+      steps.push({
+        statement: val(`tcp-stmt-${i}`) || '',
+        reason: val(`tcp-reas-${i}`) || '',
+      });
+    }
+    return { title: val('tcp-title') || 'Proof', steps };
+  },
+
+  generateSVG(s) {
+    const rowH = 36;
+    const headerH = 40;
+    const titleH = s.title ? 40 : 0;
+    const W = 520;
+    const H = titleH + headerH + s.steps.length * rowH + 20;
+    const svg = makeSVG(W, H);
+    const tableX = 20;
+    const tableW = W - 40;
+    const colSplit = tableW * 0.45;
+    let y = 10;
+
+    if (s.title) {
+      svg.appendChild(svgText(W / 2, y + 24, s.title, 16, 'middle', { fill: '#222', 'font-weight': '700' }));
+      y += titleH;
+    }
+
+    svg.appendChild(svgEl('rect', {
+      x: String(tableX), y: String(y), width: String(tableW), height: String(headerH),
+      fill: '#2b2d42', rx: '4',
+    }));
+    svg.appendChild(svgText(tableX + 30, y + 26, '#', 12, 'middle', { fill: '#fff', 'font-weight': '700' }));
+    svg.appendChild(svgText(tableX + 30 + colSplit / 2, y + 26, 'Statement', 13, 'middle', { fill: '#fff', 'font-weight': '700' }));
+    svg.appendChild(svgText(tableX + colSplit + (tableW - colSplit) / 2, y + 26, 'Reason', 13, 'middle', { fill: '#fff', 'font-weight': '700' }));
+    y += headerH;
+
+    s.steps.forEach((step, i) => {
+      const bgFill = i % 2 === 0 ? '#f8f9fa' : '#fff';
+      svg.appendChild(svgEl('rect', {
+        x: String(tableX), y: String(y), width: String(tableW), height: String(rowH),
+        fill: bgFill, stroke: '#dee2e6', 'stroke-width': '0.5',
+      }));
+      svg.appendChild(svgText(tableX + 30, y + rowH / 2 + 5, String(i + 1), 12, 'middle', { fill: '#888', 'font-weight': '600' }));
+      svg.appendChild(svgEl('line', { x1: String(tableX + 50), y1: String(y), x2: String(tableX + 50), y2: String(y + rowH), stroke: '#dee2e6', 'stroke-width': '0.5' }));
+      svg.appendChild(svgEl('line', { x1: String(tableX + colSplit), y1: String(y), x2: String(tableX + colSplit), y2: String(y + rowH), stroke: '#dee2e6', 'stroke-width': '0.5' }));
+      svg.appendChild(svgText(tableX + 60, y + rowH / 2 + 5, step.statement, 12, 'start', { fill: '#333' }));
+      svg.appendChild(svgText(tableX + colSplit + 10, y + rowH / 2 + 5, step.reason, 11, 'start', { fill: '#555' }));
+      y += rowH;
+    });
+
+    svg.appendChild(svgEl('rect', {
+      x: String(tableX), y: String(titleH > 0 ? titleH + 10 : 10),
+      width: String(tableW), height: String(headerH + s.steps.length * rowH),
+      fill: 'none', stroke: '#2b2d42', 'stroke-width': '2', rx: '4',
+    }));
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   41. CONVERSION CHART
+   ================================================================ */
+extraTemplates['conversion-chart'] = {
+  name: 'Conversion Chart',
+  category: 'Number',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Conversion Chart'));
+    c.appendChild(row(
+      field('Chart type', select('cc-type', [
+        ['metric_length', 'Metric Length (km, m, cm, mm)'],
+        ['metric_mass', 'Metric Mass (kg, g, mg)'],
+        ['metric_capacity', 'Metric Capacity (L, mL)'],
+        ['temperature', 'Temperature (C / F)'],
+        ['custom', 'Custom'],
+      ])),
+    ));
+    c.appendChild(row(
+      checkbox('cc-arrows', 'Show conversion arrows', true),
+    ));
+  },
+  readConfig() {
+    return {
+      chartType: val('cc-type') || 'metric_length',
+      showArrows: val('cc-arrows'),
+    };
+  },
+  generateSVG(s) {
+    const presets = {
+      metric_length: {
+        units: ['km', 'm', 'cm', 'mm'],
+        factors: ['\u00D71000', '\u00D7100', '\u00D710'],
+        reverseFactors: ['\u00F71000', '\u00F7100', '\u00F710'],
+        title: 'Metric Length',
+      },
+      metric_mass: {
+        units: ['tonne', 'kg', 'g', 'mg'],
+        factors: ['\u00D71000', '\u00D71000', '\u00D71000'],
+        reverseFactors: ['\u00F71000', '\u00F71000', '\u00F71000'],
+        title: 'Metric Mass',
+      },
+      metric_capacity: {
+        units: ['kL', 'L', 'mL'],
+        factors: ['\u00D71000', '\u00D71000'],
+        reverseFactors: ['\u00F71000', '\u00F71000'],
+        title: 'Metric Capacity',
+      },
+      temperature: null,
+      custom: {
+        units: ['Unit A', 'Unit B', 'Unit C'],
+        factors: ['\u00D7?', '\u00D7?'],
+        reverseFactors: ['\u00F7?', '\u00F7?'],
+        title: 'Custom Conversion',
+      },
+    };
+
+    if (s.chartType === 'temperature') {
+      const W = 400, H = 400;
+      const svg = makeSVG(W, H);
+      svg.appendChild(svgText(W / 2, 30, 'Temperature Conversion', 16, 'middle', { 'font-weight': '700', fill: '#222' }));
+
+      const cX = 120, fX = 280;
+      const topY = 60, botY = 360;
+
+      svg.appendChild(svgText(cX, topY - 10, '\u00B0C', 14, 'middle', { fill: '#4262ff', 'font-weight': '700' }));
+      svg.appendChild(svgEl('line', { x1: cX, y1: topY, x2: cX, y2: botY, stroke: '#4262ff', 'stroke-width': '3' }));
+      const cPoints = [{ v: 100, label: '100\u00B0C' }, { v: 37, label: '37\u00B0C' }, { v: 0, label: '0\u00B0C' }, { v: -40, label: '-40\u00B0C' }];
+      cPoints.forEach(p => {
+        const y = topY + ((100 - p.v) / 140) * (botY - topY);
+        svg.appendChild(svgEl('line', { x1: cX - 8, y1: y, x2: cX + 8, y2: y, stroke: '#4262ff', 'stroke-width': '2' }));
+        svg.appendChild(svgText(cX - 16, y + 4, p.label, 11, 'end', { fill: '#4262ff' }));
+      });
+
+      svg.appendChild(svgText(fX, topY - 10, '\u00B0F', 14, 'middle', { fill: '#e63946', 'font-weight': '700' }));
+      svg.appendChild(svgEl('line', { x1: fX, y1: topY, x2: fX, y2: botY, stroke: '#e63946', 'stroke-width': '3' }));
+      const fPoints = [{ v: 212, label: '212\u00B0F', cVal: 100 }, { v: 98.6, label: '98.6\u00B0F', cVal: 37 }, { v: 32, label: '32\u00B0F', cVal: 0 }, { v: -40, label: '-40\u00B0F', cVal: -40 }];
+      fPoints.forEach(p => {
+        const y = topY + ((100 - p.cVal) / 140) * (botY - topY);
+        svg.appendChild(svgEl('line', { x1: fX - 8, y1: y, x2: fX + 8, y2: y, stroke: '#e63946', 'stroke-width': '2' }));
+        svg.appendChild(svgText(fX + 16, y + 4, p.label, 11, 'start', { fill: '#e63946' }));
+      });
+
+      if (s.showArrows) {
+        fPoints.forEach(p => {
+          const y = topY + ((100 - p.cVal) / 140) * (botY - topY);
+          svg.appendChild(svgEl('line', { x1: cX + 10, y1: y, x2: fX - 10, y2: y, stroke: '#aaa', 'stroke-width': '1', 'stroke-dasharray': '3,3' }));
+        });
+      }
+
+      svg.appendChild(svgText(W / 2, botY + 20, 'F = (C \u00D7 9/5) + 32', 12, 'middle', { fill: '#555', 'font-weight': '600' }));
+
+      return svg;
+    }
+
+    const data = presets[s.chartType] || presets.custom;
+    const n = data.units.length;
+    const W = Math.max(400, n * 110 + 60);
+    const H = 200;
+    const svg = makeSVG(W, H);
+
+    svg.appendChild(svgText(W / 2, 30, data.title, 16, 'middle', { 'font-weight': '700', fill: '#222' }));
+
+    const barY = 90;
+    const barH = 44;
+    const unitW = (W - 60) / n;
+    const startX = 30;
+
+    data.units.forEach((unit, i) => {
+      const x = startX + i * unitW;
+      const colours = ['#4262ff', '#2a9d8f', '#f4a261', '#e63946', '#7b2d8e'];
+      const col = colours[i % colours.length];
+      svg.appendChild(svgEl('rect', {
+        x: String(x + 2), y: String(barY), width: String(unitW - 4), height: String(barH),
+        fill: col, rx: '6', stroke: '#fff', 'stroke-width': '2',
+      }));
+      svg.appendChild(svgText(x + unitW / 2, barY + barH / 2 + 7, unit, 18, 'middle', { fill: '#fff', 'font-weight': '700' }));
+    });
+
+    if (s.showArrows && data.factors) {
+      data.factors.forEach((factor, i) => {
+        const x1 = startX + i * unitW + unitW / 2;
+        const x2 = startX + (i + 1) * unitW + unitW / 2;
+        const midX = (x1 + x2) / 2;
+
+        const arrowTopY = barY - 8;
+        svg.appendChild(svgEl('path', {
+          d: `M ${x1 + 10} ${arrowTopY} Q ${midX} ${arrowTopY - 28} ${x2 - 10} ${arrowTopY}`,
+          fill: 'none', stroke: '#333', 'stroke-width': '1.5',
+        }));
+        arrowHead(svg, x2 - 10, arrowTopY, 0, 6, '#333');
+        svg.appendChild(svgText(midX, arrowTopY - 22, factor, 10, 'middle', { fill: '#333', 'font-weight': '600' }));
+
+        const arrowBotY = barY + barH + 8;
+        svg.appendChild(svgEl('path', {
+          d: `M ${x2 - 10} ${arrowBotY} Q ${midX} ${arrowBotY + 28} ${x1 + 10} ${arrowBotY}`,
+          fill: 'none', stroke: '#888', 'stroke-width': '1.5',
+        }));
+        arrowHead(svg, x1 + 10, arrowBotY, Math.PI, 6, '#888');
+        svg.appendChild(svgText(midX, arrowBotY + 30, data.reverseFactors[i], 10, 'middle', { fill: '#888', 'font-weight': '600' }));
+      });
+    }
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   42. BIDMAS / ORDER OF OPERATIONS
+   ================================================================ */
+extraTemplates['bidmas'] = {
+  name: 'BIDMAS',
+  category: 'Number',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('BIDMAS / Order of Operations'));
+    c.appendChild(row(
+      field('Expression', textInput('bm-expr', '3 + 4 \u00D7 2')),
+    ));
+    c.appendChild(row(
+      checkbox('bm-steps', 'Show steps', true),
+    ));
+    c.appendChild(row(
+      field('Style', select('bm-style', [
+        ['pyramid', 'Pyramid'],
+        ['vertical_steps', 'Vertical Steps'],
+        ['horizontal', 'Horizontal'],
+      ])),
+    ));
+  },
+  readConfig() {
+    return {
+      expression: val('bm-expr') || '3 + 4 \u00D7 2',
+      showSteps: val('bm-steps'),
+      style: val('bm-style') || 'pyramid',
+    };
+  },
+  generateSVG(s) {
+    if (s.style === 'pyramid') {
+      const W = 400, H = 380;
+      const svg = makeSVG(W, H);
+      const cx = W / 2;
+      svg.appendChild(svgText(cx, 26, 'Order of Operations (BIDMAS)', 14, 'middle', { fill: '#555', 'font-weight': '600' }));
+
+      const layers = [
+        { label: 'B', full: 'Brackets', colour: '#e63946' },
+        { label: 'I', full: 'Indices (Powers)', colour: '#f4a261' },
+        { label: 'DM', full: 'Division & Multiplication', colour: '#2a9d8f' },
+        { label: 'AS', full: 'Addition & Subtraction', colour: '#4262ff' },
+      ];
+
+      const topY = 50, botY = 320;
+      const topW = 80, botW = 360;
+      const layerH = (botY - topY) / layers.length;
+
+      layers.forEach((layer, i) => {
+        const y = topY + i * layerH;
+        const t1 = i / layers.length;
+        const t2 = (i + 1) / layers.length;
+        const w1 = topW + (botW - topW) * t1;
+        const w2 = topW + (botW - topW) * t2;
+        const x1l = cx - w1 / 2, x1r = cx + w1 / 2;
+        const x2l = cx - w2 / 2, x2r = cx + w2 / 2;
+
+        svg.appendChild(svgEl('polygon', {
+          points: `${x1l},${y} ${x1r},${y} ${x2r},${y + layerH} ${x2l},${y + layerH}`,
+          fill: layer.colour, stroke: '#fff', 'stroke-width': '2',
+        }));
+        svg.appendChild(svgText(cx, y + layerH / 2 + 2, layer.label, 22, 'middle', { fill: '#fff', 'font-weight': '800' }));
+        svg.appendChild(svgText(cx, y + layerH / 2 + 18, layer.full, 11, 'middle', { fill: '#fff' }));
+      });
+
+      if (s.expression) {
+        svg.appendChild(svgText(cx, botY + 30, s.expression, 16, 'middle', { fill: '#333', 'font-weight': '600' }));
+      }
+
+      return svg;
+    }
+
+    if (s.style === 'vertical_steps') {
+      const W = 400, H = 300;
+      const svg = makeSVG(W, H);
+      const cx = W / 2;
+      svg.appendChild(svgText(cx, 30, 'BIDMAS', 16, 'middle', { fill: '#222', 'font-weight': '700' }));
+
+      const items = [
+        { letter: 'B', word: 'Brackets', colour: '#e63946' },
+        { letter: 'I', word: 'Indices', colour: '#f4a261' },
+        { letter: 'D', word: 'Division', colour: '#2a9d8f' },
+        { letter: 'M', word: 'Multiplication', colour: '#2a9d8f' },
+        { letter: 'A', word: 'Addition', colour: '#4262ff' },
+        { letter: 'S', word: 'Subtraction', colour: '#4262ff' },
+      ];
+
+      const startY = 55;
+      const itemH = 36;
+      items.forEach((item, i) => {
+        const y = startY + i * itemH;
+        svg.appendChild(svgEl('rect', {
+          x: '60', y: String(y), width: '280', height: String(itemH - 4),
+          fill: item.colour, rx: '6', stroke: '#fff', 'stroke-width': '1',
+        }));
+        svg.appendChild(svgText(90, y + itemH / 2 + 2, item.letter, 18, 'middle', { fill: '#fff', 'font-weight': '800' }));
+        svg.appendChild(svgText(120, y + itemH / 2 + 2, item.word, 14, 'start', { fill: '#fff', 'font-weight': '600' }));
+
+        if (i < items.length - 1) {
+          svg.appendChild(svgText(40, y + itemH - 2, '\u2193', 16, 'middle', { fill: '#888' }));
+        }
+      });
+
+      if (s.expression) {
+        svg.appendChild(svgText(cx, startY + items.length * itemH + 16, s.expression, 15, 'middle', { fill: '#333', 'font-weight': '600' }));
+      }
+
+      return svg;
+    }
+
+    /* Horizontal style */
+    const W = 520, H = 160;
+    const svg = makeSVG(W, H);
+    svg.appendChild(svgText(W / 2, 26, 'Order of Operations (BIDMAS)', 14, 'middle', { fill: '#555', 'font-weight': '600' }));
+
+    const items = [
+      { letter: 'B', colour: '#e63946' },
+      { letter: 'I', colour: '#f4a261' },
+      { letter: 'D', colour: '#2a9d8f' },
+      { letter: 'M', colour: '#2a9d8f' },
+      { letter: 'A', colour: '#4262ff' },
+      { letter: 'S', colour: '#4262ff' },
+    ];
+
+    const boxW = 60, boxH = 50;
+    const gap = 12;
+    const totalW = items.length * boxW + (items.length - 1) * gap;
+    const startX = (W - totalW) / 2;
+    const boxY = 50;
+
+    items.forEach((item, i) => {
+      const x = startX + i * (boxW + gap);
+      svg.appendChild(svgEl('rect', {
+        x: String(x), y: String(boxY), width: String(boxW), height: String(boxH),
+        fill: item.colour, rx: '8', stroke: '#fff', 'stroke-width': '2',
+      }));
+      svg.appendChild(svgText(x + boxW / 2, boxY + boxH / 2 + 8, item.letter, 24, 'middle', { fill: '#fff', 'font-weight': '800' }));
+
+      if (i < items.length - 1) {
+        const ax = x + boxW + gap / 2;
+        svg.appendChild(svgText(ax, boxY + boxH / 2 + 6, '\u2192', 16, 'middle', { fill: '#aaa' }));
+      }
+    });
+
+    if (s.expression) {
+      svg.appendChild(svgText(W / 2, boxY + boxH + 36, s.expression, 16, 'middle', { fill: '#333', 'font-weight': '600' }));
+    }
 
     return svg;
   },

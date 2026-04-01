@@ -808,11 +808,84 @@ const doubleNumberLine = {
     ));
 
     container.appendChild(makeRow(
-      makeField('Top Values (comma sep.)', makeInput('dnl-top-vals', 'text', '0, 5, 10, 15, 20')),
+      makeField('Number of ticks', makeSmallInput('dnl-ticks', 'number', '5', { min: '3', max: '10' })),
     ));
-    container.appendChild(makeRow(
-      makeField('Bottom Values (comma sep.)', makeInput('dnl-bottom-vals', 'text', '0, 1, 2, 3, 4')),
-    ));
+
+    const pairsDiv = document.createElement('div');
+    pairsDiv.id = 'dnl-pairs-wrap';
+    container.appendChild(pairsDiv);
+
+    const defaultTop = [0, 5, 10, 15, 20];
+    const defaultBot = [0, 1, 2, 3, 4];
+
+    const buildPairs = () => {
+      const n = Math.min(10, Math.max(3, parseInt(getEl('dnl-ticks')?.value, 10) || 5));
+      const wrap = getEl('dnl-pairs-wrap');
+      const oldTop = [], oldBot = [];
+      wrap.querySelectorAll('[data-dnl-top]').forEach(el => oldTop.push(el.value));
+      wrap.querySelectorAll('[data-dnl-bot]').forEach(el => oldBot.push(el.value));
+      wrap.innerHTML = '';
+
+      // Header row
+      const hdr = document.createElement('div');
+      hdr.className = 'cfg-row';
+      hdr.style.marginBottom = '2px';
+      const hTop = document.createElement('div');
+      hTop.className = 'cfg-field';
+      hTop.style.cssText = 'flex:1;';
+      const hTopLbl = document.createElement('div');
+      hTopLbl.className = 'cfg-field-label';
+      hTopLbl.textContent = 'Top value';
+      hTop.appendChild(hTopLbl);
+      const hBot = document.createElement('div');
+      hBot.className = 'cfg-field';
+      hBot.style.cssText = 'flex:1;';
+      const hBotLbl = document.createElement('div');
+      hBotLbl.className = 'cfg-field-label';
+      hBotLbl.textContent = 'Bottom value';
+      hBot.appendChild(hBotLbl);
+      hdr.appendChild(hTop);
+      hdr.appendChild(hBot);
+      wrap.appendChild(hdr);
+
+      for (let i = 0; i < n; i++) {
+        const tv = i < oldTop.length ? oldTop[i] : (defaultTop[i] !== undefined ? String(defaultTop[i]) : '');
+        const bv = i < oldBot.length ? oldBot[i] : (defaultBot[i] !== undefined ? String(defaultBot[i]) : '');
+        const r = document.createElement('div');
+        r.className = 'cfg-row';
+        r.style.marginBottom = '2px';
+
+        const fTop = document.createElement('div');
+        fTop.className = 'cfg-field';
+        fTop.style.cssText = 'flex:1;';
+        const tInp = document.createElement('input');
+        tInp.type = 'text';
+        tInp.className = 'cfg-input cfg-input-sm';
+        tInp.value = tv;
+        tInp.setAttribute('data-dnl-top', i);
+        tInp.placeholder = 'Tick ' + (i + 1);
+        fTop.appendChild(tInp);
+
+        const fBot = document.createElement('div');
+        fBot.className = 'cfg-field';
+        fBot.style.cssText = 'flex:1;';
+        const bInp = document.createElement('input');
+        bInp.type = 'text';
+        bInp.className = 'cfg-input cfg-input-sm';
+        bInp.value = bv;
+        bInp.setAttribute('data-dnl-bot', i);
+        bInp.placeholder = 'Tick ' + (i + 1);
+        fBot.appendChild(bInp);
+
+        r.appendChild(fTop);
+        r.appendChild(fBot);
+        wrap.appendChild(r);
+      }
+    };
+
+    getEl('dnl-ticks').addEventListener('change', buildPairs);
+    getEl('dnl-ticks').addEventListener('input', buildPairs);
+    buildPairs();
 
     container.appendChild(makeRow(
       makeCheck('dnl-arrows', 'Show Arrows', true),
@@ -821,12 +894,20 @@ const doubleNumberLine = {
   },
 
   readConfig() {
-    const parseVals = (str) => (str || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const topValues = [], bottomValues = [];
+    document.querySelectorAll('[data-dnl-top]').forEach(el => {
+      const v = el.value.trim();
+      if (v) topValues.push(v);
+    });
+    document.querySelectorAll('[data-dnl-bot]').forEach(el => {
+      const v = el.value.trim();
+      if (v) bottomValues.push(v);
+    });
     return {
       topLabel: getEl('dnl-top-label')?.value || '',
       bottomLabel: getEl('dnl-bottom-label')?.value || '',
-      topValues: parseVals(getEl('dnl-top-vals')?.value),
-      bottomValues: parseVals(getEl('dnl-bottom-vals')?.value),
+      topValues,
+      bottomValues,
       showArrows: getEl('dnl-arrows')?.checked ?? true,
       title: getEl('dnl-title')?.value || '',
     };
