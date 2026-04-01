@@ -7,124 +7,50 @@
     <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
   </head>
   <body>
-    <div class="tpl-layout">
 
-      <!-- Left: Template sidebar -->
-      <div class="tpl-sidebar">
-        <div class="sidebar-header">Maths Templates</div>
-        <input type="text" id="tpl-search" class="tpl-search" placeholder="Search..." />
-
-        <div class="category" data-category="number">
-          <div class="category-label">Number</div>
-          <button class="tpl-btn" data-template="bar-model" data-keywords="bar model, part whole, ratio, comparison, strip, tape diagram, proportion">Bar Model</button>
-          <button class="tpl-btn" data-template="fraction-wall" data-keywords="fraction wall, equivalent fractions, fraction strips, comparing fractions">Fraction Wall</button>
-          <button class="tpl-btn" data-template="fraction-circles" data-keywords="fraction circles, pie fractions, fraction pizza, shaded fraction, parts of a whole">Fraction Circles</button>
-          <button class="tpl-btn" data-template="place-value-chart" data-keywords="place value, columns, thousands, hundreds, tens, units, decimal">Place Value Chart</button>
-          <button class="tpl-btn" data-template="hundreds-chart" data-keywords="hundreds chart, hundred square, number grid, 1 to 100, counting">Hundreds Chart</button>
-          <button class="tpl-btn" data-template="multiplication-grid" data-keywords="multiplication grid, times table, multiplication square, products">Multiplication Grid</button>
-          <button class="tpl-btn" data-template="number-line" data-keywords="number line, integers, decimals, fractions, scale, axis">Number Line</button>
-          <button class="tpl-btn" data-template="fraction-number-line" data-keywords="fraction number line, fractions on a line, ordering fractions">Fraction Number Line</button>
-          <button class="tpl-btn" data-template="double-number-line" data-keywords="double number line, ratio, proportion, scaling, unitary method">Double Number Line</button>
-          <button class="tpl-btn" data-template="ten-frames" data-keywords="ten frame, counting, number bonds, subitising, addition">Ten Frames</button>
-          <button class="tpl-btn" data-template="place-value-counters" data-keywords="place value counters, dienes, base ten, exchange, regrouping">Place Value Counters</button>
-          <button class="tpl-btn" data-template="part-whole-model" data-keywords="part whole, cherry model, number bonds, addition, subtraction">Part-Whole Model</button>
-          <button class="tpl-btn" data-template="ratio-bar" data-keywords="ratio bar, ratio strip, proportion, sharing, parts">Ratio Bar</button>
-          <button class="tpl-btn" data-template="percentage-bar" data-keywords="percentage bar, stacked bar, composition, proportion, pie alternative">Percentage Bar</button>
-          <button class="tpl-btn" data-template="red-yellow-counters" data-keywords="counters, two colour, positive negative, integer, directed number">Red-Yellow Counters</button>
-          <button class="tpl-btn" data-template="number-pattern" data-keywords="number pattern, sequence, term, nth term, arithmetic">Number Pattern</button>
-          <button class="tpl-btn" data-template="clock-face" data-keywords="clock, time, analogue, hours, minutes, telling time">Clock Face</button>
-          <button class="tpl-btn" data-template="thermometer" data-keywords="thermometer, temperature, negative numbers, scale, reading">Thermometer</button>
-          <button class="tpl-btn" data-template="dice" data-keywords="dice, die, random, probability, chance">Dice</button>
-          <button class="tpl-btn" data-template="spinner" data-keywords="spinner, probability, chance, random, sectors, outcomes">Spinner</button>
-          <button class="tpl-btn" data-template="factor-tree" data-keywords="factor tree, prime factorisation, HCF, LCM, factors">Factor Tree</button>
-          <button class="tpl-btn" data-template="formula-triangle" data-keywords="formula triangle, SDT, speed distance time, VIR, cover up">Formula Triangle</button>
-          <button class="tpl-btn" data-template="column-arithmetic" data-keywords="column addition, column subtraction, carrying, borrowing, regrouping, written method">Column Arithmetic</button>
-          <button class="tpl-btn" data-template="long-division" data-keywords="long division, bus stop, short division, quotient, remainder">Long Division</button>
-          <button class="tpl-btn" data-template="bidmas" data-keywords="BIDMAS, BODMAS, PEMDAS, order of operations, brackets">BIDMAS</button>
-          <button class="tpl-btn" data-template="conversion-chart" data-keywords="conversion, metric, units, km, m, cm, mm, kg, g, litres">Conversion Chart</button>
-        </div>
-
-        <div class="category" data-category="algebra">
-          <div class="category-label">Algebra</div>
-          <button class="tpl-btn" data-template="function-machine" data-keywords="function machine, input output, inverse, operations, mapping">Function Machine</button>
-          <button class="tpl-btn" data-template="algebra-tiles" data-keywords="algebra tiles, expanding, factorising, completing the square, area model">Algebra Tiles</button>
-          <button class="tpl-btn" data-template="area-model-multiplication-" data-keywords="area model, grid method, multiplication, partial products, expanded">Area Model</button>
-          <button class="tpl-btn" data-template="coordinate-grid" data-keywords="coordinate grid, cartesian, plotting points, coordinates, x y axis">Coordinate Grid</button>
-          <button class="tpl-btn" data-template="two-way-table" data-keywords="two way table, contingency, frequency, cross tabulation, categories">Two-Way Table</button>
-          <button class="tpl-btn" data-template="equation-balance" data-keywords="equation, balance, scales, solving, equal, algebra">Equation Balance</button>
-          <button class="tpl-btn" data-template="two-column-proof" data-keywords="proof, geometric proof, statement reason, deductive, justify">Two-Column Proof</button>
-        </div>
-
-        <div class="category" data-category="geometry">
-          <div class="category-label">Geometry</div>
-          <button class="tpl-btn" data-template="regular-polygon" data-keywords="polygon, regular, triangle, square, pentagon, hexagon, interior angles">Regular Polygon</button>
-          <button class="tpl-btn" data-template="compound-shape" data-keywords="compound shape, composite, L shape, area, perimeter">Compound Shape</button>
-          <button class="tpl-btn" data-template="circle-sector" data-keywords="sector, arc, angle, pie slice, circle part">Circle Sector</button>
-          <button class="tpl-btn" data-template="right-angled-triangle" data-keywords="right angle triangle, pythagoras, trigonometry, hypotenuse">Right-Angled Triangle</button>
-          <button class="tpl-btn" data-template="trig-triangle" data-keywords="SOH CAH TOA, trigonometry, sine, cosine, tangent, right triangle">Trig Triangle (SOH CAH TOA)</button>
-          <button class="tpl-btn" data-template="parallel-transversal" data-keywords="parallel lines, transversal, alternate angles, corresponding, co-interior, allied">Parallel Lines</button>
-          <button class="tpl-btn" data-template="circle-theorems" data-keywords="circle theorems, inscribed angle, tangent, chord, cyclic quadrilateral">Circle Theorems</button>
-          <button class="tpl-btn" data-template="bearings-diagram" data-keywords="bearings, compass, navigation, three figure, direction, angle from north">Bearings</button>
-          <button class="tpl-btn" data-template="unit-circle" data-keywords="unit circle, trigonometry, sine cosine, radians, degrees, coordinates">Unit Circle</button>
-          <button class="tpl-btn" data-template="protractor" data-keywords="protractor, measuring angles, degrees, angle measurer">Protractor</button>
-          <button class="tpl-btn" data-template="symmetry-grid" data-keywords="symmetry, reflection, mirror line, line of symmetry">Symmetry Grid</button>
-          <button class="tpl-btn" data-template="iso-dot-grid" data-keywords="isometric, dot grid, 3D drawing, isometric paper">Isometric Dot Grid</button>
-        </div>
-
-        <div class="category" data-category="3d-shapes">
-          <div class="category-label">3D Shapes</div>
-          <button class="tpl-btn" data-template="cube" data-keywords="cube, 3D, solid, faces edges vertices, net">Cube</button>
-          <button class="tpl-btn" data-template="cuboid" data-keywords="cuboid, rectangular prism, 3D, box, volume">Cuboid</button>
-          <button class="tpl-btn" data-template="cylinder" data-keywords="cylinder, 3D, circular, volume, surface area">Cylinder</button>
-          <button class="tpl-btn" data-template="cone" data-keywords="cone, 3D, volume, slant height, apex">Cone</button>
-          <button class="tpl-btn" data-template="sphere" data-keywords="sphere, 3D, ball, volume, surface area, hemisphere">Sphere</button>
-          <button class="tpl-btn" data-template="triangular-prism" data-keywords="triangular prism, 3D, cross section, volume">Triangular Prism</button>
-          <button class="tpl-btn" data-template="square-pyramid" data-keywords="pyramid, 3D, square based, apex, slant">Square Pyramid</button>
-        </div>
-
-        <div class="category" data-category="statistics">
-          <div class="category-label">Statistics</div>
-          <button class="tpl-btn" data-template="venn-diagram" data-keywords="venn diagram, sets, intersection, union, probability, sorting">Venn Diagram</button>
-          <button class="tpl-btn" data-template="carroll-diagram" data-keywords="carroll diagram, sorting, classification, two way, properties">Carroll Diagram</button>
-          <button class="tpl-btn" data-template="tree-diagram" data-keywords="tree diagram, probability, branches, outcomes, independent, dependent">Tree Diagram</button>
-          <button class="tpl-btn" data-template="box-whisker" data-keywords="box plot, box and whisker, five number summary, quartiles, median, IQR, range">Box &amp; Whisker</button>
-          <button class="tpl-btn" data-template="probability-scale" data-keywords="probability scale, likelihood, chance, impossible, certain, even">Probability Scale</button>
-          <button class="tpl-btn" data-template="stem-leaf" data-keywords="stem and leaf, data display, ordered, back to back, distribution">Stem &amp; Leaf</button>
-          <button class="tpl-btn" data-template="normal-distribution" data-keywords="normal distribution, bell curve, gaussian, standard deviation, z score">Normal Distribution</button>
-          <button class="tpl-btn" data-template="tally-chart" data-keywords="tally chart, frequency, counting, data collection, survey">Tally Chart</button>
-          <button class="tpl-btn" data-template="frequency-table" data-keywords="frequency table, grouped data, class interval, tally, cumulative">Frequency Table</button>
-          <button class="tpl-btn" data-template="pie-chart-data" data-keywords="pie chart, sectors, proportions, angles, percentages, circular">Pie Chart</button>
-          <button class="tpl-btn" data-template="scatter-plot" data-keywords="scatter plot, scatter graph, correlation, line of best fit, regression, bivariate">Scatter Plot</button>
-          <button class="tpl-btn" data-template="histogram" data-keywords="histogram, frequency density, continuous data, grouped, class width">Histogram</button>
-          <button class="tpl-btn" data-template="cumulative-frequency" data-keywords="cumulative frequency, ogive, S curve, quartiles, percentiles, median">Cumulative Frequency</button>
-        </div>
-
-        <div class="category" data-category="advanced">
-          <div class="category-label">Advanced / IB</div>
-          <button class="tpl-btn" data-template="transformation-grid" data-keywords="transformation, reflection, rotation, translation, enlargement, congruent, similar">Transformation Grid</button>
-          <button class="tpl-btn" data-template="argand-diagram" data-keywords="argand diagram, complex numbers, imaginary, real, modulus, argument">Argand Diagram</button>
-        </div>
+    <!-- Screen 1: Gallery -->
+    <div id="gallery-screen" class="screen active">
+      <div class="gallery-header">
+        <h1 class="gallery-title">Maths Templates</h1>
+        <input type="text" id="tpl-search" class="gallery-search" placeholder="Search templates..." />
       </div>
-
-      <!-- Right: Config + Preview -->
-      <div class="tpl-main">
-        <div class="config-panel" id="config-panel">
-          <div class="config-placeholder">Select a template from the sidebar to begin.</div>
-        </div>
-        <div class="preview-area" id="preview-area"></div>
+      <div class="gallery-categories" id="gallery-categories">
+        <button class="cat-pill active" data-cat="all">All</button>
+        <button class="cat-pill" data-cat="number">Number</button>
+        <button class="cat-pill" data-cat="algebra">Algebra</button>
+        <button class="cat-pill" data-cat="geometry">Geometry</button>
+        <button class="cat-pill" data-cat="3d-shapes">3D Shapes</button>
+        <button class="cat-pill" data-cat="statistics">Statistics</button>
+        <button class="cat-pill" data-cat="advanced">Advanced</button>
       </div>
-
+      <div class="gallery-grid" id="gallery-grid">
+        <!-- Cards populated by JS -->
+      </div>
     </div>
 
-    <!-- Bottom bar -->
-    <div class="tpl-bottom-bar">
-      <button type="button" id="place-btn" class="place-btn">Place on Board</button>
-      <button type="button" id="edit-selected-btn" class="bar-btn">Edit Selected</button>
-      <label class="size-control" title="Image size when placed on board">
-        <span class="size-label">Size</span>
-        <input type="range" id="img-size" min="100" max="1200" value="600" step="50" />
-        <span class="size-value" id="size-value">600</span>
-      </label>
+    <!-- Screen 2: Editor -->
+    <div id="editor-screen" class="screen">
+      <div class="editor-top-bar">
+        <button id="back-btn" class="back-btn">&larr; Back</button>
+        <span class="editor-title" id="editor-title">Template</span>
+        <div class="editor-actions">
+          <button id="place-btn" class="place-btn">Place on Board</button>
+          <button id="edit-selected-btn" class="bar-btn">Edit Selected</button>
+          <label class="size-control">
+            <span class="size-label">Size</span>
+            <input type="range" id="img-size" min="100" max="1200" value="600" step="50" />
+            <span class="size-value" id="size-value">600</span>
+          </label>
+        </div>
+      </div>
+      <div class="editor-body">
+        <div class="editor-config" id="config-panel">
+          <!-- Template config rendered here -->
+        </div>
+        <div class="editor-preview" id="preview-area">
+          <!-- Live SVG preview -->
+        </div>
+      </div>
     </div>
 
     <script type="module" src="/templates/src/app.js"></script>

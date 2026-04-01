@@ -16,6 +16,7 @@ export default defineConfig({
         privacy: resolve(import.meta.dirname, root, 'privacy.html'),
         'axes-index': resolve(import.meta.dirname, root, 'axes/index.html'),
         'axes-app': resolve(import.meta.dirname, root, 'axes/app.html'),
+        'axes-panel': resolve(import.meta.dirname, root, 'axes/panel.html'),
         'templates-index': resolve(import.meta.dirname, root, 'templates/index.html'),
         'templates-app': resolve(import.meta.dirname, root, 'templates/app.html'),
         'timer-index': resolve(import.meta.dirname, root, 'timer/index.html'),

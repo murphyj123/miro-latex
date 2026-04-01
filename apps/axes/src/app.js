@@ -126,10 +126,10 @@ const PRESETS = {
 function readSettings() {
   const quadrantRadio = document.querySelector('input[name="quadrants"]:checked');
   return {
-    xMin:             parseFloat(els.xMin.value) || -10,
-    xMax:             parseFloat(els.xMax.value) || 10,
-    yMin:             parseFloat(els.yMin.value) || -10,
-    yMax:             parseFloat(els.yMax.value) || 10,
+    xMin:             els.xMin.value !== '' && !isNaN(parseFloat(els.xMin.value)) ? parseFloat(els.xMin.value) : -10,
+    xMax:             els.xMax.value !== '' && !isNaN(parseFloat(els.xMax.value)) ? parseFloat(els.xMax.value) : 10,
+    yMin:             els.yMin.value !== '' && !isNaN(parseFloat(els.yMin.value)) ? parseFloat(els.yMin.value) : -10,
+    yMax:             els.yMax.value !== '' && !isNaN(parseFloat(els.yMax.value)) ? parseFloat(els.yMax.value) : 10,
     squareScale:      els.squareScale.checked,
     quadrants:        quadrantRadio ? quadrantRadio.value : '4',
     arrowHeads:       els.arrowHeads.checked,
@@ -314,19 +314,31 @@ function generateAxesSVG() {
   }));
   defs.appendChild(clipPath);
 
-  // Arrow head marker
+  // Arrow head markers (forward and reverse)
   if (s.arrowHeads) {
-    const marker = svgEl('marker', {
+    const markerFwd = svgEl('marker', {
       id: 'arrowhead',
       markerWidth: '8', markerHeight: '6',
       refX: '8', refY: '3',
       orient: 'auto',
     });
-    marker.appendChild(svgEl('polygon', {
+    markerFwd.appendChild(svgEl('polygon', {
       points: '0 0, 8 3, 0 6',
       fill: s.axisColour,
     }));
-    defs.appendChild(marker);
+    defs.appendChild(markerFwd);
+
+    const markerRev = svgEl('marker', {
+      id: 'arrowhead-rev',
+      markerWidth: '8', markerHeight: '6',
+      refX: '0', refY: '3',
+      orient: 'auto',
+    });
+    markerRev.appendChild(svgEl('polygon', {
+      points: '8 0, 0 3, 8 6',
+      fill: s.axisColour,
+    }));
+    defs.appendChild(markerRev);
   }
 
   svg.appendChild(defs);
@@ -407,23 +419,35 @@ function generateAxesSVG() {
   const originX = Math.max(s.xMin, Math.min(s.xMax, 0));
   const originY = isNumberLine ? 0 : Math.max(s.yMin, Math.min(s.yMax, 0));
 
+  // Q1 mode: origin is at edge, only positive-direction arrows
+  const isQ1 = (s.xMin >= 0 && s.yMin >= 0 && !isNumberLine);
+
   // X axis (horizontal)
   const xAxisLine = svgEl('line', {
     x1: mapX(s.xMin), y1: mapY(originY),
     x2: mapX(s.xMax), y2: mapY(originY),
     ...axisAttrs,
   });
-  if (s.arrowHeads) xAxisLine.setAttribute('marker-end', 'url(#arrowhead)');
+  if (s.arrowHeads) {
+    xAxisLine.setAttribute('marker-end', 'url(#arrowhead)');
+    if (!isQ1) xAxisLine.setAttribute('marker-start', 'url(#arrowhead-rev)');
+  }
   svg.appendChild(xAxisLine);
 
   // Y axis (vertical) -- skip for number line
   if (!isNumberLine) {
+    // For y-axis: line goes from mapY(yMin) [bottom] to mapY(yMax) [top]
+    // SVG y increases downward, so mapY(yMin) > mapY(yMax)
+    // We draw from bottom (start) to top (end) so marker-end = top arrow
     const yAxisLine = svgEl('line', {
       x1: mapX(originX), y1: mapY(s.yMin),
       x2: mapX(originX), y2: mapY(s.yMax),
       ...axisAttrs,
     });
-    if (s.arrowHeads) yAxisLine.setAttribute('marker-end', 'url(#arrowhead)');
+    if (s.arrowHeads) {
+      yAxisLine.setAttribute('marker-end', 'url(#arrowhead)');
+      if (!isQ1) yAxisLine.setAttribute('marker-start', 'url(#arrowhead-rev)');
+    }
     svg.appendChild(yAxisLine);
   }
 
@@ -442,7 +466,9 @@ function generateAxesSVG() {
     'text-anchor': 'middle',
   };
 
-  // X axis ticks
+  // X axis ticks — when origin is at the bottom edge (Q1), ticks go upward only
+  const xAxisAtBottom = (originY <= s.yMin);
+  const xAxisAtTop    = (originY >= s.yMax);
   {
     let x = Math.ceil(s.xMin / s.xStep) * s.xStep;
     for (; x <= s.xMax + s.xStep * 0.01; x += s.xStep) {
@@ -450,9 +476,11 @@ function generateAxesSVG() {
       const sx = mapX(x);
       const sy = mapY(originY);
 
-      // Tick mark
+      // Tick mark — extend inward when axis is at the edge
+      const tickUp   = xAxisAtBottom ? tickLen * 2 : tickLen;
+      const tickDown = xAxisAtBottom ? 0 : (xAxisAtTop ? tickLen * 2 : tickLen);
       svg.appendChild(svgEl('line', {
-        x1: sx, y1: sy - tickLen, x2: sx, y2: sy + tickLen,
+        x1: sx, y1: sy - tickUp, x2: sx, y2: sy + (xAxisAtTop ? 0 : tickDown),
         ...tickAttrs,
       }));
 
@@ -460,8 +488,12 @@ function generateAxesSVG() {
       if (s.showNumbers) {
         if (nearZero && !s.showOrigin) continue;
         if (nearZero && !isNumberLine) continue; // origin drawn separately for 2D
+        // Place below axis normally, above if axis is at bottom edge
+        const labelY = xAxisAtBottom
+          ? sy + tickLen + s.fontSize + 2
+          : sy + tickLen + s.fontSize + 2;
         const txt = svgEl('text', {
-          x: sx, y: sy + tickLen + s.fontSize + 2,
+          x: sx, y: labelY,
           ...textStyle,
         });
         txt.textContent = formatNum(x, s.xStep, s.piLabels);
@@ -470,7 +502,9 @@ function generateAxesSVG() {
     }
   }
 
-  // Y axis ticks (skip for number line)
+  // Y axis ticks — when origin is at the left edge (Q1), ticks go rightward only
+  const yAxisAtLeft  = (originX <= s.xMin);
+  const yAxisAtRight = (originX >= s.xMax);
   if (!isNumberLine) {
     let y = Math.ceil(s.yMin / s.yStep) * s.yStep;
     for (; y <= s.yMax + s.yStep * 0.01; y += s.yStep) {
@@ -478,9 +512,11 @@ function generateAxesSVG() {
       const sx = mapX(originX);
       const sy = mapY(y);
 
-      // Tick mark
+      // Tick mark — extend inward when axis is at the edge
+      const tickLeft  = yAxisAtLeft ? 0 : (yAxisAtRight ? tickLen * 2 : tickLen);
+      const tickRight = yAxisAtLeft ? tickLen * 2 : tickLen;
       svg.appendChild(svgEl('line', {
-        x1: sx - tickLen, y1: sy, x2: sx + tickLen, y2: sy,
+        x1: sx - tickLeft, y1: sy, x2: sx + tickRight, y2: sy,
         ...tickAttrs,
       }));
 
@@ -489,7 +525,7 @@ function generateAxesSVG() {
         if (nearZero && !s.showOrigin) continue;
         if (nearZero) continue; // origin drawn below
         const txt = svgEl('text', {
-          x: sx - tickLen - 4, y: sy + s.fontSize * 0.35,
+          x: sx - tickLeft - 4, y: sy + s.fontSize * 0.35,
           ...textStyle,
           'text-anchor': 'end',
         });
@@ -503,8 +539,10 @@ function generateAxesSVG() {
   if (s.showNumbers && s.showOrigin && !isNumberLine) {
     const ox = mapX(originX);
     const oy = mapY(originY);
+    const offsetX = yAxisAtLeft ? -4 : -tickLen - 4;
+    const offsetY = xAxisAtBottom ? tickLen + s.fontSize + 2 : tickLen + s.fontSize + 2;
     const txt = svgEl('text', {
-      x: ox - tickLen - 4, y: oy + tickLen + s.fontSize + 2,
+      x: ox + offsetX, y: oy + offsetY,
       ...textStyle,
       'text-anchor': 'end',
     });
@@ -597,6 +635,17 @@ async function placeOnBoard() {
     width: size,
     title: titleJson,
   });
+
+  // Save to recents (max 5, deduplicate by window bounds)
+  try {
+    const recents = JSON.parse(localStorage.getItem('axes-recents') || '[]');
+    const key = `${settings.xMin},${settings.xMax},${settings.yMin},${settings.yMax}`;
+    const filtered = recents.filter((r) => {
+      return `${r.xMin},${r.xMax},${r.yMin},${r.yMax}` !== key;
+    });
+    filtered.unshift(settings);
+    localStorage.setItem('axes-recents', JSON.stringify(filtered.slice(0, 5)));
+  } catch { /* ignore storage errors */ }
 
   miro.board.ui.closeModal();
 }
@@ -732,6 +781,17 @@ function init() {
     el.addEventListener('input', updatePreview);
     el.addEventListener('change', updatePreview);
   });
+
+  // Load settings from localStorage if opened from panel
+  try {
+    const stored = localStorage.getItem('axes-settings');
+    if (stored) {
+      const settings = JSON.parse(stored);
+      if (settings._axesGen) delete settings._axesGen;
+      applySettings(settings);
+      localStorage.removeItem('axes-settings');
+    }
+  } catch { /* ignore */ }
 
   // Initial render
   updatePreviewImmediate();

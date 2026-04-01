@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #ffffff;
+        color: #1a1a2e;
+        width: 100%;
+        max-width: 320px;
+        margin: 0 auto;
+        padding: 0;
+        overflow-x: hidden;
+      }
+
+      .panel-header {
+        background: linear-gradient(135deg, #1a1a2e, #2d2b55);
+        color: #fff;
+        padding: 18px 16px;
+        text-align: center;
+      }
+
+      .panel-header h1 {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        margin: 0;
+      }
+
+      .panel-header p {
+        font-size: 11px;
+        opacity: 0.7;
+        margin-top: 4px;
+      }
+
+      .panel-body {
+        padding: 16px 12px;
+      }
+
+      .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        height: 40px;
+        font-size: 13px;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        letter-spacing: 0.2px;
+      }
+
+      .btn svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #4262ff, #6c3dff);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(66, 98, 255, 0.3);
+        margin-bottom: 8px;
+      }
+
+      .btn-primary:hover {
+        background: linear-gradient(135deg, #3150dd, #5a2de0);
+        box-shadow: 0 4px 12px rgba(66, 98, 255, 0.4);
+        transform: translateY(-1px);
+      }
+
+      .btn-primary:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 4px rgba(66, 98, 255, 0.3);
+      }
+
+      .btn-secondary {
+        background: #f3f4f6;
+        color: #555;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 8px;
+      }
+
+      .btn-secondary:hover {
+        background: #e8f0ff;
+        color: #3a56d4;
+        border-color: #b0bfff;
+      }
+
+      .divider {
+        border: none;
+        border-top: 1px solid #e5e7eb;
+        margin: 14px 0;
+      }
+
+      .section-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-bottom: 10px;
+      }
+
+      #recents {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .hint {
+        font-size: 12px;
+        color: #999;
+        text-align: center;
+        padding: 12px 0;
+      }
+
+      .recent-card {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        height: 36px;
+        padding: 0 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #444;
+        background: #f5f6f8;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.12s ease;
+        text-align: left;
+      }
+
+      .recent-card:hover {
+        background: #e8f0ff;
+        color: #3a56d4;
+        border-color: #b0bfff;
+      }
+    </style>
+  </head>
+  <body>
+
+    <div class="panel-header">
+      <h1>Graph Axes</h1>
+      <p>Create axis grids for your board</p>
+    </div>
+
+    <div class="panel-body">
+      <button class="btn btn-primary" id="new-btn">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+        New Graph
+      </button>
+
+      <button class="btn btn-secondary" id="edit-btn">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11.5 2.5l2 2-8 8H3.5v-2l8-8z"/></svg>
+        Edit Selected
+      </button>
+
+      <hr class="divider" />
+
+      <div class="section-label">Recently Used</div>
+      <div id="recents">
+        <p class="hint">No recent graphs yet</p>
+      </div>
+    </div>
+
+    <script>
+      // New Graph -- clear settings, open modal
+      document.getElementById('new-btn').onclick = async () => {
+        localStorage.removeItem('axes-settings');
+        await miro.board.ui.openModal({ url: 'axes/app.html', width: 950, height: 650 });
+      };
+
+      // Edit Selected -- load from board item title
+      document.getElementById('edit-btn').onclick = async () => {
+        const selection = await miro.board.getSelection();
+        if (selection.length === 0) {
+          await miro.board.notifications.showError('Select an axes image first');
+          return;
+        }
+        const title = selection[0].title;
+        try {
+          const settings = JSON.parse(title);
+          if (settings._axesGen) {
+            localStorage.setItem('axes-settings', title);
+            await miro.board.ui.openModal({ url: 'axes/app.html', width: 950, height: 650 });
+          } else {
+            await miro.board.notifications.showError('Selected item is not an axes image');
+          }
+        } catch {
+          await miro.board.notifications.showError('Selected item has no axes data');
+        }
+      };
+
+      // Recently used -- load from localStorage
+      function renderRecents() {
+        const recents = JSON.parse(localStorage.getItem('axes-recents') || '[]');
+        const container = document.getElementById('recents');
+        if (recents.length === 0) {
+          container.innerHTML = '<p class="hint">No recent graphs yet</p>';
+          return;
+        }
+        container.innerHTML = '';
+        recents.forEach((settings, i) => {
+          const btn = document.createElement('button');
+          btn.className = 'recent-card';
+          btn.textContent = `x: ${settings.xMin} to ${settings.xMax},  y: ${settings.yMin} to ${settings.yMax}`;
+          btn.onclick = async () => {
+            localStorage.setItem('axes-settings', JSON.stringify(settings));
+            await miro.board.ui.openModal({ url: 'axes/app.html', width: 950, height: 650 });
+          };
+          container.appendChild(btn);
+        });
+      }
+      renderRecents();
+    </script>
+  </body>
+</html>

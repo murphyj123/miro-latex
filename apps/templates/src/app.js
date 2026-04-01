@@ -22,15 +22,193 @@ function textEl(txt, x, y, extra = {}) {
 
 // ── DOM refs ────────────────────────────────────────
 
-const configPanel = document.getElementById('config-panel');
-const previewArea = document.getElementById('preview-area');
-const placeBtn    = document.getElementById('place-btn');
-const editBtn     = document.getElementById('edit-selected-btn');
-const imgSizeEl   = document.getElementById('img-size');
-const sizeValueEl = document.getElementById('size-value');
+const galleryScreen = document.getElementById('gallery-screen');
+const editorScreen  = document.getElementById('editor-screen');
+const galleryGrid   = document.getElementById('gallery-grid');
+const galleryCats   = document.getElementById('gallery-categories');
+const searchInput   = document.getElementById('tpl-search');
+const backBtn       = document.getElementById('back-btn');
+const editorTitle   = document.getElementById('editor-title');
+const configPanel   = document.getElementById('config-panel');
+const previewArea   = document.getElementById('preview-area');
+const placeBtn      = document.getElementById('place-btn');
+const editBtn       = document.getElementById('edit-selected-btn');
+const imgSizeEl     = document.getElementById('img-size');
+const sizeValueEl   = document.getElementById('size-value');
 
 let activeTemplate = null;
 let debounceTimer  = null;
+
+// ── Category & keyword maps ─────────────────────────
+
+const CATS = {};
+['bar-model','fraction-wall','fraction-circles','place-value-chart','hundreds-chart',
+ 'multiplication-grid','number-line','fraction-number-line','double-number-line',
+ 'ten-frames','place-value-counters','part-whole-model','ratio-bar','percentage-bar',
+ 'red-yellow-counters','number-pattern','clock-face','thermometer','dice','spinner',
+ 'factor-tree','formula-triangle','column-arithmetic','long-division','bidmas','conversion-chart'
+].forEach(id => CATS[id] = 'number');
+['function-machine','algebra-tiles','area-model-multiplication-','coordinate-grid',
+ 'two-way-table','equation-balance','two-column-proof'
+].forEach(id => CATS[id] = 'algebra');
+['regular-polygon','compound-shape','circle-sector','right-angled-triangle',
+ 'trig-triangle','parallel-transversal','circle-theorems','bearings-diagram',
+ 'unit-circle','protractor','symmetry-grid','iso-dot-grid'
+].forEach(id => CATS[id] = 'geometry');
+['cube','cuboid','cylinder','cone','sphere','triangular-prism','square-pyramid'
+].forEach(id => CATS[id] = '3d-shapes');
+['venn-diagram','carroll-diagram','tree-diagram','box-whisker','probability-scale',
+ 'stem-leaf','normal-distribution','tally-chart','frequency-table',
+ 'pie-chart-data','scatter-plot','histogram','cumulative-frequency'
+].forEach(id => CATS[id] = 'statistics');
+['transformation-grid','argand-diagram'
+].forEach(id => CATS[id] = 'advanced');
+
+const KEYWORDS = {
+  'bar-model': 'bar model, part whole, ratio, comparison, strip, tape diagram, proportion',
+  'fraction-wall': 'fraction wall, equivalent fractions, fraction strips, comparing fractions',
+  'fraction-circles': 'fraction circles, pie fractions, fraction pizza, shaded fraction, parts of a whole',
+  'place-value-chart': 'place value, columns, thousands, hundreds, tens, units, decimal',
+  'hundreds-chart': 'hundreds chart, hundred square, number grid, 1 to 100, counting',
+  'multiplication-grid': 'multiplication grid, times table, multiplication square, products',
+  'number-line': 'number line, integers, decimals, fractions, scale, axis',
+  'fraction-number-line': 'fraction number line, fractions on a line, ordering fractions',
+  'double-number-line': 'double number line, ratio, proportion, scaling, unitary method',
+  'ten-frames': 'ten frame, counting, number bonds, subitising, addition',
+  'place-value-counters': 'place value counters, dienes, base ten, exchange, regrouping',
+  'part-whole-model': 'part whole, cherry model, number bonds, addition, subtraction',
+  'ratio-bar': 'ratio bar, ratio strip, proportion, sharing, parts',
+  'percentage-bar': 'percentage bar, stacked bar, composition, proportion, pie alternative',
+  'red-yellow-counters': 'counters, two colour, positive negative, integer, directed number',
+  'number-pattern': 'number pattern, sequence, term, nth term, arithmetic',
+  'clock-face': 'clock, time, analogue, hours, minutes, telling time',
+  'thermometer': 'thermometer, temperature, negative numbers, scale, reading',
+  'dice': 'dice, die, random, probability, chance',
+  'spinner': 'spinner, probability, chance, random, sectors, outcomes',
+  'factor-tree': 'factor tree, prime factorisation, HCF, LCM, factors',
+  'formula-triangle': 'formula triangle, SDT, speed distance time, VIR, cover up',
+  'column-arithmetic': 'column addition, column subtraction, carrying, borrowing, regrouping, written method',
+  'long-division': 'long division, bus stop, short division, quotient, remainder',
+  'bidmas': 'BIDMAS, BODMAS, PEMDAS, order of operations, brackets',
+  'conversion-chart': 'conversion, metric, units, km, m, cm, mm, kg, g, litres',
+  'function-machine': 'function machine, input output, inverse, operations, mapping',
+  'algebra-tiles': 'algebra tiles, expanding, factorising, completing the square, area model',
+  'area-model-multiplication-': 'area model, grid method, multiplication, partial products, expanded',
+  'coordinate-grid': 'coordinate grid, cartesian, plotting points, coordinates, x y axis',
+  'two-way-table': 'two way table, contingency, frequency, cross tabulation, categories',
+  'equation-balance': 'equation, balance, scales, solving, equal, algebra',
+  'two-column-proof': 'proof, geometric proof, statement reason, deductive, justify',
+  'regular-polygon': 'polygon, regular, triangle, square, pentagon, hexagon, interior angles',
+  'compound-shape': 'compound shape, composite, L shape, area, perimeter',
+  'circle-sector': 'sector, arc, angle, pie slice, circle part',
+  'right-angled-triangle': 'right angle triangle, pythagoras, trigonometry, hypotenuse',
+  'trig-triangle': 'SOH CAH TOA, trigonometry, sine, cosine, tangent, right triangle',
+  'parallel-transversal': 'parallel lines, transversal, alternate angles, corresponding, co-interior, allied',
+  'circle-theorems': 'circle theorems, inscribed angle, tangent, chord, cyclic quadrilateral',
+  'bearings-diagram': 'bearings, compass, navigation, three figure, direction, angle from north',
+  'unit-circle': 'unit circle, trigonometry, sine cosine, radians, degrees, coordinates',
+  'protractor': 'protractor, measuring angles, degrees, angle measurer',
+  'symmetry-grid': 'symmetry, reflection, mirror line, line of symmetry',
+  'iso-dot-grid': 'isometric, dot grid, 3D drawing, isometric paper',
+  'cube': 'cube, 3D, solid, faces edges vertices, net',
+  'cuboid': 'cuboid, rectangular prism, 3D, box, volume',
+  'cylinder': 'cylinder, 3D, circular, volume, surface area',
+  'cone': 'cone, 3D, volume, slant height, apex',
+  'sphere': 'sphere, 3D, ball, volume, surface area, hemisphere',
+  'triangular-prism': 'triangular prism, 3D, cross section, volume',
+  'square-pyramid': 'pyramid, 3D, square based, apex, slant',
+  'venn-diagram': 'venn diagram, sets, intersection, union, probability, sorting',
+  'carroll-diagram': 'carroll diagram, sorting, classification, two way, properties',
+  'tree-diagram': 'tree diagram, probability, branches, outcomes, independent, dependent',
+  'box-whisker': 'box plot, box and whisker, five number summary, quartiles, median, IQR, range',
+  'probability-scale': 'probability scale, likelihood, chance, impossible, certain, even',
+  'stem-leaf': 'stem and leaf, data display, ordered, back to back, distribution',
+  'normal-distribution': 'normal distribution, bell curve, gaussian, standard deviation, z score',
+  'tally-chart': 'tally chart, frequency, counting, data collection, survey',
+  'frequency-table': 'frequency table, grouped data, class interval, tally, cumulative',
+  'pie-chart-data': 'pie chart, sectors, proportions, angles, percentages, circular',
+  'scatter-plot': 'scatter plot, scatter graph, correlation, line of best fit, regression, bivariate',
+  'histogram': 'histogram, frequency density, continuous data, grouped, class width',
+  'cumulative-frequency': 'cumulative frequency, ogive, S curve, quartiles, percentiles, median',
+  'transformation-grid': 'transformation, reflection, rotation, translation, enlargement, congruent, similar',
+  'argand-diagram': 'argand diagram, complex numbers, imaginary, real, modulus, argument',
+};
+
+const DISPLAY_NAMES = {
+  'bar-model': 'Bar Model', 'fraction-wall': 'Fraction Wall', 'fraction-circles': 'Fraction Circles',
+  'place-value-chart': 'Place Value Chart', 'hundreds-chart': 'Hundreds Chart',
+  'multiplication-grid': 'Multiplication Grid', 'number-line': 'Number Line',
+  'fraction-number-line': 'Fraction Number Line', 'double-number-line': 'Double Number Line',
+  'ten-frames': 'Ten Frames', 'place-value-counters': 'Place Value Counters',
+  'part-whole-model': 'Part-Whole Model', 'ratio-bar': 'Ratio Bar',
+  'percentage-bar': 'Percentage Bar', 'red-yellow-counters': 'Red-Yellow Counters',
+  'number-pattern': 'Number Pattern', 'clock-face': 'Clock Face', 'thermometer': 'Thermometer',
+  'dice': 'Dice', 'spinner': 'Spinner', 'factor-tree': 'Factor Tree',
+  'formula-triangle': 'Formula Triangle', 'column-arithmetic': 'Column Arithmetic',
+  'long-division': 'Long Division', 'bidmas': 'BIDMAS', 'conversion-chart': 'Conversion Chart',
+  'function-machine': 'Function Machine', 'algebra-tiles': 'Algebra Tiles',
+  'area-model-multiplication-': 'Area Model', 'coordinate-grid': 'Coordinate Grid',
+  'two-way-table': 'Two-Way Table', 'equation-balance': 'Equation Balance',
+  'two-column-proof': 'Two-Column Proof', 'regular-polygon': 'Regular Polygon',
+  'compound-shape': 'Compound Shape', 'circle-sector': 'Circle Sector',
+  'right-angled-triangle': 'Right-Angled Triangle', 'trig-triangle': 'Trig Triangle',
+  'parallel-transversal': 'Parallel Lines', 'circle-theorems': 'Circle Theorems',
+  'bearings-diagram': 'Bearings', 'unit-circle': 'Unit Circle', 'protractor': 'Protractor',
+  'symmetry-grid': 'Symmetry Grid', 'iso-dot-grid': 'Isometric Dot Grid',
+  'cube': 'Cube', 'cuboid': 'Cuboid', 'cylinder': 'Cylinder', 'cone': 'Cone',
+  'sphere': 'Sphere', 'triangular-prism': 'Triangular Prism', 'square-pyramid': 'Square Pyramid',
+  'venn-diagram': 'Venn Diagram', 'carroll-diagram': 'Carroll Diagram',
+  'tree-diagram': 'Tree Diagram', 'box-whisker': 'Box & Whisker',
+  'probability-scale': 'Probability Scale', 'stem-leaf': 'Stem & Leaf',
+  'normal-distribution': 'Normal Distribution', 'tally-chart': 'Tally Chart',
+  'frequency-table': 'Frequency Table', 'pie-chart-data': 'Pie Chart',
+  'scatter-plot': 'Scatter Plot', 'histogram': 'Histogram',
+  'cumulative-frequency': 'Cumulative Frequency', 'transformation-grid': 'Transformation Grid',
+  'argand-diagram': 'Argand Diagram',
+};
+
+const CAT_ICONS = {
+  'number': '#',
+  'algebra': 'x',
+  'geometry': '\u25B3',
+  '3d-shapes': '\u2B22',
+  'statistics': '\u03C3',
+  'advanced': '\u221E',
+};
+
+const CAT_COLORS = {
+  'number': '#eef2ff',
+  'algebra': '#fef3c7',
+  'geometry': '#d1fae5',
+  '3d-shapes': '#fce7f3',
+  'statistics': '#e0e7ff',
+  'advanced': '#f3e8ff',
+};
+
+// Ordered list of template IDs to control gallery order
+const TEMPLATE_ORDER = [
+  // number
+  'bar-model','fraction-wall','fraction-circles','place-value-chart','hundreds-chart',
+  'multiplication-grid','number-line','fraction-number-line','double-number-line',
+  'ten-frames','place-value-counters','part-whole-model','ratio-bar','percentage-bar',
+  'red-yellow-counters','number-pattern','clock-face','thermometer','dice','spinner',
+  'factor-tree','formula-triangle','column-arithmetic','long-division','bidmas','conversion-chart',
+  // algebra
+  'function-machine','algebra-tiles','area-model-multiplication-','coordinate-grid',
+  'two-way-table','equation-balance','two-column-proof',
+  // geometry
+  'regular-polygon','compound-shape','circle-sector','right-angled-triangle',
+  'trig-triangle','parallel-transversal','circle-theorems','bearings-diagram',
+  'unit-circle','protractor','symmetry-grid','iso-dot-grid',
+  // 3d
+  'cube','cuboid','cylinder','cone','sphere','triangular-prism','square-pyramid',
+  // statistics
+  'venn-diagram','carroll-diagram','tree-diagram','box-whisker','probability-scale',
+  'stem-leaf','normal-distribution','tally-chart','frequency-table',
+  'pie-chart-data','scatter-plot','histogram','cumulative-frequency',
+  // advanced
+  'transformation-grid','argand-diagram',
+];
 
 // ── Colour palettes ─────────────────────────────────
 
@@ -1397,10 +1575,10 @@ function updatePreview() {
 
 function selectTemplate(name) {
   activeTemplate = name;
-  // Highlight sidebar
-  document.querySelectorAll('.tpl-btn').forEach(b => b.classList.remove('active'));
-  const btn = document.querySelector(`.tpl-btn[data-template="${name}"]`);
-  if (btn) btn.classList.add('active');
+
+  // Update editor title
+  const displayName = DISPLAY_NAMES[name] || (TEMPLATES[name] && TEMPLATES[name].name) || name;
+  editorTitle.textContent = displayName;
 
   // Render config
   const tpl = TEMPLATES[name];
@@ -1508,8 +1686,8 @@ async function editSelected() {
     return;
   }
 
-  // Load the template
-  selectTemplate(settings.template);
+  // Load the template and show editor
+  showEditor(settings.template);
 
   // Wait a tick for DOM to update, then apply saved values
   await new Promise(r => setTimeout(r, 50));
@@ -1557,30 +1735,92 @@ async function editSelected() {
   updatePreview();
 }
 
+// ── Navigation helpers ──────────────────────────────
+
+function showGallery() {
+  editorScreen.classList.remove('active');
+  galleryScreen.classList.add('active');
+}
+
+function showEditor(templateId) {
+  galleryScreen.classList.remove('active');
+  editorScreen.classList.add('active');
+  selectTemplate(templateId);
+}
+
+// ── Gallery filtering ───────────────────────────────
+
+let activeCat = 'all';
+
+function filterGallery() {
+  const q = searchInput.value.toLowerCase();
+  const cards = galleryGrid.querySelectorAll('.template-card');
+  cards.forEach(card => {
+    const id = card.dataset.template;
+    const cat = CATS[id] || '';
+    const name = (DISPLAY_NAMES[id] || '').toLowerCase();
+    const kw = (KEYWORDS[id] || '').toLowerCase();
+    const catMatch = activeCat === 'all' || cat === activeCat;
+    const searchMatch = !q || name.includes(q) || id.includes(q) || kw.includes(q);
+    card.style.display = (catMatch && searchMatch) ? '' : 'none';
+  });
+}
+
+// ── Build gallery cards ─────────────────────────────
+
+function buildGallery() {
+  galleryGrid.innerHTML = '';
+
+  // Use ordered list, then append any templates not in the order list
+  const seen = new Set();
+  const orderedIds = [...TEMPLATE_ORDER];
+
+  // Add any TEMPLATES keys not already in TEMPLATE_ORDER
+  for (const id of Object.keys(TEMPLATES)) {
+    if (!orderedIds.includes(id)) orderedIds.push(id);
+  }
+
+  for (const id of orderedIds) {
+    if (!TEMPLATES[id]) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+
+    const cat = CATS[id] || 'advanced';
+    const name = DISPLAY_NAMES[id] || (TEMPLATES[id].name) || id;
+    const icon = CAT_ICONS[cat] || '?';
+    const bgColor = CAT_COLORS[cat] || '#f3f4f6';
+
+    const card = document.createElement('div');
+    card.className = 'template-card';
+    card.dataset.template = id;
+    card.dataset.category = cat;
+    card.innerHTML = `<div class="card-icon" style="background:${bgColor}">${icon}</div><div class="card-name">${name}</div>`;
+    card.addEventListener('click', () => showEditor(id));
+    galleryGrid.appendChild(card);
+  }
+}
+
 // ── Init ────────────────────────────────────────────
 
 function init() {
-  // Sidebar template buttons
-  document.querySelectorAll('.tpl-btn').forEach(btn => {
-    btn.addEventListener('click', () => selectTemplate(btn.dataset.template));
+  // Build gallery cards from TEMPLATES registry
+  buildGallery();
+
+  // Category pill filtering
+  galleryCats.addEventListener('click', (e) => {
+    const pill = e.target.closest('.cat-pill');
+    if (!pill) return;
+    galleryCats.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    activeCat = pill.dataset.cat;
+    filterGallery();
   });
 
-  // Search filter
-  const searchInput = document.getElementById('tpl-search');
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      const q = searchInput.value.toLowerCase();
-      document.querySelectorAll('.tpl-btn').forEach(btn => {
-        const keywords = btn.dataset.keywords || '';
-        const match = !q || btn.textContent.toLowerCase().includes(q) || btn.dataset.template.includes(q) || keywords.toLowerCase().includes(q);
-        btn.style.display = match ? '' : 'none';
-      });
-      document.querySelectorAll('.category').forEach(cat => {
-        const visibleBtns = cat.querySelectorAll('.tpl-btn:not([style*="display: none"])');
-        cat.style.display = visibleBtns.length > 0 ? '' : 'none';
-      });
-    });
-  }
+  // Search filtering
+  searchInput.addEventListener('input', filterGallery);
+
+  // Back button
+  backBtn.addEventListener('click', showGallery);
 
   // Event delegation for live preview — covers dynamically created inputs too
   configPanel.addEventListener('input', schedulePreview);
@@ -1589,13 +1829,10 @@ function init() {
   // Expose schedulePreview for dynamic inputs in extra templates
   window._tplSchedulePreview = schedulePreview;
 
-  // Bottom bar
+  // Editor bar buttons
   placeBtn.addEventListener('click', placeOnBoard);
   editBtn.addEventListener('click', editSelected);
   imgSizeEl.addEventListener('input', () => { sizeValueEl.textContent = imgSizeEl.value; });
-
-  // Default selection
-  selectTemplate('bar-model');
 }
 
 init();
