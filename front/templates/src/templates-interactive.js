@@ -1,6 +1,7 @@
 /* ── Interactive Maths Templates ──────────────────── */
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const $ = (id) => document.getElementById(id);
 
 function svgEl(tag, attrs) {
   const el = document.createElementNS(SVG_NS, tag);
