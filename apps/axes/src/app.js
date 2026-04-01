@@ -40,6 +40,7 @@ const els = {
   preview:         $('preview-area'),
   placeBtn:        $('place-btn'),
   editBtn:         $('edit-selected-btn'),
+  saveLibraryBtn:  $('save-library-btn'),
   imgSize:         $('img-size'),
   sizeValue:       $('size-value'),
 };
@@ -675,6 +676,18 @@ async function editSelected() {
   updatePreviewImmediate();
 }
 
+// ── Save to Library ─────────────────────────────────
+
+function saveToLibrary() {
+  const settings = readSettings();
+  const defaultName = `x: ${settings.xMin}–${settings.xMax},  y: ${settings.yMin}–${settings.yMax}`;
+  const name = window.prompt('Name for this graph:', defaultName);
+  if (name === null) return; // cancelled
+  const library = JSON.parse(localStorage.getItem('axes-library') || '[]');
+  library.unshift({ name: name.trim() || defaultName, settings });
+  localStorage.setItem('axes-library', JSON.stringify(library.slice(0, 20)));
+}
+
 // ── Presets ─────────────────────────────────────────
 
 function initPresets() {
@@ -709,6 +722,7 @@ function init() {
   // Place & edit buttons
   els.placeBtn.addEventListener('click', placeOnBoard);
   els.editBtn.addEventListener('click', editSelected);
+  els.saveLibraryBtn.addEventListener('click', saveToLibrary);
 
   // Size slider value display
   els.imgSize.addEventListener('input', () => {
