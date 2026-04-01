@@ -32,6 +32,8 @@ const els = {
   fontSize:        $('font-size'),
   fontSizeVal:     $('font-size-val'),
   showOrigin:      $('show-origin'),
+  piLabels:        $('pi-labels'),
+  piInterval:      $('pi-interval'),
   titleText:       $('title-text'),
   xLabel:          $('x-label'),
   yLabel:          $('y-label'),
@@ -54,6 +56,7 @@ const PRESETS = {
     arrowHeads: true, axisThickness: 2, axisColour: '#000000',
     showNumbers: true, fontSize: 11, showOrigin: true,
     squareScale: false, minorSubdiv: 5,
+    piLabels: false, piInterval: '1',
     titleText: '', xLabel: '', yLabel: '',
   },
   positive: {
@@ -65,6 +68,7 @@ const PRESETS = {
     arrowHeads: true, axisThickness: 2, axisColour: '#000000',
     showNumbers: true, fontSize: 11, showOrigin: true,
     squareScale: false, minorSubdiv: 5,
+    piLabels: false, piInterval: '1',
     titleText: '', xLabel: '', yLabel: '',
   },
   numberline: {
@@ -76,6 +80,7 @@ const PRESETS = {
     arrowHeads: true, axisThickness: 2, axisColour: '#000000',
     showNumbers: true, fontSize: 11, showOrigin: true,
     squareScale: false, minorSubdiv: 5,
+    piLabels: false, piInterval: '1',
     titleText: '', xLabel: '', yLabel: '',
   },
   trig: {
@@ -87,6 +92,7 @@ const PRESETS = {
     arrowHeads: true, axisThickness: 2, axisColour: '#000000',
     showNumbers: true, fontSize: 11, showOrigin: true,
     squareScale: false, minorSubdiv: 4,
+    piLabels: true, piInterval: '2',
     titleText: '', xLabel: '', yLabel: '',
   },
   stats: {
@@ -98,6 +104,7 @@ const PRESETS = {
     arrowHeads: true, axisThickness: 2, axisColour: '#000000',
     showNumbers: true, fontSize: 11, showOrigin: true,
     squareScale: false, minorSubdiv: 5,
+    piLabels: false, piInterval: '1',
     titleText: '', xLabel: '', yLabel: '',
   },
   graphpaper: {
@@ -109,6 +116,7 @@ const PRESETS = {
     arrowHeads: false, axisThickness: 2, axisColour: '#000000',
     showNumbers: true, fontSize: 11, showOrigin: true,
     squareScale: true, minorSubdiv: 5,
+    piLabels: false, piInterval: '1',
     titleText: '', xLabel: '', yLabel: '',
   },
 };
@@ -139,6 +147,8 @@ function readSettings() {
     showNumbers:      els.showNumbers.checked,
     fontSize:         parseInt(els.fontSize.value, 10) || 11,
     showOrigin:       els.showOrigin.checked,
+    piLabels:         els.piLabels.checked,
+    piInterval:       els.piInterval.value,
     titleText:        els.titleText.value,
     xLabel:           els.xLabel.value,
     yLabel:           els.yLabel.value,
@@ -173,6 +183,8 @@ function applySettings(s) {
   els.fontSize.value      = s.fontSize;
   els.fontSizeVal.textContent = s.fontSize;
   els.showOrigin.checked  = s.showOrigin;
+  els.piLabels.checked    = s.piLabels || false;
+  els.piInterval.value    = s.piInterval || '1';
   els.titleText.value     = s.titleText || '';
   els.xLabel.value        = s.xLabel || '';
   els.yLabel.value        = s.yLabel || '';
@@ -197,13 +209,38 @@ function dashArray(style) {
   return 'none';
 }
 
-function formatNum(val, step) {
-  // Determine decimal places from step
+function formatNum(val, step, piLabels) {
+  if (piLabels) {
+    return formatPi(val);
+  }
   const stepStr = String(step);
   const dot = stepStr.indexOf('.');
   const decimals = dot >= 0 ? stepStr.length - dot - 1 : 0;
   const rounded = Math.round(val * 1e12) / 1e12;
   return decimals > 0 ? rounded.toFixed(decimals) : String(Math.round(rounded));
+}
+
+function formatPi(val) {
+  const PI = Math.PI;
+  const ratio = val / PI;
+  const rounded = Math.round(ratio * 12) / 12; // precision to 12ths of pi
+  if (Math.abs(rounded) < 0.001) return '0';
+  if (Math.abs(rounded - 1) < 0.001) return 'π';
+  if (Math.abs(rounded + 1) < 0.001) return '-π';
+  // Check simple fractions
+  const fracs = [
+    [1, 6], [1, 4], [1, 3], [1, 2], [2, 3], [3, 4], [5, 6],
+    [5, 4], [4, 3], [3, 2], [5, 3], [7, 4], [11, 6],
+    [2, 1], [3, 1], [4, 1],
+  ];
+  for (const [n, d] of fracs) {
+    if (Math.abs(Math.abs(rounded) - n / d) < 0.001) {
+      const sign = rounded < 0 ? '-' : '';
+      if (d === 1) return n === 1 ? sign + 'π' : sign + n + 'π';
+      return sign + (n === 1 ? '' : n) + 'π/' + d;
+    }
+  }
+  return val.toFixed(2);
 }
 
 // ── Generate SVG ────────────────────────────────────
@@ -427,7 +464,7 @@ function generateAxesSVG() {
           x: sx, y: sy + tickLen + s.fontSize + 2,
           ...textStyle,
         });
-        txt.textContent = formatNum(x, s.xStep);
+        txt.textContent = formatNum(x, s.xStep, s.piLabels);
         svg.appendChild(txt);
       }
     }
@@ -456,7 +493,7 @@ function generateAxesSVG() {
           ...textStyle,
           'text-anchor': 'end',
         });
-        txt.textContent = formatNum(y, s.yStep);
+        txt.textContent = formatNum(y, s.yStep, false);
         svg.appendChild(txt);
       }
     }
@@ -635,6 +672,24 @@ function init() {
   });
   els.fontSize.addEventListener('input', () => {
     els.fontSizeVal.textContent = els.fontSize.value;
+  });
+
+  // Pi interval → auto-set xStep
+  els.piInterval.addEventListener('change', () => {
+    if (els.piLabels.checked) {
+      const div = parseInt(els.piInterval.value, 10) || 1;
+      els.xStep.value = (Math.PI / div).toFixed(4);
+      updatePreviewImmediate();
+    }
+  });
+  els.piLabels.addEventListener('change', () => {
+    if (els.piLabels.checked) {
+      const div = parseInt(els.piInterval.value, 10) || 1;
+      els.xStep.value = (Math.PI / div).toFixed(4);
+      els.xMin.value = (-2 * Math.PI).toFixed(4);
+      els.xMax.value = (2 * Math.PI).toFixed(4);
+      updatePreviewImmediate();
+    }
   });
 
   // Colour swatch dots
