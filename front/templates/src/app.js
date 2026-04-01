@@ -1185,6 +1185,7 @@ function selectTemplate(name) {
   // Render config
   const tpl = TEMPLATES[name];
   if (!tpl) return;
+  configPanel.innerHTML = '';
   tpl.renderConfig(configPanel);
 
   // Wire up live preview on all inputs
