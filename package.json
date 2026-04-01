@@ -1,5 +1,5 @@
 {
-  "name": "miro-latex",
+  "name": "miro-apps",
   "version": "1.0.0",
   "description": "Render LaTeX equations on Miro boards — no server required",
   "type": "module",
