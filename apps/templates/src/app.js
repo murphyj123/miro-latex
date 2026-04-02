@@ -1856,53 +1856,38 @@ function showEditor(templateId) {
 
 let activeCat = 'all';
 
+const CAT_ORDER = ['number','algebra','geometry','3d-shapes','statistics','advanced'];
+const CAT_LABELS = {
+  'number': 'Number', 'algebra': 'Algebra', 'geometry': 'Geometry',
+  '3d-shapes': '3D Shapes', 'statistics': 'Statistics', 'advanced': 'Advanced',
+};
+
 function filterGallery() {
   const q = searchInput.value.toLowerCase();
-  const cards = galleryGrid.querySelectorAll('.template-card');
-  cards.forEach(card => {
-    const id = card.dataset.template;
-    const cat = CATS[id] || '';
-    const name = (DISPLAY_NAMES[id] || '').toLowerCase();
-    const kw = (KEYWORDS[id] || '').toLowerCase();
+  galleryGrid.querySelectorAll('.gallery-section').forEach(section => {
+    const cat = section.dataset.cat;
     const catMatch = activeCat === 'all' || cat === activeCat;
-    const searchMatch = !q || name.includes(q) || id.includes(q) || kw.includes(q);
-    card.style.display = (catMatch && searchMatch) ? '' : 'none';
+    let anyVisible = false;
+    section.querySelectorAll('.template-pill').forEach(pill => {
+      const id = pill.dataset.template;
+      const name = (DISPLAY_NAMES[id] || '').toLowerCase();
+      const kw = (KEYWORDS[id] || '').toLowerCase();
+      const visible = catMatch && (!q || name.includes(q) || id.includes(q) || kw.includes(q));
+      pill.style.display = visible ? '' : 'none';
+      if (visible) anyVisible = true;
+    });
+    section.style.display = anyVisible ? '' : 'none';
   });
 }
 
-// ── Build gallery cards ─────────────────────────────
+// ── Build gallery as categorised pill list ──────────
 
 function buildGallery() {
   galleryGrid.innerHTML = '';
 
-  // ── Pre-render SVG thumbnails in a hidden sandbox ──
-  const thumbMap = {};
-  const sandbox = document.createElement('div');
-  sandbox.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;left:-9999px;top:-9999px;width:600px;';
-  document.body.appendChild(sandbox);
-  const prevSchedule = window._tplSchedulePreview;
-  window._tplSchedulePreview = () => {};
-  const ser = new XMLSerializer();
+  const byCategory = {};
+  CAT_ORDER.forEach(c => { byCategory[c] = []; });
 
-  const allIds = [...new Set([...TEMPLATE_ORDER, ...Object.keys(TEMPLATES)])];
-  for (const id of allIds) {
-    if (!TEMPLATES[id]?.renderConfig || !TEMPLATES[id]?.generateSVG) continue;
-    try {
-      sandbox.innerHTML = '';
-      TEMPLATES[id].renderConfig(sandbox);
-      const cfg = TEMPLATES[id].readConfig ? TEMPLATES[id].readConfig() : undefined;
-      const svgNode = TEMPLATES[id].generateSVG(cfg);
-      if (svgNode) {
-        thumbMap[id] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ser.serializeToString(svgNode));
-      }
-    } catch { /* ignore */ }
-  }
-
-  sandbox.innerHTML = '';
-  document.body.removeChild(sandbox);
-  window._tplSchedulePreview = prevSchedule;
-
-  // ── Build gallery cards ────────────────────────────
   const seen = new Set();
   const orderedIds = [...TEMPLATE_ORDER];
   for (const id of Object.keys(TEMPLATES)) {
@@ -1910,28 +1895,40 @@ function buildGallery() {
   }
 
   for (const id of orderedIds) {
-    if (!TEMPLATES[id]) continue;
-    if (seen.has(id)) continue;
+    if (!TEMPLATES[id] || seen.has(id)) continue;
     seen.add(id);
-
     const cat = CATS[id] || 'advanced';
-    const name = DISPLAY_NAMES[id] || (TEMPLATES[id].name) || id;
-    const icon = CAT_ICONS[cat] || '?';
-    const thumb = thumbMap[id];
+    (byCategory[cat] || (byCategory[cat] = [])).push(id);
+  }
 
-    const card = document.createElement('div');
-    card.className = 'template-card';
-    card.dataset.template = id;
-    card.dataset.cat = cat;
+  for (const cat of CAT_ORDER) {
+    const ids = byCategory[cat];
+    if (!ids?.length) continue;
 
-    if (thumb) {
-      card.innerHTML = `<div class="card-thumb"><img src="${thumb}" alt="${name}" /></div><div class="card-name">${name}</div>`;
-    } else {
-      const catBg = CAT_COLORS[cat] || '#f1f5f9';
-      card.innerHTML = `<div class="card-thumb" style="background:${catBg}"><span class="card-cat-glyph">${icon}</span></div><div class="card-name">${name}</div>`;
+    const section = document.createElement('div');
+    section.className = 'gallery-section';
+    section.dataset.cat = cat;
+
+    const title = document.createElement('div');
+    title.className = 'gallery-section-title';
+    title.textContent = CAT_LABELS[cat] || cat;
+    section.appendChild(title);
+
+    const pillRow = document.createElement('div');
+    pillRow.className = 'gallery-pills';
+
+    for (const id of ids) {
+      const name = DISPLAY_NAMES[id] || (TEMPLATES[id].name) || id;
+      const pill = document.createElement('button');
+      pill.className = 'template-pill';
+      pill.dataset.template = id;
+      pill.textContent = name;
+      pill.addEventListener('click', () => showEditor(id));
+      pillRow.appendChild(pill);
     }
-    card.addEventListener('click', () => showEditor(id));
-    galleryGrid.appendChild(card);
+
+    section.appendChild(pillRow);
+    galleryGrid.appendChild(section);
   }
 }
 
