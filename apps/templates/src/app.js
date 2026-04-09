@@ -1700,6 +1700,39 @@ function selectTemplate(name) {
   }
 }
 
+// ── SVG → data URL helpers ──────────────────────────
+
+function svgToSvgDataUrl(svg) {
+  const svgStr = new XMLSerializer().serializeToString(svg);
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+}
+
+// Renders SVG via an off-screen canvas and returns a PNG data URL with a
+// full alpha channel. Use this when the template needs a transparent background
+// (SVG data URLs are always rasterised with a white background by browsers).
+function svgToPngDataUrl(svg) {
+  const svgStr = new XMLSerializer().serializeToString(svg);
+  const svgUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+  const w = Math.round(parseFloat(svg.getAttribute('width')) || 600);
+  const h = Math.round(parseFloat(svg.getAttribute('height')) || 600);
+  const scale = 2; // retina-quality export
+
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = w * scale;
+    canvas.height = h * scale;
+    const ctx = canvas.getContext('2d');
+    // Canvas starts fully transparent — do NOT fill with white
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => resolve(svgUrl); // graceful fallback
+    img.src = svgUrl;
+  });
+}
+
 // ── Place on Board ──────────────────────────────────
 
 async function placeOnBoard() {
@@ -1711,9 +1744,11 @@ async function placeOnBoard() {
   const tpl = TEMPLATES[activeTemplate];
   const cfg = tpl.readConfig ? tpl.readConfig() : undefined;
   const svg = tpl.generateSVG(cfg);
-  const serializer = new XMLSerializer();
-  const svgStr = serializer.serializeToString(svg);
-  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+
+  // Use PNG (with alpha) when the template requests a transparent background,
+  // otherwise use the lighter SVG data URL.
+  const needsPng = cfg && cfg.transparent;
+  const dataUrl = needsPng ? await svgToPngDataUrl(svg) : svgToSvgDataUrl(svg);
 
   const size = parseInt(imgSizeEl.value, 10) || 600;
 
