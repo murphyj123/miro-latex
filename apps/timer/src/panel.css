@@ -391,10 +391,22 @@ body {
   color: #8b5cf6;
 }
 
+.btn-cards {
+  margin-top: 8px;
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
 .btn-exam:hover {
   border-color: #8b5cf6;
   color: #fff;
   background: #8b5cf6;
+}
+
+.btn-cards:hover {
+  border-color: #3b82f6;
+  color: #fff;
+  background: #3b82f6;
 }
 
 .btn-modal svg {
@@ -402,39 +414,6 @@ body {
   height: 14px;
 }
 
-/* ── Timer Cards section ─────────────────────────────── */
-.section-hint {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin: -2px 0 8px;
-  line-height: 1.4;
-}
-
-.card-dur-row {
-  margin-bottom: 8px;
-}
-
-.card-label-input {
-  width: 100%;
-  padding: 7px 10px;
-  font-size: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-secondary);
-  color: var(--text);
-  font-family: inherit;
-  margin-bottom: 8px;
-  outline: none;
-  transition: border-color var(--transition);
-}
-
-.card-label-input:focus {
-  border-color: var(--color-active);
-}
-
-.card-label-input::placeholder {
-  color: var(--text-secondary);
-}
 
 /* ── Alarm Flash ──────────────────────────────────────── */
 @keyframes alarm-flash {

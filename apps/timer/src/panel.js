@@ -23,9 +23,7 @@ const darkThemeCb = document.getElementById('dark-theme');
 const customMin = document.getElementById('custom-min');
 const customSec = document.getElementById('custom-sec');
 const btnSet = document.getElementById('btn-set');
-const btnPlaceCard = document.getElementById('btn-place-card');
-const cardLabel = document.getElementById('card-label');
-const cardDurPills = document.querySelectorAll('.card-dur-pill');
+const btnCards = document.getElementById('btn-cards');
 
 // ── Ring geometry ────────────────────────────────────────
 const RING_RADIUS = 80;
@@ -285,35 +283,8 @@ btnExam.addEventListener('click', async () => {
 window.addEventListener('storage', () => syncUI());
 
 // ── Timer Cards ───────────────────────────────────────────
-let cardDurationSeconds = 300;
-
-cardDurPills.forEach(pill => {
-  pill.addEventListener('click', () => {
-    cardDurPills.forEach(p => p.classList.remove('active'));
-    pill.classList.add('active');
-    cardDurationSeconds = parseInt(pill.dataset.seconds);
-  });
-});
-
-btnPlaceCard.addEventListener('click', async () => {
-  const label = cardLabel.value.trim();
-  const mins = Math.round(cardDurationSeconds / 60);
-  const title = label || `Timer — ${mins} min`;
-
-  try {
-    await miro.board.createAppCard({
-      title,
-      description: String(cardDurationSeconds),
-      fields: [{ value: `${mins} min`, tooltip: 'Click to open timer' }],
-      status: 'connected',
-    });
-    const orig = btnPlaceCard.innerHTML;
-    btnPlaceCard.textContent = '✓ Placed!';
-    cardLabel.value = '';
-    setTimeout(() => { btnPlaceCard.innerHTML = orig; }, 1800);
-  } catch (e) {
-    console.error('App card creation failed:', e);
-  }
+btnCards.addEventListener('click', async () => {
+  await miro.board.ui.openModal({ url: 'timer/cards.html', width: 420, height: 380 });
 });
 
 // ── Init ─────────────────────────────────────────────────

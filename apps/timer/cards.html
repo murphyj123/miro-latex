@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg: #ffffff;
+        --bg-secondary: #f5f6f8;
+        --text: #1a1a2e;
+        --text-secondary: #6b7280;
+        --border: #e5e7eb;
+        --btn-bg: #f3f4f6;
+        --color-active: #10b981;
+        --radius: 8px;
+        --radius-pill: 20px;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      h2 {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .hint {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-top: -12px;
+        line-height: 1.5;
+      }
+
+      .field-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+      }
+
+      .pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .dur-pill {
+        padding: 6px 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-pill);
+        background: var(--bg);
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+
+      .dur-pill:hover { border-color: var(--color-active); color: var(--color-active); }
+      .dur-pill.active { background: var(--color-active); border-color: var(--color-active); color: #fff; }
+
+      .label-input {
+        width: 100%;
+        padding: 9px 12px;
+        font-size: 13px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-secondary);
+        color: var(--text);
+        font-family: inherit;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+
+      .label-input:focus { border-color: var(--color-active); }
+      .label-input::placeholder { color: var(--text-secondary); }
+
+      .btn-place {
+        width: 100%;
+        padding: 12px;
+        background: var(--color-active);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: filter 0.15s;
+      }
+
+      .btn-place:hover { filter: brightness(1.1); }
+
+      .btn-place svg { width: 16px; height: 16px; }
+    </style>
+  </head>
+  <body>
+    <div>
+      <h2>Timer Cards</h2>
+    </div>
+    <p class="hint">Place a clickable card on the board. Click it to open the timer pre-set to that duration.</p>
+
+    <div>
+      <div class="field-label">Duration</div>
+      <div class="pills">
+        <button class="dur-pill active" data-seconds="300">5 min</button>
+        <button class="dur-pill" data-seconds="600">10 min</button>
+        <button class="dur-pill" data-seconds="900">15 min</button>
+        <button class="dur-pill" data-seconds="1200">20 min</button>
+        <button class="dur-pill" data-seconds="1800">30 min</button>
+        <button class="dur-pill" data-seconds="2700">45 min</button>
+        <button class="dur-pill" data-seconds="3600">60 min</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="field-label">Label (optional)</div>
+      <input type="text" id="card-label" class="label-input" placeholder="e.g. Group Activity" maxlength="40" />
+    </div>
+
+    <button class="btn-place" id="btn-place">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="12" height="9" rx="1.5"/><path d="M5 5V4a1 1 0 011-1h4a1 1 0 011 1v1"/><line x1="8" y1="8" x2="8" y2="11"/><line x1="6.5" y1="9.5" x2="9.5" y2="9.5"/></svg>
+      Place on Board
+    </button>
+
+    <script>
+      let durationSeconds = 300;
+
+      document.querySelectorAll('.dur-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          document.querySelectorAll('.dur-pill').forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          durationSeconds = parseInt(pill.dataset.seconds);
+        });
+      });
+
+      document.getElementById('btn-place').addEventListener('click', async () => {
+        const label = document.getElementById('card-label').value.trim();
+        const mins = Math.round(durationSeconds / 60);
+        const title = label || `Timer — ${mins} min`;
+        const btn = document.getElementById('btn-place');
+
+        try {
+          await miro.board.createAppCard({
+            title,
+            description: String(durationSeconds),
+            fields: [{ value: `${mins} min`, tooltip: 'Click to open timer' }],
+            status: 'connected',
+          });
+          const orig = btn.innerHTML;
+          btn.textContent = '✓ Placed on Board!';
+          document.getElementById('card-label').value = '';
+          setTimeout(() => { btn.innerHTML = orig; }, 2000);
+        } catch (e) {
+          console.error('App card creation failed:', e);
+        }
+      });
+    </script>
+  </body>
+</html>
