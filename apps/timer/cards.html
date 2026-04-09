@@ -230,10 +230,8 @@
             style: { cardTheme: '#10b981' },
             status: 'connected',
           });
-          const orig = btn.innerHTML;
-          btn.textContent = '✓ Placed on Board!';
           document.getElementById('card-label').value = '';
-          setTimeout(() => { btn.innerHTML = orig; }, 2000);
+          await miro.board.ui.closeModal();
         } catch (e) {
           console.error('App card creation failed:', e);
         }
