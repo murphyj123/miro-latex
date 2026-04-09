@@ -1,6 +1,12 @@
 async function init() {
-  // Toolbar icon → open panel
+  // Toolbar icon → open panel (also loads selected timer card if any)
   miro.board.ui.on('icon:click', async () => {
+    const selection = await miro.board.getSelection();
+    const card = selection.find(item => item.type === 'app_card');
+    if (card) {
+      const seconds = parseInt(card.description) || 300;
+      localStorage.setItem('timer-card-load', JSON.stringify({ seconds, label: card.title }));
+    }
     await miro.board.ui.openPanel({ url: 'timer/panel.html' });
   });
 
@@ -18,9 +24,7 @@ async function init() {
     const secs = seconds % 60;
     const durLabel = secs > 0 ? `${mins}m ${secs}s` : `${mins} min`;
     appCard.status = 'connected';
-    appCard.fields = [
-      { value: 'Tap clock icon to open timer', fillColor: '#f0fdf4', textColor: '#065f46', iconShape: 'round' },
-    ];
+    appCard.fields = [];
     appCard.style = { cardTheme: '#10b981' };
     await appCard.sync();
     localStorage.setItem('timer-card-load', JSON.stringify({ seconds, label: appCard.title }));
