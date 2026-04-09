@@ -46,7 +46,7 @@ const CATS = {};
 ['bar-model','fraction-wall','fraction-circles','place-value-chart','hundreds-chart',
  'multiplication-grid','number-line','fraction-number-line','double-number-line',
  'ten-frames','place-value-counters','part-whole-model','ratio-bar','percentage-bar',
- 'red-yellow-counters','number-pattern','clock-face','thermometer','dice','spinner',
+ 'red-yellow-counters','number-pattern','dice','spinner',
  'factor-tree','column-arithmetic','long-division','bidmas','conversion-chart'
 ].forEach(id => CATS[id] = 'number');
 ['function-machine','algebra-tiles','area-model-multiplication-','coordinate-grid',
@@ -64,6 +64,8 @@ const CATS = {};
 ].forEach(id => CATS[id] = 'statistics');
 ['transformation-grid','argand-diagram'
 ].forEach(id => CATS[id] = 'advanced');
+['ruler','weighing-scale','reading-scale','thermometer','clock-face'
+].forEach(id => CATS[id] = 'measurement');
 
 const KEYWORDS = {
   'bar-model': 'bar model, part whole, ratio, comparison, strip, tape diagram, proportion',
@@ -132,6 +134,9 @@ const KEYWORDS = {
   'cumulative-frequency': 'cumulative frequency, ogive, S curve, quartiles, percentiles, median',
   'transformation-grid': 'transformation, reflection, rotation, translation, enlargement, congruent, similar',
   'argand-diagram': 'argand diagram, complex numbers, imaginary, real, modulus, argument',
+  'ruler': 'ruler, length, measurement, cm, mm, centimetres, millimetres, inches, measuring',
+  'weighing-scale': 'weighing scale, dial, mass, weight, reading, pointer, grams, kilograms, newtons',
+  'reading-scale': 'reading scale, scale, measurement, pointer, linear, graduated, intervals',
 };
 
 const DISPLAY_NAMES = {
@@ -165,6 +170,7 @@ const DISPLAY_NAMES = {
   'scatter-plot': 'Scatter Plot', 'histogram': 'Histogram',
   'cumulative-frequency': 'Cumulative Frequency', 'transformation-grid': 'Transformation Grid',
   'argand-diagram': 'Argand Diagram',
+  'ruler': 'Ruler', 'weighing-scale': 'Weighing Scale', 'reading-scale': 'Reading Scale',
 };
 
 const CAT_ICONS = {
@@ -174,6 +180,7 @@ const CAT_ICONS = {
   '3d-shapes': '\u2B22',
   'statistics': '\u03C3',
   'advanced': '\u221E',
+  'measurement': '\u21C4',
 };
 
 const CAT_COLORS = {
@@ -183,6 +190,7 @@ const CAT_COLORS = {
   '3d-shapes': '#fce7f3',
   'statistics': '#e0e7ff',
   'advanced': '#f3e8ff',
+  'measurement': '#e0f2fe',
 };
 
 // Ordered list of template IDs to control gallery order
@@ -191,7 +199,7 @@ const TEMPLATE_ORDER = [
   'bar-model','fraction-wall','fraction-circles','place-value-chart','hundreds-chart',
   'multiplication-grid','number-line','fraction-number-line','double-number-line',
   'ten-frames','place-value-counters','part-whole-model','ratio-bar','percentage-bar',
-  'red-yellow-counters','number-pattern','clock-face','thermometer','dice','spinner',
+  'red-yellow-counters','number-pattern','dice','spinner',
   'factor-tree','column-arithmetic','long-division','bidmas','conversion-chart',
   // algebra
   'function-machine','algebra-tiles','area-model-multiplication-','coordinate-grid',
@@ -208,6 +216,8 @@ const TEMPLATE_ORDER = [
   'pie-chart-data','scatter-plot','histogram','cumulative-frequency',
   // advanced
   'transformation-grid','argand-diagram',
+  // measurement
+  'thermometer','clock-face','ruler','weighing-scale','reading-scale',
 ];
 
 // ── Colour palettes ─────────────────────────────────

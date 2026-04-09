@@ -5201,5 +5201,613 @@ extraTemplates['bidmas'] = {
   },
 };
 
+/* ================================================================
+   DOUBLE NUMBER LINE
+   ================================================================ */
+extraTemplates['double-number-line'] = {
+  name: 'Double Number Line',
+  category: 'Number',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Top line'));
+    c.appendChild(row(
+      field('Label', textInput('dnl-top-label', '', 'e.g. km')),
+      field('Start', numberInput('dnl-top-start', 0, -1000, 1000, 1)),
+      field('End', numberInput('dnl-top-end', 10, -1000, 1000, 1)),
+    ));
+    c.appendChild(sectionLabel('Bottom line'));
+    c.appendChild(row(
+      field('Label', textInput('dnl-bot-label', '', 'e.g. miles')),
+      field('Start', numberInput('dnl-bot-start', 0, -1000, 1000, 1)),
+      field('End', numberInput('dnl-bot-end', 16, -1000, 1000, 1)),
+    ));
+    c.appendChild(sectionLabel('Options'));
+    c.appendChild(row(
+      field('Intervals', numberInput('dnl-intervals', 8, 1, 20, 1)),
+    ));
+    c.appendChild(row(
+      checkbox('dnl-blank', 'Blank (no numbers)', false),
+      checkbox('dnl-arrows', 'Show arrows', true),
+    ));
+  },
+  readConfig() {
+    return {
+      topLabel: val('dnl-top-label'),
+      topStart: val('dnl-top-start'),
+      topEnd: val('dnl-top-end'),
+      botLabel: val('dnl-bot-label'),
+      botStart: val('dnl-bot-start'),
+      botEnd: val('dnl-bot-end'),
+      intervals: Math.max(1, Math.min(20, Math.round(val('dnl-intervals') || 8))),
+      blank: val('dnl-blank'),
+      arrows: val('dnl-arrows'),
+    };
+  },
+  generateSVG(s) {
+    const W = 900, H = 400, PAD = 90;
+    const svg = makeSVG(W, H);
+    const topY = PAD + 80;
+    const botY = topY + 120;
+    const lx = PAD + 40;
+    const rx = lx + 680;
+    const N = s.intervals;
+    const BLUE = '#4262ff';
+    const RED = '#e63946';
+
+    // Dashed vertical connectors
+    for (let i = 0; i <= N; i++) {
+      const x = lx + (rx - lx) * i / N;
+      svg.appendChild(svgEl('line', {
+        x1: String(x), y1: String(topY),
+        x2: String(x), y2: String(botY),
+        stroke: '#ccc', 'stroke-width': '1', 'stroke-dasharray': '4,3',
+      }));
+    }
+
+    // Top line
+    svg.appendChild(svgEl('line', {
+      x1: String(lx), y1: String(topY),
+      x2: String(s.arrows ? rx - 6 : rx), y2: String(topY),
+      stroke: BLUE, 'stroke-width': '2.5',
+    }));
+
+    // Bottom line
+    svg.appendChild(svgEl('line', {
+      x1: String(lx), y1: String(botY),
+      x2: String(s.arrows ? rx - 6 : rx), y2: String(botY),
+      stroke: RED, 'stroke-width': '2.5',
+    }));
+
+    // Arrow heads
+    if (s.arrows) {
+      arrowHead(svg, rx, topY, 0, 9, BLUE);
+      arrowHead(svg, rx, botY, 0, 9, RED);
+    }
+
+    // Ticks and labels
+    for (let i = 0; i <= N; i++) {
+      const x = lx + (rx - lx) * i / N;
+      const topVal = s.topStart + (s.topEnd - s.topStart) * i / N;
+      const botVal = s.botStart + (s.botEnd - s.botStart) * i / N;
+      const topStr = Number.isInteger(topVal) ? String(topVal) : topVal.toFixed(2).replace(/\.?0+$/, '');
+      const botStr = Number.isInteger(botVal) ? String(botVal) : botVal.toFixed(2).replace(/\.?0+$/, '');
+
+      // Top tick (upward)
+      svg.appendChild(svgEl('line', {
+        x1: String(x), y1: String(topY),
+        x2: String(x), y2: String(topY - 14),
+        stroke: BLUE, 'stroke-width': '1.8',
+      }));
+      // Bottom tick (downward)
+      svg.appendChild(svgEl('line', {
+        x1: String(x), y1: String(botY),
+        x2: String(x), y2: String(botY + 14),
+        stroke: RED, 'stroke-width': '1.8',
+      }));
+
+      if (!s.blank) {
+        svg.appendChild(svgText(x, topY - 22, topStr, 13, 'middle', { fill: BLUE, 'font-weight': '700' }));
+        svg.appendChild(svgText(x, botY + 28, botStr, 13, 'middle', { fill: RED, 'font-weight': '700' }));
+      }
+    }
+
+    // Labels at far left
+    if (s.topLabel) {
+      svg.appendChild(svgText(lx - 12, topY, s.topLabel, 13, 'end', { fill: BLUE, 'font-weight': '700' }));
+    }
+    if (s.botLabel) {
+      svg.appendChild(svgText(lx - 12, botY, s.botLabel, 13, 'end', { fill: RED, 'font-weight': '700' }));
+    }
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   RATIO BAR
+   ================================================================ */
+extraTemplates['ratio-bar'] = {
+  name: 'Ratio Bar',
+  category: 'Number',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Ratio'));
+    c.appendChild(row(
+      field('Ratio', textInput('rb-ratio', '2:3', 'e.g. 2:3 or 1:2:3')),
+    ));
+    c.appendChild(sectionLabel('Labels'));
+    c.appendChild(row(
+      field('Label A', textInput('rb-la', '', 'e.g. Boys')),
+      field('Label B', textInput('rb-lb', '', 'e.g. Girls')),
+    ));
+    c.appendChild(row(
+      field('Label C', textInput('rb-lc', '', 'optional')),
+      field('Label D', textInput('rb-ld', '', 'optional')),
+    ));
+    c.appendChild(row(
+      field('Total label', textInput('rb-total', '', 'e.g. 30 students')),
+    ));
+    c.appendChild(row(
+      checkbox('rb-blank', 'Blank', false),
+      checkbox('rb-totals', 'Show totals', true),
+    ));
+  },
+  readConfig() {
+    const ratioStr = val('rb-ratio') || '2:3';
+    const parts = ratioStr.split(':').map(p => Math.max(1, Math.min(12, parseInt(p, 10) || 1))).slice(0, 4);
+    if (parts.length < 2) parts.push(1);
+    const labelInputs = [val('rb-la'), val('rb-lb'), val('rb-lc'), val('rb-ld')];
+    const defaultLetters = ['A', 'B', 'C', 'D'];
+    const labels = parts.map((_, i) => labelInputs[i] || defaultLetters[i]);
+    return {
+      parts,
+      labels,
+      totalLabel: val('rb-total'),
+      blank: val('rb-blank'),
+      showTotals: val('rb-totals'),
+    };
+  },
+  generateSVG(s) {
+    const PAD = 90;
+    const blockW = 52, blockH = 52, blockGap = 5, rowGap = 28;
+    const labelW = 90;
+    const COLOURS = ['#90caf9', '#ef9a9a', '#a5d6a7', '#fff176'];
+    const DARK = ['#1565c0', '#b71c1c', '#2e7d32', '#f57f17'];
+    const maxBlocks = Math.max(...s.parts);
+    const numRows = s.parts.length;
+    const W = PAD * 2 + labelW + maxBlocks * (blockW + blockGap) + 100;
+    const H = PAD * 2 + 40 + numRows * (blockH + rowGap) + 60;
+    const svg = makeSVG(W, H);
+
+    let startY = PAD + 40;
+
+    // Title
+    if (!s.blank) {
+      const ratioStr = s.parts.join(':');
+      svg.appendChild(svgText(W / 2, PAD + 16, `Ratio ${ratioStr}`, 16, 'middle', { fill: '#333', 'font-weight': '700' }));
+    }
+
+    s.parts.forEach((count, i) => {
+      const rowY = startY + i * (blockH + rowGap);
+      const colour = COLOURS[i % COLOURS.length];
+      const dark = DARK[i % DARK.length];
+
+      // Row label on left
+      svg.appendChild(svgText(PAD + labelW - 10, rowY + blockH / 2 + 5, s.labels[i], 14, 'end', { fill: dark, 'font-weight': '700' }));
+
+      // Blocks
+      for (let j = 0; j < count; j++) {
+        const bx = PAD + labelW + j * (blockW + blockGap);
+        svg.appendChild(svgEl('rect', {
+          x: String(bx), y: String(rowY),
+          width: String(blockW), height: String(blockH),
+          fill: colour, stroke: dark, 'stroke-width': '1.5', rx: '4',
+        }));
+        if (!s.blank) {
+          svg.appendChild(svgText(bx + blockW / 2, rowY + blockH / 2 + 5, String(j + 1), 13, 'middle', { fill: dark, 'font-weight': '600' }));
+        }
+      }
+
+      // = N at right end
+      if (s.showTotals && !s.blank) {
+        const endX = PAD + labelW + count * (blockW + blockGap) + 8;
+        svg.appendChild(svgText(endX, rowY + blockH / 2 + 5, `= ${count}`, 13, 'start', { fill: dark, 'font-weight': '600' }));
+      }
+    });
+
+    // Total label below all rows
+    if (s.totalLabel) {
+      const totalY = startY + numRows * (blockH + rowGap) + 24;
+      svg.appendChild(svgText(W / 2, totalY, s.totalLabel, 14, 'middle', { fill: '#555' }));
+    }
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   RULER
+   ================================================================ */
+extraTemplates['ruler'] = {
+  name: 'Ruler',
+  category: 'Measurement',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Ruler'));
+    c.appendChild(row(
+      field('Length', numberInput('ru-length', 15, 1, 60, 1)),
+      field('Units', select('ru-units', [['cm', 'cm'], ['mm', 'mm'], ['inches', 'in'], ['generic', 'generic']])),
+    ));
+    c.appendChild(row(
+      field('Start value', numberInput('ru-start', 0, -100, 100, 1)),
+      field('Subdivisions', numberInput('ru-subs', 10, 1, 20, 1)),
+    ));
+    c.appendChild(sectionLabel('Marker'));
+    c.appendChild(row(
+      field('Marker at', numberInput('ru-marker', 0, -1000, 1000, 0.1)),
+      checkbox('ru-show-marker', 'Show marker', false),
+    ));
+    c.appendChild(row(
+      checkbox('ru-blank', 'Blank', false),
+    ));
+  },
+  readConfig() {
+    return {
+      length: Math.max(1, Math.min(60, val('ru-length') || 15)),
+      units: val('ru-units') || 'cm',
+      start: val('ru-start'),
+      subs: Math.max(1, Math.min(20, Math.round(val('ru-subs') || 10))),
+      markerAt: val('ru-marker'),
+      showMarker: val('ru-show-marker'),
+      blank: val('ru-blank'),
+    };
+  },
+  generateSVG(s) {
+    const PAD = 80;
+    const pxPerUnit = 42;
+    const rulerW = s.length * pxPerUnit;
+    const W = rulerW + PAD * 2 + 20;
+    const H = 280;
+    const rulerX = PAD;
+    const rulerY = H / 2 - 20;
+    const rulerH = 44;
+    const svg = makeSVG(W, H);
+
+    // Ruler body
+    svg.appendChild(svgEl('rect', {
+      x: String(rulerX), y: String(rulerY),
+      width: String(rulerW), height: String(rulerH),
+      fill: '#fef9c3', stroke: '#555', 'stroke-width': '1.5', rx: '3',
+    }));
+
+    const totalTicks = s.length * s.subs;
+    for (let i = 0; i <= totalTicks; i++) {
+      const x = rulerX + i * pxPerUnit / s.subs;
+      const isMajor = i % s.subs === 0;
+      const isMid = s.subs >= 4 && i % Math.floor(s.subs / 2) === 0 && !isMajor;
+      const tickLen = isMajor ? 33 : isMid ? 22 : 11;
+      svg.appendChild(svgEl('line', {
+        x1: String(x), y1: String(rulerY + rulerH),
+        x2: String(x), y2: String(rulerY + rulerH - tickLen),
+        stroke: '#555', 'stroke-width': isMajor ? '1.5' : '1',
+      }));
+      if (isMajor && !s.blank) {
+        const labelVal = s.start + i / s.subs;
+        const labelStr = Number.isInteger(labelVal) ? String(labelVal) : labelVal.toFixed(1);
+        svg.appendChild(svgText(x, rulerY + rulerH + 16, labelStr, 12, 'middle', { fill: '#333' }));
+      }
+    }
+
+    // Unit label
+    if (!s.blank) {
+      const unitStr = s.units !== 'generic' ? s.units : '';
+      if (unitStr) {
+        svg.appendChild(svgText(rulerX + rulerW + 18, rulerY + rulerH + 16, unitStr, 12, 'start', { fill: '#555' }));
+      }
+    }
+
+    // Red triangle marker above ruler
+    if (s.showMarker) {
+      const markerFrac = (s.markerAt - s.start) / s.length;
+      const mx = rulerX + markerFrac * rulerW;
+      const triY = rulerY - 8;
+      const triSize = 8;
+      // Downward-pointing triangle
+      const d = `M ${mx} ${triY + triSize} L ${mx - triSize} ${triY - triSize} L ${mx + triSize} ${triY - triSize} Z`;
+      svg.appendChild(svgEl('path', { d, fill: '#e63946', stroke: 'none' }));
+      if (!s.blank) {
+        const markerStr = Number.isInteger(s.markerAt) ? String(s.markerAt) : s.markerAt.toFixed(1);
+        svg.appendChild(svgText(mx, triY - triSize - 8, markerStr, 12, 'middle', { fill: '#e63946', 'font-weight': '700' }));
+      }
+    }
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   WEIGHING SCALE
+   ================================================================ */
+extraTemplates['weighing-scale'] = {
+  name: 'Weighing Scale',
+  category: 'Measurement',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Scale'));
+    c.appendChild(row(
+      field('Min', numberInput('ws-min', 0, -10000, 10000, 1)),
+      field('Max', numberInput('ws-max', 1000, -10000, 10000, 1)),
+      field('Unit', textInput('ws-unit', 'g', 'e.g. g, kg, N')),
+    ));
+    c.appendChild(row(
+      field('Major step', numberInput('ws-major', 100, 1, 10000, 1)),
+      field('Subdivisions', numberInput('ws-subs', 5, 1, 10, 1)),
+    ));
+    c.appendChild(sectionLabel('Reading'));
+    c.appendChild(row(
+      field('Reading', numberInput('ws-reading', 0, -10000, 10000, 1)),
+    ));
+    c.appendChild(row(
+      checkbox('ws-blank', 'Blank', false),
+    ));
+  },
+  readConfig() {
+    const min = val('ws-min');
+    const max = val('ws-max') || 1000;
+    const majorStep = val('ws-major') || 100;
+    const subs = Math.max(1, Math.min(10, Math.round(val('ws-subs') || 5)));
+    return {
+      min,
+      max,
+      unit: val('ws-unit') || 'g',
+      majorStep,
+      subs,
+      reading: val('ws-reading'),
+      blank: val('ws-blank'),
+    };
+  },
+  generateSVG(s) {
+    const R = 140, PAD = 70;
+    const W = R * 2 + PAD * 2 + 80;
+    const H = 420;
+    const cx = W / 2;
+    const cy = PAD + 30 + R;
+
+    const svg = makeSVG(W, H);
+
+    function polarXY(angleDeg, r) {
+      const rad = degToRad(angleDeg);
+      return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+    }
+
+    // Arc from 150° to 390° (= 30°), clockwise, sweep = 240°
+    const arcStart = polarXY(150, R);
+    const arcEnd = polarXY(30, R);
+
+    // Background arc
+    const bgArcD = `M ${arcStart.x} ${arcStart.y} A ${R} ${R} 0 1 1 ${arcEnd.x} ${arcEnd.y}`;
+    svg.appendChild(svgEl('path', {
+      d: bgArcD, fill: 'none',
+      stroke: '#e5e7eb', 'stroke-width': '14', 'stroke-linecap': 'round',
+    }));
+
+    // Foreground arc (coloured up to reading)
+    const range = s.max - s.min || 1;
+    const readingFrac = Math.max(0, Math.min(1, (s.reading - s.min) / range));
+    const readingAngle = 150 + readingFrac * 240;
+    const arcFgEnd = polarXY(readingAngle, R);
+    // Only draw if not blank and reading > min
+    if (!s.blank && readingFrac > 0) {
+      const largeArc = readingFrac * 240 > 180 ? 1 : 0;
+      const fgArcD = `M ${arcStart.x} ${arcStart.y} A ${R} ${R} 0 ${largeArc} 1 ${arcFgEnd.x} ${arcFgEnd.y}`;
+      svg.appendChild(svgEl('path', {
+        d: fgArcD, fill: 'none',
+        stroke: '#fca5a5', 'stroke-width': '14', 'stroke-linecap': 'round',
+      }));
+    }
+
+    // Tick marks
+    const numMajor = Math.round(range / (s.majorStep || 1));
+    const totalTicks = Math.max(1, numMajor) * s.subs;
+    for (let i = 0; i <= totalTicks; i++) {
+      const frac = i / totalTicks;
+      const angleDeg = 150 + frac * 240;
+      const isMajor = i % s.subs === 0;
+      const tickLen = isMajor ? 20 : 10;
+      const outer = polarXY(angleDeg, R);
+      const inner = polarXY(angleDeg, R - tickLen);
+      svg.appendChild(svgEl('line', {
+        x1: String(outer.x), y1: String(outer.y),
+        x2: String(inner.x), y2: String(inner.y),
+        stroke: '#555', 'stroke-width': isMajor ? '2' : '1',
+      }));
+      if (isMajor && !s.blank) {
+        const labelPos = polarXY(angleDeg, R - 36);
+        const labelVal = s.min + (i / s.subs) * s.majorStep;
+        const labelStr = Number.isInteger(labelVal) ? String(labelVal) : labelVal.toFixed(1);
+        svg.appendChild(svgText(labelPos.x, labelPos.y + 5, labelStr, 11, 'middle', { fill: '#333' }));
+      }
+    }
+
+    // Needle
+    const needleTip = polarXY(readingAngle, R - 18);
+    svg.appendChild(svgEl('line', {
+      x1: String(cx), y1: String(cy),
+      x2: String(needleTip.x), y2: String(needleTip.y),
+      stroke: '#e63946', 'stroke-width': '3', 'stroke-linecap': 'round',
+    }));
+
+    // Centre dot
+    svg.appendChild(svgEl('circle', { cx: String(cx), cy: String(cy), r: '8', fill: '#e63946' }));
+
+    // Reading text below pivot
+    const textY = cy + 36;
+    if (!s.blank) {
+      const readingStr = Number.isInteger(s.reading) ? String(s.reading) : s.reading.toFixed(1);
+      svg.appendChild(svgText(cx, textY, `${readingStr} ${s.unit}`, 16, 'middle', { fill: '#e63946', 'font-weight': '700' }));
+    } else {
+      svg.appendChild(svgText(cx, textY, s.unit, 14, 'middle', { fill: '#aaa' }));
+    }
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   READING SCALE
+   ================================================================ */
+extraTemplates['reading-scale'] = {
+  name: 'Reading Scale',
+  category: 'Measurement',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Scale'));
+    c.appendChild(row(
+      field('Min', numberInput('rs-min', 0, -10000, 10000, 1)),
+      field('Max', numberInput('rs-max', 100, -10000, 10000, 1)),
+      field('Major step', numberInput('rs-major', 10, -10000, 10000, 0.1)),
+    ));
+    c.appendChild(row(
+      field('Subdivisions', numberInput('rs-subs', 5, 1, 20, 1)),
+      field('Unit', textInput('rs-unit', '', 'e.g. ml, °C, N')),
+    ));
+    c.appendChild(sectionLabel('Reading'));
+    c.appendChild(row(
+      field('Reading', numberInput('rs-reading', 0, -10000, 10000, 1)),
+    ));
+    c.appendChild(row(
+      field('Orientation', select('rs-orient', [['vertical', 'Vertical'], ['horizontal', 'Horizontal']])),
+    ));
+    c.appendChild(row(
+      checkbox('rs-blank', 'Blank', false),
+      checkbox('rs-pointer', 'Show pointer', true),
+    ));
+  },
+  readConfig() {
+    return {
+      min: val('rs-min'),
+      max: val('rs-max') || 100,
+      majorStep: val('rs-major') || 10,
+      subs: Math.max(1, Math.min(20, Math.round(val('rs-subs') || 5))),
+      unit: val('rs-unit'),
+      reading: val('rs-reading'),
+      orient: val('rs-orient') || 'vertical',
+      blank: val('rs-blank'),
+      showPointer: val('rs-pointer'),
+    };
+  },
+  generateSVG(s) {
+    const PAD = 90;
+    const lineLen = 420;
+    const range = (s.max - s.min) || 1;
+    const isVert = s.orient === 'vertical';
+
+    const W = isVert ? 280 : lineLen + PAD * 2;
+    const H = isVert ? lineLen + PAD * 2 : 280;
+    const svg = makeSVG(W, H);
+
+    const numMajor = Math.round(range / (s.majorStep || 1));
+    const totalTicks = Math.max(1, numMajor) * s.subs;
+
+    if (isVert) {
+      const lineX = W / 2 + 30;
+      const lineTop = PAD;
+      const lineBot = PAD + lineLen;
+
+      // Scale line
+      svg.appendChild(svgEl('line', {
+        x1: String(lineX), y1: String(lineTop),
+        x2: String(lineX), y2: String(lineBot),
+        stroke: '#333', 'stroke-width': '2.5',
+      }));
+
+      // Ticks (min at bottom, max at top)
+      for (let i = 0; i <= totalTicks; i++) {
+        const frac = i / totalTicks;
+        const tickY = lineTop + (1 - frac) * lineLen;
+        const isMajor = i % s.subs === 0;
+        const tickLen = isMajor ? 22 : 11;
+        svg.appendChild(svgEl('line', {
+          x1: String(lineX), y1: String(tickY),
+          x2: String(lineX + tickLen), y2: String(tickY),
+          stroke: '#333', 'stroke-width': isMajor ? '1.8' : '1',
+        }));
+        if (isMajor && !s.blank) {
+          const labelVal = s.min + frac * range;
+          const labelStr = Number.isInteger(labelVal) ? String(labelVal) : labelVal.toFixed(1);
+          svg.appendChild(svgText(lineX + tickLen + 8, tickY + 4, labelStr, 13, 'start', { fill: '#333' }));
+        }
+      }
+
+      // Unit label at top
+      if (s.unit) {
+        svg.appendChild(svgText(lineX, lineTop - 12, s.unit, 12, 'middle', { fill: '#555' }));
+      }
+
+      // Pointer (red left-pointing triangle to the left of line at reading)
+      if (s.showPointer) {
+        const readingFrac = Math.max(0, Math.min(1, (s.reading - s.min) / range));
+        const py = lineTop + (1 - readingFrac) * lineLen;
+        const triSize = 9;
+        const triX = lineX - 4;
+        // Left-pointing triangle
+        const d = `M ${triX} ${py} L ${triX + triSize + 4} ${py - triSize} L ${triX + triSize + 4} ${py + triSize} Z`;
+        svg.appendChild(svgEl('path', { d, fill: '#e63946', stroke: 'none' }));
+        if (!s.blank) {
+          const readingStr = Number.isInteger(s.reading) ? String(s.reading) : s.reading.toFixed(1);
+          svg.appendChild(svgText(triX - 8, py + 4, readingStr, 13, 'end', { fill: '#e63946', 'font-weight': '700' }));
+        }
+      }
+    } else {
+      // Horizontal
+      const lineY = H / 2 - 20;
+      const lineLeft = PAD;
+      const lineRight = PAD + lineLen;
+
+      // Scale line
+      svg.appendChild(svgEl('line', {
+        x1: String(lineLeft), y1: String(lineY),
+        x2: String(lineRight), y2: String(lineY),
+        stroke: '#333', 'stroke-width': '2.5',
+      }));
+
+      // Ticks (min at left, max at right)
+      for (let i = 0; i <= totalTicks; i++) {
+        const frac = i / totalTicks;
+        const tickX = lineLeft + frac * lineLen;
+        const isMajor = i % s.subs === 0;
+        const tickLen = isMajor ? 22 : 11;
+        svg.appendChild(svgEl('line', {
+          x1: String(tickX), y1: String(lineY),
+          x2: String(tickX), y2: String(lineY + tickLen),
+          stroke: '#333', 'stroke-width': isMajor ? '1.8' : '1',
+        }));
+        if (isMajor && !s.blank) {
+          const labelVal = s.min + frac * range;
+          const labelStr = Number.isInteger(labelVal) ? String(labelVal) : labelVal.toFixed(1);
+          svg.appendChild(svgText(tickX, lineY + tickLen + 16, labelStr, 13, 'middle', { fill: '#333' }));
+        }
+      }
+
+      // Unit label at right end
+      if (s.unit) {
+        svg.appendChild(svgText(lineRight + 12, lineY + 4, s.unit, 12, 'start', { fill: '#555' }));
+      }
+
+      // Pointer (red upward-pointing triangle above line)
+      if (s.showPointer) {
+        const readingFrac = Math.max(0, Math.min(1, (s.reading - s.min) / range));
+        const px = lineLeft + readingFrac * lineLen;
+        const triSize = 9;
+        const triY = lineY - 4;
+        // Downward-pointing triangle (pointing down toward line)
+        const d = `M ${px} ${triY} L ${px - triSize} ${triY - triSize - 4} L ${px + triSize} ${triY - triSize - 4} Z`;
+        svg.appendChild(svgEl('path', { d, fill: '#e63946', stroke: 'none' }));
+        if (!s.blank) {
+          const readingStr = Number.isInteger(s.reading) ? String(s.reading) : s.reading.toFixed(1);
+          svg.appendChild(svgText(px, triY - triSize - 16, readingStr, 13, 'middle', { fill: '#e63946', 'font-weight': '700' }));
+        }
+      }
+    }
+
+    return svg;
+  },
+};
+
 /* ── Export ─────────────────────────────────────────────── */
 export { extraTemplates };
