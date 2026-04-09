@@ -10,6 +10,7 @@ function defaultState() {
     startedAt: null,
     tickSound: true,
     darkTheme: false,
+    alarmFiredAt: null,  // prevents double-alarm when panel + modal both open
   };
 }
 
@@ -83,12 +84,24 @@ export function setMode(mode) {
   s.mode = mode;
   if (mode === 'stopwatch') {
     s.remainingMs = 0;
+  } else if (mode === 'clock') {
+    // clock just displays wall time — no timer state needed
   } else {
     s.remainingMs = s.totalSeconds * 1000;
   }
   s.running = false;
   s.startedAt = null;
+  s.alarmFiredAt = null;
   setState(s);
+}
+
+export function fireAlarm() {
+  const s = getState();
+  // Only fire if no alarm has been fired in the last 5s (prevents double-alarm)
+  if (s.alarmFiredAt && Date.now() - s.alarmFiredAt < 5000) return false;
+  s.alarmFiredAt = Date.now();
+  setState(s);
+  return true;
 }
 
 export function setTickSound(enabled) {

@@ -1,7 +1,7 @@
 import {
   getState, setState, getRemainingMs,
   start, pause, reset, setDuration, setMode,
-  setTickSound, setDarkTheme,
+  setTickSound, setDarkTheme, fireAlarm,
 } from './timer-core.js';
 
 // ── DOM refs ─────────────────────────────────────────────
@@ -68,6 +68,11 @@ function formatTime(ms) {
   return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
 
+function formatClock() {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+}
+
 function getColor(state, remaining) {
   if (state.mode === 'stopwatch') return 'var(--color-blue)';
   const total = state.totalSeconds * 1000;
@@ -79,25 +84,40 @@ function getColor(state, remaining) {
 }
 
 function updateProgressRing(state, remaining) {
-  const total = state.totalSeconds * 1000;
   let progress;
-  if (state.mode === 'stopwatch') {
-    const cycle = total > 0 ? total : 60000;
-    progress = (remaining % cycle) / cycle;
+  if (state.mode === 'clock') {
+    const now = new Date();
+    progress = (now.getSeconds() + now.getMilliseconds() / 1000) / 60;
+    ringProgress.style.stroke = 'var(--color-blue)';
+    ringGlow.style.stroke = 'var(--color-blue)';
+    document.documentElement.style.setProperty('--color-active', 'var(--color-blue)');
   } else {
-    progress = total > 0 ? remaining / total : 0;
+    const total = state.totalSeconds * 1000;
+    if (state.mode === 'stopwatch') {
+      const cycle = total > 0 ? total : 60000;
+      progress = (remaining % cycle) / cycle;
+    } else {
+      progress = total > 0 ? remaining / total : 0;
+    }
+    const color = getColor(state, remaining);
+    ringProgress.style.stroke = color;
+    ringGlow.style.stroke = color;
+    document.documentElement.style.setProperty('--color-active', color);
   }
   const offset = CIRCUMFERENCE * (1 - progress);
   ringProgress.style.strokeDashoffset = offset;
   ringGlow.style.strokeDashoffset = offset;
-
-  const color = getColor(state, remaining);
-  ringProgress.style.stroke = color;
-  ringGlow.style.stroke = color;
-  document.documentElement.style.setProperty('--color-active', color);
 }
 
 function updateDisplay(state, remaining) {
+  if (state.mode === 'clock') {
+    timeDigits.textContent = formatClock();
+    timeLabel.textContent = 'current time';
+    btnStart.classList.remove('running');
+    startLabel.textContent = 'Start';
+    startIcon.setAttribute('points', '4,2 14,8 4,14');
+    return;
+  }
   timeDigits.textContent = formatTime(remaining);
   timeLabel.textContent = state.mode === 'stopwatch' ? 'elapsed' : 'remaining';
 
@@ -114,9 +134,15 @@ function updateDisplay(state, remaining) {
 
 function syncUI() {
   const state = getState();
+  const isClockMode = state.mode === 'clock';
 
   modeBtns.forEach(b => b.classList.toggle('active', b.dataset.mode === state.mode));
   presetsSection.style.display = state.mode === 'countdown' ? '' : 'none';
+
+  btnStart.disabled = isClockMode;
+  btnStart.style.opacity = isClockMode ? '0.35' : '';
+  btnReset.disabled = isClockMode;
+  btnReset.style.opacity = isClockMode ? '0.35' : '';
 
   presetPills.forEach(p => {
     p.classList.toggle('active', parseInt(p.dataset.seconds) === state.totalSeconds && state.mode === 'countdown');
@@ -146,9 +172,11 @@ function tick() {
     if (remaining <= 0 && !alarmPlayed) {
       alarmPlayed = true;
       pause();
-      playAlarm();
-      document.body.classList.add('alarm-active');
-      setTimeout(() => document.body.classList.remove('alarm-active'), 3000);
+      if (fireAlarm()) {
+        playAlarm();
+        document.body.classList.add('alarm-active');
+        setTimeout(() => document.body.classList.remove('alarm-active'), 3000);
+      }
     }
   }
 

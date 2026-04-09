@@ -427,13 +427,9 @@ btnPause.addEventListener('click', () => {
 });
 
 // ── End Exam ────────────────────────────────────────────
-btnEnd.addEventListener('click', () => {
-  if (!confirm('End this exam? This cannot be undone.')) return;
-  const state = getState();
-  if (state) {
-    state.phase = 'ended';
-    setState(state);
-  }
+btnEnd.addEventListener('click', async () => {
+  clearState();
+  await miro.board.ui.closeModal();
 });
 
 // ── Show/hide screens ───────────────────────────────────
