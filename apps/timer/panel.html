@@ -102,6 +102,24 @@
       Exam Mode
     </button>
 
+    <hr class="divider" />
+
+    <!-- Timer Cards -->
+    <div class="section-label">Timer Cards</div>
+    <p class="section-hint">Place a clickable card on the board that opens this timer pre-set.</p>
+    <div class="presets card-dur-row" id="card-dur-presets">
+      <button class="preset-pill card-dur-pill active" data-seconds="300">5m</button>
+      <button class="preset-pill card-dur-pill" data-seconds="600">10m</button>
+      <button class="preset-pill card-dur-pill" data-seconds="900">15m</button>
+      <button class="preset-pill card-dur-pill" data-seconds="1200">20m</button>
+      <button class="preset-pill card-dur-pill" data-seconds="1800">30m</button>
+    </div>
+    <input type="text" id="card-label" class="card-label-input" placeholder="Label (e.g. Group Activity)" maxlength="40" />
+    <button class="btn btn-modal" id="btn-place-card">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="12" height="9" rx="1.5"/><path d="M5 5V4a1 1 0 011-1h4a1 1 0 011 1v1"/><line x1="8" y1="8" x2="8" y2="11"/><line x1="6.5" y1="9.5" x2="9.5" y2="9.5"/></svg>
+      Place on Board
+    </button>
+
     <script type="module" src="/timer/src/panel.js"></script>
   </body>
 </html>

@@ -1,6 +1,60 @@
 // ── Exam Mode ───────────────────────────────────────────
 const EXAM_KEY = 'miro-exam-state';
 
+// ── Exam Presets ─────────────────────────────────────────
+const PRESETS_KEY = 'miro-exam-presets';
+
+function getPresets() {
+  try { return JSON.parse(localStorage.getItem(PRESETS_KEY) || '[]'); } catch { return []; }
+}
+
+function savePresets(presets) {
+  localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+}
+
+function presetLabel(p) {
+  const dur = p.durationMin >= 60
+    ? `${Math.floor(p.durationMin / 60)}h${p.durationMin % 60 ? ` ${p.durationMin % 60}m` : ''}`
+    : `${p.durationMin}m`;
+  const parts = [dur];
+  if (p.readingMin) parts.push(`R${p.readingMin}m`);
+  if (p.extra25) parts.push('+25%');
+  if (p.extra50) parts.push('+50%');
+  return parts.join(' · ');
+}
+
+function renderPresets() {
+  const list = document.getElementById('exam-presets-list');
+  const presets = getPresets();
+  if (!presets.length) {
+    list.innerHTML = '<span class="exam-presets-hint">No presets yet — configure an exam and click Save Preset</span>';
+    return;
+  }
+  list.innerHTML = '';
+  presets.forEach((p, i) => {
+    const pill = document.createElement('div');
+    pill.className = 'exam-preset-pill';
+    pill.innerHTML = `<span>${presetLabel(p)}</span><button class="exam-preset-del" title="Delete preset">×</button>`;
+    pill.querySelector('span').addEventListener('click', () => loadPreset(p));
+    pill.querySelector('.exam-preset-del').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const updated = getPresets();
+      updated.splice(i, 1);
+      savePresets(updated);
+      renderPresets();
+    });
+    list.appendChild(pill);
+  });
+}
+
+function loadPreset(p) {
+  durationHours.value = Math.floor(p.durationMin / 60);
+  durationMinutes.value = p.durationMin % 60;
+  readingTimeSelect.value = String(p.readingMin || 0);
+  extra25Cb.checked = !!p.extra25;
+  extra50Cb.checked = !!p.extra50;
+}
+
 // ── DOM refs: Setup ─────────────────────────────────────
 const setupScreen = document.getElementById('setup-screen');
 const displayScreen = document.getElementById('display-screen');
@@ -445,6 +499,24 @@ function showDisplay(state) {
   examDate.textContent = fmtDate(new Date());
 }
 
+// ── Save Preset ─────────────────────────────────────────
+document.getElementById('btn-save-preset').addEventListener('click', () => {
+  const hours = parseInt(durationHours.value) || 0;
+  const minutes = parseInt(durationMinutes.value) || 0;
+  const durationMin = hours * 60 + minutes;
+  if (durationMin <= 0) { durationHours.focus(); return; }
+  const preset = {
+    durationMin,
+    readingMin: parseInt(readingTimeSelect.value) || 0,
+    extra25: extra25Cb.checked,
+    extra50: extra50Cb.checked,
+  };
+  const presets = getPresets();
+  presets.unshift(preset);
+  savePresets(presets.slice(0, 8)); // max 8 presets
+  renderPresets();
+});
+
 // ── Init ────────────────────────────────────────────────
 const existing = getState();
 if (existing && existing.phase !== 'setup' && existing.phase !== 'ended') {
@@ -454,4 +526,5 @@ if (existing && existing.phase !== 'setup' && existing.phase !== 'ended') {
   showSetup();
 }
 
+renderPresets();
 tick();

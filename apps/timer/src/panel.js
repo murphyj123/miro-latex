@@ -16,13 +16,16 @@ const startIcon = document.getElementById('start-icon');
 const btnReset = document.getElementById('btn-reset');
 const btnModal = document.getElementById('btn-modal');
 const presetsSection = document.getElementById('presets-section');
-const presetPills = document.querySelectorAll('.preset-pill');
+const presetPills = document.querySelectorAll('.preset-pill:not(.card-dur-pill)');
 const modeBtns = document.querySelectorAll('.mode-btn');
 const tickSoundCb = document.getElementById('tick-sound');
 const darkThemeCb = document.getElementById('dark-theme');
 const customMin = document.getElementById('custom-min');
 const customSec = document.getElementById('custom-sec');
 const btnSet = document.getElementById('btn-set');
+const btnPlaceCard = document.getElementById('btn-place-card');
+const cardLabel = document.getElementById('card-label');
+const cardDurPills = document.querySelectorAll('.card-dur-pill');
 
 // ── Ring geometry ────────────────────────────────────────
 const RING_RADIUS = 80;
@@ -281,6 +284,52 @@ btnExam.addEventListener('click', async () => {
 // Listen for storage events from modal
 window.addEventListener('storage', () => syncUI());
 
+// ── Timer Cards ───────────────────────────────────────────
+let cardDurationSeconds = 300;
+
+cardDurPills.forEach(pill => {
+  pill.addEventListener('click', () => {
+    cardDurPills.forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    cardDurationSeconds = parseInt(pill.dataset.seconds);
+  });
+});
+
+btnPlaceCard.addEventListener('click', async () => {
+  const label = cardLabel.value.trim();
+  const mins = Math.round(cardDurationSeconds / 60);
+  const title = label || `Timer — ${mins} min`;
+
+  try {
+    await miro.board.createAppCard({
+      title,
+      description: String(cardDurationSeconds),
+      fields: [{ value: `${mins} min`, tooltip: 'Click to open timer' }],
+      status: 'idle',
+    });
+    const orig = btnPlaceCard.innerHTML;
+    btnPlaceCard.textContent = '✓ Placed!';
+    cardLabel.value = '';
+    setTimeout(() => { btnPlaceCard.innerHTML = orig; }, 1800);
+  } catch (e) {
+    console.error('App card creation failed:', e);
+  }
+});
+
 // ── Init ─────────────────────────────────────────────────
+
+// Load duration from a board card click (set by index.js via localStorage)
+const cardPreset = localStorage.getItem('timer-card-load');
+if (cardPreset) {
+  try {
+    const { seconds } = JSON.parse(cardPreset);
+    if (seconds > 0) {
+      setMode('countdown');
+      setDuration(seconds);
+    }
+  } catch { /* ignore */ }
+  localStorage.removeItem('timer-card-load');
+}
+
 syncUI();
 tick();
