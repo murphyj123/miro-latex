@@ -305,7 +305,7 @@ btnPlaceCard.addEventListener('click', async () => {
       title,
       description: String(cardDurationSeconds),
       fields: [{ value: `${mins} min`, tooltip: 'Click to open timer' }],
-      status: 'idle',
+      status: 'connected',
     });
     const orig = btnPlaceCard.innerHTML;
     btnPlaceCard.textContent = '✓ Placed!';
