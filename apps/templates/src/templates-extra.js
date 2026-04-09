@@ -1926,7 +1926,7 @@ extraTemplates['protractor'] = {
     c.appendChild(row(
       checkbox('pr-rays', 'Show rays', true),
       checkbox('pr-numbers', 'Show numbers', true),
-      checkbox('pr-transparent', 'Transparent', false),
+      checkbox('pr-transparent', 'Scale only (no body)', false),
     ));
   },
   readConfig() {
@@ -1946,18 +1946,20 @@ extraTemplates['protractor'] = {
     const H = isFull ? R * 2 + pad * 2 : R + pad * 2 + 30;
     const svg = makeSVG(W, H);
     const cx = W / 2, cy = isFull ? H / 2 : H - pad - 10;
-    const arcFill = s.transparent ? 'none' : 'rgba(66,98,255,0.04)';
+    // In transparent mode: no fill, no arc outline — just the scale (ticks + numbers + baseline)
+    const arcFill   = s.transparent ? 'none' : 'rgba(66,98,255,0.04)';
+    const arcStroke = s.transparent ? 'none' : '#2b2d42';
 
     /* base line */
     svg.appendChild(svgEl('line', { x1: cx - R - 10, y1: cy, x2: cx + R + 10, y2: cy, stroke: '#2b2d42', 'stroke-width': '1.5' }));
 
     /* arc */
     if (isFull) {
-      svg.appendChild(svgEl('circle', { cx, cy, r: R, fill: arcFill, stroke: '#2b2d42', 'stroke-width': '2' }));
+      svg.appendChild(svgEl('circle', { cx, cy, r: R, fill: arcFill, stroke: arcStroke, 'stroke-width': '2' }));
     } else {
       svg.appendChild(svgEl('path', {
         d: `M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`,
-        fill: arcFill, stroke: '#2b2d42', 'stroke-width': '2',
+        fill: arcFill, stroke: arcStroke, 'stroke-width': '2',
       }));
     }
 
