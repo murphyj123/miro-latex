@@ -308,7 +308,10 @@ TEMPLATES['bar-model'] = {
       </div>
       <hr class="cfg-divider"/>
       <div id="bm-bars-container"></div>
-      <button type="button" class="cfg-add-btn" id="bm-add-bar">+ Add Bar</button>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+        <button type="button" class="cfg-add-btn" id="bm-add-bar" style="flex:1;">+ Add Bar</button>
+        <button type="button" class="cfg-add-btn" id="bm-clear-colours" style="flex:1;" title="Set all segments to white (no colour)">Clear colours</button>
+      </div>
     `;
 
     const braceChk = $('bm-brace');
@@ -321,8 +324,7 @@ TEMPLATES['bar-model'] = {
     $('bm-total').addEventListener('input', () => window._tplSchedulePreview?.());
 
     function makeSegRow(label = '', colour) {
-      const segCount = $('bm-bars-container').querySelectorAll('.bm-seg-row').length;
-      const col = colour || SEG_COLOURS[segCount % SEG_COLOURS.length];
+      const col = colour || '#ffffff';
       const row = document.createElement('div');
       row.className = 'bm-seg-row';
       const safeLabel = escHtml(label);
@@ -379,9 +381,9 @@ TEMPLATES['bar-model'] = {
       });
 
       const segs = initialSegs || [
-        { label: '', colour: SEG_COLOURS[0] },
-        { label: '', colour: SEG_COLOURS[1] },
-        { label: '', colour: SEG_COLOURS[2] },
+        { label: '', colour: '#ffffff' },
+        { label: '', colour: '#ffffff' },
+        { label: '', colour: '#ffffff' },
       ];
       segs.forEach(s => segsList.appendChild(makeSegRow(s.label, s.colour)));
 
@@ -395,6 +397,14 @@ TEMPLATES['bar-model'] = {
     $('bm-add-bar').addEventListener('click', () => {
       addBar();
       renumberBars();
+      window._tplSchedulePreview?.();
+    });
+    $('bm-clear-colours').addEventListener('click', () => {
+      document.querySelectorAll('.bm-seg-colour').forEach(inp => {
+        inp.value = '#ffffff';
+        const dot = inp.closest('.cfg-swatch')?.querySelector('.cfg-swatch-dot');
+        if (dot) dot.style.background = '#ffffff';
+      });
       window._tplSchedulePreview?.();
     });
   },

@@ -1964,10 +1964,10 @@ extraTemplates['protractor'] = {
     /* centre dot */
     svg.appendChild(svgEl('circle', { cx, cy, r: '3', fill: '#e63946' }));
 
-    /* degree ticks */
+    /* degree ticks — 0° at right baseline, increases anti-clockwise */
     const maxDeg = isFull ? 360 : 180;
     for (let d = 0; d <= maxDeg; d++) {
-      const a = isFull ? degToRad(-d + 90) : degToRad(180 - d);
+      const a = degToRad(d);
       const isMajor = d % 10 === 0;
       const isMid = d % 5 === 0;
       const tickLen = isMajor ? 18 : isMid ? 12 : 6;
@@ -1990,17 +1990,18 @@ extraTemplates['protractor'] = {
 
     /* marked angle ray */
     if (s.showRays && s.markedAngle > 0 && s.markedAngle <= maxDeg) {
-      const a = isFull ? degToRad(-s.markedAngle + 90) : degToRad(180 - s.markedAngle);
+      const a = degToRad(s.markedAngle);
       const rx = cx + (R + 15) * Math.cos(a);
       const ry = cy - (R + 15) * Math.sin(a);
       svg.appendChild(svgEl('line', { x1: cx, y1: cy, x2: rx, y2: ry, stroke: '#e63946', 'stroke-width': '2' }));
 
-      /* angle arc */
-      const baseA = isFull ? 90 : 180;
-      const endA = isFull ? 90 - s.markedAngle : 180 - s.markedAngle;
-      const arcPath = describeArc(cx, cy, 35, Math.min(baseA, endA), Math.max(baseA, endA));
+      /* angle arc from 0° (right) to marked angle */
+      const arcPath = describeArc(cx, cy, 35, 0, s.markedAngle);
       svg.appendChild(svgEl('path', { d: arcPath, fill: 'none', stroke: '#e63946', 'stroke-width': '1.5' }));
-      svg.appendChild(svgText(cx, cy - 44, `${s.markedAngle}°`, 12, 'middle', { fill: '#e63946', 'font-weight': '600' }));
+      /* label above centre */
+      const labelA = degToRad(s.markedAngle / 2);
+      const labelR = 52;
+      svg.appendChild(svgText(cx + labelR * Math.cos(labelA), cy - labelR * Math.sin(labelA), `${s.markedAngle}°`, 12, 'middle', { fill: '#e63946', 'font-weight': '600' }));
     }
 
     return svg;
@@ -3061,61 +3062,92 @@ extraTemplates['dice'] = {
 extraTemplates['spinner'] = {
   name: 'Spinner',
   category: 'Number Extra',
-  _defaultPalette: ['#e63946','#4262ff','#2a9d8f','#e9c46a','#9b59b6','#e67e22','#1abc9c','#34495e'],
-  _buildColourSwatches(container, n) {
+  _palette: ['#e63946','#4262ff','#2a9d8f','#e9c46a','#9b59b6','#e67e22','#1abc9c','#34495e'],
+  _defaults: [
+    {label:'1',pct:25},{label:'2',pct:25},{label:'3',pct:25},{label:'4',pct:25},
+    {label:'5',pct:20},{label:'6',pct:20},{label:'7',pct:20},{label:'8',pct:20},
+  ],
+  _buildRows(container, n, equal) {
     container.innerHTML = '';
-    const r = row();
     for (let i = 0; i < n; i++) {
-      r.appendChild(field(`Colour ${i + 1}`, colourSwatch(`sp2-col-${i}`, this._defaultPalette[i % this._defaultPalette.length])));
+      const def = this._defaults[i] || {label:`${i+1}`, pct: Math.round(100/n)};
+      const col = this._palette[i % this._palette.length];
+      if (equal) {
+        container.appendChild(row(
+          field(`Sector ${i+1}`, textInput(`sp2-label-${i}`, def.label, 'label')),
+          field('Colour', colourSwatch(`sp2-col-${i}`, col)),
+        ));
+      } else {
+        container.appendChild(row(
+          field(`Sector ${i+1}`, textInput(`sp2-label-${i}`, def.label, 'label')),
+          field('%', numberInput(`sp2-pct-${i}`, def.pct, 1, 99, 1)),
+          field('Colour', colourSwatch(`sp2-col-${i}`, col)),
+        ));
+      }
     }
-    container.appendChild(r);
   },
   renderConfig(c) {
     c.appendChild(sectionLabel('Spinner'));
     const nInput = numberInput('sp2-n', 4, 2, 8, 1);
-    c.appendChild(row(
-      field('Sectors', nInput),
-    ));
-    c.appendChild(row(
-      field('Labels (comma sep)', textInput('sp2-labels', '1,2,3,4')),
-    ));
-    c.appendChild(row(checkbox('sp2-equal', 'Equal sectors', true)));
+    const eqCheck = checkbox('sp2-equal', 'Equal sectors', true);
+    c.appendChild(row(field('Sectors', nInput)));
+    c.appendChild(row(eqCheck));
 
-    const swatchContainer = document.createElement('div');
-    swatchContainer.id = 'sp2-colours-container';
-    c.appendChild(swatchContainer);
-    this._buildColourSwatches(swatchContainer, 4);
+    const sectorRows = document.createElement('div');
+    sectorRows.id = 'sp2-rows';
+    c.appendChild(sectorRows);
+    this._buildRows(sectorRows, 4, true);
 
-    nInput.addEventListener('change', () => {
+    const rebuild = () => {
       const n = Math.max(2, Math.min(8, parseInt(nInput.value, 10) || 4));
-      this._buildColourSwatches(swatchContainer, n);
-    });
+      const eq = document.getElementById('sp2-equal')?.checked ?? true;
+      this._buildRows(sectorRows, n, eq);
+    };
+    nInput.addEventListener('change', rebuild);
+    // Attach change listener after checkbox is in DOM
+    setTimeout(() => {
+      const el = document.getElementById('sp2-equal');
+      if (el) el.addEventListener('change', rebuild);
+    }, 0);
   },
   readConfig() {
     const n = Math.max(2, Math.min(8, val('sp2-n') || 4));
-    const colours = [];
+    const equal = val('sp2-equal') !== false;
+    const sectors = [];
     for (let i = 0; i < n; i++) {
-      const el = document.getElementById(`sp2-col-${i}`);
-      colours.push(el ? el.value : this._defaultPalette[i % this._defaultPalette.length]);
+      const labelEl = document.getElementById(`sp2-label-${i}`);
+      const colEl = document.getElementById(`sp2-col-${i}`);
+      const pctEl = document.getElementById(`sp2-pct-${i}`);
+      sectors.push({
+        label: labelEl ? labelEl.value.trim() : String(i + 1),
+        colour: colEl ? colEl.value : this._palette[i % this._palette.length],
+        pct: pctEl ? (parseInt(pctEl.value, 10) || 1) : Math.round(100 / n),
+      });
     }
-    return {
-      n,
-      labels: (val('sp2-labels') || '').split(',').map(s => s.trim()),
-      colours,
-      equal: val('sp2-equal'),
-    };
+    return { n, equal, sectors };
   },
   generateSVG(s) {
     const W = 400, H = 400;
     const svg = makeSVG(W, H);
     const cx = W / 2, cy = H / 2, R = 160;
 
-    const sectorAngle = 360 / s.n;
-    const defaultColours = ['#e63946', '#4262ff', '#2a9d8f', '#e9c46a', '#f4a261', '#264653', '#d62828', '#8338ec'];
+    // Compute actual angles
+    let angles;
+    if (s.equal) {
+      const a = 360 / s.n;
+      angles = s.sectors.map(() => a);
+    } else {
+      const total = s.sectors.reduce((acc, sec) => acc + sec.pct, 0) || 1;
+      angles = s.sectors.map(sec => (sec.pct / total) * 360);
+    }
 
-    for (let i = 0; i < s.n; i++) {
-      const startDeg = i * sectorAngle - 90;
-      const endDeg = (i + 1) * sectorAngle - 90;
+    let cumDeg = -90; // start at top
+    s.sectors.forEach((sec, i) => {
+      const sectorAngle = angles[i];
+      const startDeg = cumDeg;
+      const endDeg = cumDeg + sectorAngle;
+      cumDeg = endDeg;
+
       const startRad = degToRad(startDeg);
       const endRad = degToRad(endDeg);
       const x1 = cx + R * Math.cos(startRad);
@@ -3125,24 +3157,20 @@ extraTemplates['spinner'] = {
       const large = sectorAngle > 180 ? 1 : 0;
 
       const d = `M ${cx} ${cy} L ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2} Z`;
-      const col = s.colours[i] || defaultColours[i % defaultColours.length];
-      svg.appendChild(svgEl('path', { d, fill: col, stroke: '#fff', 'stroke-width': '2' }));
+      svg.appendChild(svgEl('path', { d, fill: sec.colour, stroke: '#fff', 'stroke-width': '2' }));
 
-      /* label */
-      const midDeg = degToRad((startDeg + endDeg) / 2);
-      const lr = R * 0.6;
-      const lx = cx + lr * Math.cos(midDeg);
-      const ly = cy + lr * Math.sin(midDeg);
-      svg.appendChild(svgText(lx, ly + 5, s.labels[i] || '', 16, 'middle', { fill: '#fff', 'font-weight': '700' }));
-    }
+      // Label at sector midpoint
+      const midRad = degToRad(startDeg + sectorAngle / 2);
+      const lr = R * 0.62;
+      const lx = cx + lr * Math.cos(midRad);
+      const ly = cy + lr * Math.sin(midRad);
+      if (sectorAngle >= 15) {
+        svg.appendChild(svgText(lx, ly + 5, sec.label, 15, 'middle', { fill: '#fff', 'font-weight': '700' }));
+      }
+    });
 
-    /* border circle */
     svg.appendChild(svgEl('circle', { cx, cy, r: R, fill: 'none', stroke: '#2b2d42', 'stroke-width': '2.5' }));
-
-    /* centre hub */
     svg.appendChild(svgEl('circle', { cx, cy, r: '12', fill: '#2b2d42', stroke: '#fff', 'stroke-width': '2' }));
-
-    /* pointer (triangle at top) */
     svg.appendChild(svgEl('polygon', {
       points: `${cx},${cy - R - 18} ${cx - 10},${cy - R + 2} ${cx + 10},${cy - R + 2}`,
       fill: '#2b2d42', stroke: '#fff', 'stroke-width': '1',
@@ -4361,97 +4389,6 @@ extraTemplates['cumulative-frequency'] = {
 /* ================================================================
    36. FORMULA TRIANGLE (Speed-Distance-Time etc.)
    ================================================================ */
-extraTemplates['formula-triangle'] = {
-  name: 'Formula Triangle',
-  category: 'Number',
-  renderConfig(c) {
-    c.appendChild(sectionLabel('Formula Triangle'));
-    c.appendChild(row(
-      field('Formula type', select('ftr-type', [
-        ['sdt', 'Speed = Distance / Time'],
-        ['vir', 'V = I \u00D7 R'],
-        ['density', 'Density = Mass / Volume'],
-        ['pressure', 'Pressure = Force / Area'],
-        ['custom', 'Custom'],
-      ])),
-    ));
-    c.appendChild(divider());
-    c.appendChild(sectionLabel('Custom labels (used when type = Custom)'));
-    c.appendChild(row(
-      field('Top', textInput('ftr-top', 'D')),
-    ));
-    c.appendChild(row(
-      field('Bottom-left', textInput('ftr-bl', 'S')),
-      field('Bottom-right', textInput('ftr-br', 'T')),
-    ));
-  },
-  readConfig() {
-    return {
-      formulaType: val('ftr-type') || 'sdt',
-      topLabel: val('ftr-top') || 'D',
-      blLabel: val('ftr-bl') || 'S',
-      brLabel: val('ftr-br') || 'T',
-    };
-  },
-  generateSVG(s) {
-    const W = 360, H = 340;
-    const svg = makeSVG(W, H);
-
-    const presets = {
-      sdt: { top: 'D', bl: 'S', br: 'T', title: 'Speed = Distance \u00F7 Time' },
-      vir: { top: 'V', bl: 'I', br: 'R', title: 'V = I \u00D7 R' },
-      density: { top: 'M', bl: '\u03C1', br: 'V', title: 'Density = Mass \u00F7 Volume' },
-      pressure: { top: 'F', bl: 'P', br: 'A', title: 'Pressure = Force \u00F7 Area' },
-      custom: { top: s.topLabel, bl: s.blLabel, br: s.brLabel, title: '' },
-    };
-    const labels = presets[s.formulaType] || presets.sdt;
-
-    const cx = W / 2;
-    const triTop = 60, triBot = 280;
-    const triLeft = 50, triRight = W - 50;
-    const triMidY = (triTop + triBot) / 2 + 20;
-
-    if (labels.title) {
-      svg.appendChild(svgText(cx, 30, labels.title, 14, 'middle', { fill: '#555', 'font-weight': '600' }));
-    }
-
-    const triPts = `${cx},${triTop} ${triLeft},${triBot} ${triRight},${triBot}`;
-    svg.appendChild(svgEl('polygon', {
-      points: triPts, fill: '#f0f4ff', stroke: '#2b2d42', 'stroke-width': '3',
-    }));
-
-    const divY = triMidY;
-    const t = (divY - triTop) / (triBot - triTop);
-    const divLeftX = cx + (triLeft - cx) * t;
-    const divRightX = cx + (triRight - cx) * t;
-    svg.appendChild(svgEl('line', {
-      x1: String(divLeftX), y1: String(divY),
-      x2: String(divRightX), y2: String(divY),
-      stroke: '#2b2d42', 'stroke-width': '2.5',
-    }));
-
-    const vertX = cx;
-    svg.appendChild(svgEl('line', {
-      x1: String(vertX), y1: String(divY),
-      x2: String(vertX), y2: String(triBot),
-      stroke: '#2b2d42', 'stroke-width': '2.5',
-    }));
-
-    const topCenterY = (triTop + divY) / 2 + 6;
-    svg.appendChild(svgText(cx, topCenterY, labels.top, 32, 'middle', { fill: '#2b2d42', 'font-weight': '700' }));
-
-    const botCenterY = (divY + triBot) / 2 + 8;
-    const botLeftCenterX = (divLeftX + vertX) / 2;
-    const botRightCenterX = (vertX + divRightX) / 2;
-    svg.appendChild(svgText(botLeftCenterX, botCenterY, labels.bl, 28, 'middle', { fill: '#2b2d42', 'font-weight': '700' }));
-    svg.appendChild(svgText(botRightCenterX, botCenterY, labels.br, 28, 'middle', { fill: '#2b2d42', 'font-weight': '700' }));
-
-    svg.appendChild(svgText(vertX, botCenterY, '\u00D7', 16, 'middle', { fill: '#888' }));
-
-    return svg;
-  },
-};
-
 /* ================================================================
    37. COLUMN ADDITION/SUBTRACTION
    ================================================================ */
@@ -5333,26 +5270,27 @@ extraTemplates['ratio-bar'] = {
     c.appendChild(row(
       field('Ratio', textInput('rb-ratio', '2:3', 'e.g. 2:3 or 1:2:3')),
     ));
-    c.appendChild(sectionLabel('Labels'));
+    c.appendChild(sectionLabel('Row Labels (optional)'));
     c.appendChild(row(
-      field('Label A', textInput('rb-la', '', 'e.g. Boys')),
-      field('Label B', textInput('rb-lb', '', 'e.g. Girls')),
+      field('Row A', textInput('rb-la', '', 'e.g. Boys')),
+      field('Row B', textInput('rb-lb', '', 'e.g. Girls')),
     ));
     c.appendChild(row(
-      field('Label C', textInput('rb-lc', '', 'optional')),
-      field('Label D', textInput('rb-ld', '', 'optional')),
+      field('Row C', textInput('rb-lc', '', 'optional')),
+      field('Row D', textInput('rb-ld', '', 'optional')),
+    ));
+    c.appendChild(sectionLabel('Options'));
+    c.appendChild(row(
+      field('Square size', numberInput('rb-size', 40, 20, 80, 4)),
     ));
     c.appendChild(row(
-      field('Total label', textInput('rb-total', '', 'e.g. 30 students')),
-    ));
-    c.appendChild(row(
-      checkbox('rb-blank', 'Blank', false),
-      checkbox('rb-totals', 'Show totals', true),
+      checkbox('rb-showlabels', 'Show row labels', false),
+      checkbox('rb-showratio', 'Show ratio title', false),
     ));
   },
   readConfig() {
     const ratioStr = val('rb-ratio') || '2:3';
-    const parts = ratioStr.split(':').map(p => Math.max(1, Math.min(12, parseInt(p, 10) || 1))).slice(0, 4);
+    const parts = ratioStr.split(':').map(p => Math.max(1, Math.min(20, parseInt(p, 10) || 1))).slice(0, 4);
     if (parts.length < 2) parts.push(1);
     const labelInputs = [val('rb-la'), val('rb-lb'), val('rb-lc'), val('rb-ld')];
     const defaultLetters = ['A', 'B', 'C', 'D'];
@@ -5360,64 +5298,52 @@ extraTemplates['ratio-bar'] = {
     return {
       parts,
       labels,
-      totalLabel: val('rb-total'),
-      blank: val('rb-blank'),
-      showTotals: val('rb-totals'),
+      sqSize: val('rb-size') || 40,
+      showLabels: val('rb-showlabels'),
+      showRatio: val('rb-showratio'),
     };
   },
   generateSVG(s) {
-    const PAD = 90;
-    const blockW = 52, blockH = 52, blockGap = 5, rowGap = 28;
-    const labelW = 90;
-    const COLOURS = ['#90caf9', '#ef9a9a', '#a5d6a7', '#fff176'];
-    const DARK = ['#1565c0', '#b71c1c', '#2e7d32', '#f57f17'];
+    const SQ = s.sqSize;
+    const GAP = 3;           // gap between squares
+    const ROW_GAP = 12;      // gap between rows
+    const LABEL_W = s.showLabels ? 90 : 0;
+    const PAD_X = 60;
+    const PAD_Y = 60;
+    const TITLE_H = s.showRatio ? 34 : 0;
+
     const maxBlocks = Math.max(...s.parts);
     const numRows = s.parts.length;
-    const W = PAD * 2 + labelW + maxBlocks * (blockW + blockGap) + 100;
-    const H = PAD * 2 + 40 + numRows * (blockH + rowGap) + 60;
+    const W = PAD_X * 2 + LABEL_W + maxBlocks * (SQ + GAP) + 40;
+    const H = PAD_Y * 2 + TITLE_H + numRows * SQ + (numRows - 1) * ROW_GAP;
     const svg = makeSVG(W, H);
 
-    let startY = PAD + 40;
-
-    // Title
-    if (!s.blank) {
-      const ratioStr = s.parts.join(':');
-      svg.appendChild(svgText(W / 2, PAD + 16, `Ratio ${ratioStr}`, 16, 'middle', { fill: '#333', 'font-weight': '700' }));
+    // Ratio title
+    if (s.showRatio) {
+      svg.appendChild(svgText(W / 2, PAD_Y + 20, `Ratio  ${s.parts.join(' : ')}`, 16, 'middle', { fill: '#222', 'font-weight': '700' }));
     }
+
+    const startY = PAD_Y + TITLE_H;
+    const startX = PAD_X + LABEL_W;
 
     s.parts.forEach((count, i) => {
-      const rowY = startY + i * (blockH + rowGap);
-      const colour = COLOURS[i % COLOURS.length];
-      const dark = DARK[i % DARK.length];
+      const rowY = startY + i * (SQ + ROW_GAP);
 
-      // Row label on left
-      svg.appendChild(svgText(PAD + labelW - 10, rowY + blockH / 2 + 5, s.labels[i], 14, 'end', { fill: dark, 'font-weight': '700' }));
+      // Optional row label
+      if (s.showLabels) {
+        svg.appendChild(svgText(PAD_X + LABEL_W - 10, rowY + SQ / 2 + 5, s.labels[i], 13, 'end', { fill: '#333', 'font-weight': '600' }));
+      }
 
-      // Blocks
+      // Outline squares — no fill, no numbers
       for (let j = 0; j < count; j++) {
-        const bx = PAD + labelW + j * (blockW + blockGap);
+        const bx = startX + j * (SQ + GAP);
         svg.appendChild(svgEl('rect', {
           x: String(bx), y: String(rowY),
-          width: String(blockW), height: String(blockH),
-          fill: colour, stroke: dark, 'stroke-width': '1.5', rx: '4',
+          width: String(SQ), height: String(SQ),
+          fill: '#ffffff', stroke: '#222', 'stroke-width': '1.5',
         }));
-        if (!s.blank) {
-          svg.appendChild(svgText(bx + blockW / 2, rowY + blockH / 2 + 5, String(j + 1), 13, 'middle', { fill: dark, 'font-weight': '600' }));
-        }
-      }
-
-      // = N at right end
-      if (s.showTotals && !s.blank) {
-        const endX = PAD + labelW + count * (blockW + blockGap) + 8;
-        svg.appendChild(svgText(endX, rowY + blockH / 2 + 5, `= ${count}`, 13, 'start', { fill: dark, 'font-weight': '600' }));
       }
     });
-
-    // Total label below all rows
-    if (s.totalLabel) {
-      const totalY = startY + numRows * (blockH + rowGap) + 24;
-      svg.appendChild(svgText(W / 2, totalY, s.totalLabel, 14, 'middle', { fill: '#555' }));
-    }
 
     return svg;
   },
