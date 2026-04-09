@@ -19,7 +19,7 @@ async function init() {
     const durLabel = secs > 0 ? `${mins}m ${secs}s` : `${mins} min`;
     appCard.status = 'connected';
     appCard.fields = [
-      { value: 'Open timer via icon (top right)', fillColor: '#f0fdf4', textColor: '#065f46' },
+      { value: 'Tap clock icon to open timer', fillColor: '#f0fdf4', textColor: '#065f46', iconShape: 'round' },
     ];
     appCard.style = { cardTheme: '#10b981' };
     await appCard.sync();
