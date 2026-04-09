@@ -66,6 +66,7 @@ function playAlarm() {
 // ── State helpers ────────────────────────────────────────
 let lastTickSecond = -1;
 let alarmPlayed = false;
+let rafId = null;
 
 function formatTime(ms) {
   const totalSec = Math.max(0, Math.ceil(ms / 1000));
@@ -208,7 +209,7 @@ function tick() {
     }
   }
 
-  requestAnimationFrame(tick);
+  rafId = requestAnimationFrame(tick);
 }
 
 // ── Event listeners ──────────────────────────────────────
@@ -305,6 +306,12 @@ btnCards.addEventListener('click', async () => {
   await miro.board.ui.openModal({ url: 'timer/cards.html', width: 420, height: 420 });
 });
 
+// ── Cleanup on unload ─────────────────────────────────────
+// Cancels the rAF loop so reopening the panel doesn't stack multiple loops
+window.addEventListener('pagehide', () => {
+  if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+});
+
 // ── Init ─────────────────────────────────────────────────
 
 // Load duration from a board card click (set by index.js via localStorage)
@@ -321,4 +328,4 @@ if (cardPreset) {
 }
 
 syncUI();
-tick();
+rafId = requestAnimationFrame(tick);

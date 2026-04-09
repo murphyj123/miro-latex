@@ -14,31 +14,44 @@ function defaultState() {
   };
 }
 
+// ── In-memory state cache ────────────────────────────────
+// Eliminates JSON.parse on every rAF frame (was 60×/sec while timer runs).
+// Native 'storage' events keep the cache in sync when another window
+// (e.g. the modal, another tab) writes to localStorage.
+let _cache = null;
+
+function _loadCache() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    _cache = raw ? { ...defaultState(), ...JSON.parse(raw) } : defaultState();
+  } catch { _cache = defaultState(); }
+}
+
+window.addEventListener('storage', (e) => {
+  if (e.key === STORAGE_KEY) _loadCache();
+});
+
+_loadCache();
+
 export function getState() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return defaultState();
-  return { ...defaultState(), ...JSON.parse(raw) };
+  return _cache;
 }
 
 export function setState(state) {
+  _cache = state;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  // Broadcast to other contexts (panel <-> modal)
-  window.dispatchEvent(new StorageEvent('storage', {
-    key: STORAGE_KEY,
-    newValue: JSON.stringify(state),
-  }));
+  // No dispatchEvent: same-window callers (panel buttons) call syncUI() directly.
+  // Cross-window callers (modal) are synced via native browser storage events.
 }
 
 export function getRemainingMs() {
-  const s = getState();
+  const s = _cache;
   if (s.mode === 'stopwatch') {
     if (!s.running) return s.remainingMs;
-    const elapsed = Date.now() - s.startedAt;
-    return s.remainingMs + elapsed;
+    return s.remainingMs + (Date.now() - s.startedAt);
   }
   if (!s.running) return s.remainingMs;
-  const elapsed = Date.now() - s.startedAt;
-  return Math.max(0, s.remainingMs - elapsed);
+  return Math.max(0, s.remainingMs - (Date.now() - s.startedAt));
 }
 
 export function start() {

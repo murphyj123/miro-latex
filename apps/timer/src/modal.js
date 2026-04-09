@@ -60,6 +60,7 @@ function playAlarm() {
 // ── State helpers ────────────────────────────────────────
 let lastTickSecond = -1;
 let alarmPlayed = false;
+let rafId = null;
 
 function formatTime(ms) {
   const totalSec = Math.max(0, Math.ceil(ms / 1000));
@@ -188,7 +189,7 @@ function tick() {
     }
   }
 
-  requestAnimationFrame(tick);
+  rafId = requestAnimationFrame(tick);
 }
 
 // ── Event listeners ──────────────────────────────────────
@@ -240,6 +241,10 @@ darkThemeCb.addEventListener('change', () => {
 // Listen for storage events from panel
 window.addEventListener('storage', () => syncUI());
 
+window.addEventListener('pagehide', () => {
+  if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+});
+
 // ── Init ─────────────────────────────────────────────────
 syncUI();
-tick();
+rafId = requestAnimationFrame(tick);

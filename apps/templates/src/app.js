@@ -1650,7 +1650,7 @@ for (const tpl of interactiveTemplates) {
 
 function schedulePreview() {
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(updatePreview, 80);
+  debounceTimer = setTimeout(updatePreview, 200);
 }
 
 function updatePreview() {
@@ -1683,28 +1683,8 @@ function selectTemplate(name) {
   configPanel.innerHTML = '';
   tpl.renderConfig(configPanel);
 
-  // Wire up live preview on all inputs
-  configPanel.querySelectorAll('input, select, textarea').forEach(el => {
-    el.addEventListener('input', schedulePreview);
-    el.addEventListener('change', schedulePreview);
-  });
-
-  // Wire up colour swatches
-  configPanel.querySelectorAll('.cfg-swatch input[type="color"]').forEach(inp => {
-    inp.addEventListener('input', () => {
-      const dot = inp.nextElementSibling;
-      if (dot) dot.style.background = inp.value;
-    });
-  });
-
-  // Wire up range value displays
-  configPanel.querySelectorAll('.cfg-range').forEach(r => {
-    r.addEventListener('input', () => {
-      const vEl = document.getElementById(r.id + '-val');
-      if (vEl) vEl.textContent = r.value;
-    });
-  });
-
+  // Live preview, colour swatches and range displays are all handled by
+  // delegated listeners on configPanel registered once in init().
   updatePreview();
 
   // Update favourite button state
@@ -1973,8 +1953,22 @@ function init() {
   // Back button
   backBtn.addEventListener('click', showGallery);
 
-  // Event delegation for live preview — covers dynamically created inputs too
-  configPanel.addEventListener('input', schedulePreview);
+  // Single delegated listener covers all inputs — including ones added dynamically
+  // by extra templates. Replaces per-input listeners that were re-added on every
+  // template selection (causing duplicate firings and accumulating memory).
+  configPanel.addEventListener('input', (e) => {
+    // Colour swatch dot sync
+    if (e.target.type === 'color') {
+      const dot = e.target.nextElementSibling;
+      if (dot) dot.style.background = e.target.value;
+    }
+    // Range value display sync
+    if (e.target.classList.contains('cfg-range')) {
+      const vEl = document.getElementById(e.target.id + '-val');
+      if (vEl) vEl.textContent = e.target.value;
+    }
+    schedulePreview();
+  });
   configPanel.addEventListener('change', schedulePreview);
 
   // Expose schedulePreview for dynamic inputs in extra templates

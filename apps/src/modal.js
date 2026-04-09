@@ -72,12 +72,18 @@ function insertAtCursor(texinput, text) {
   texinput.selectionStart = texinput.selectionEnd = start + text.length;
 }
 
+let _convertTimer = null;
+function scheduleConvert() {
+  clearTimeout(_convertTimer);
+  _convertTimer = setTimeout(convert, 150);
+}
+
 function insertLatex(latex) {
   const texinput = document.getElementById('modal-texinput');
   texinput.focus();
   insertAtCursor(texinput, latex);
   localStorage.setItem('miro-latex', texinput.value);
-  convert();
+  scheduleConvert();
 }
 
 // Wrap selected text with a LaTeX command, or insert empty if no selection
@@ -103,7 +109,7 @@ function wrapSelection(command) {
     }
   }
   localStorage.setItem('miro-latex', texinput.value);
-  convert();
+  scheduleConvert();
 }
 
 function prepareLatex(input) {

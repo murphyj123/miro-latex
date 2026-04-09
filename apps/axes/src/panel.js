@@ -49,8 +49,14 @@ makeCollapsible('library-header', 'library-chevron', 'library-body');
 
 // ── Recents ──────────────────────────────────────────
 
+let _lastRecentsJson = null;
+let _lastLibraryJson = null;
+
 function renderRecents() {
-  const recents = JSON.parse(localStorage.getItem('axes-recents') || '[]');
+  const json = localStorage.getItem('axes-recents') || '[]';
+  if (json === _lastRecentsJson) return;
+  _lastRecentsJson = json;
+  const recents = JSON.parse(json);
   const container = document.getElementById('recents-body');
   if (recents.length === 0) {
     container.innerHTML = '<p class="hint">No recent graphs yet</p>';
@@ -104,7 +110,10 @@ document.getElementById('rename-input').addEventListener('keydown', (e) => {
 // ── Library ──────────────────────────────────────────
 
 function renderLibrary() {
-  const library = JSON.parse(localStorage.getItem('axes-library') || '[]');
+  const json = localStorage.getItem('axes-library') || '[]';
+  if (json === _lastLibraryJson) return;
+  _lastLibraryJson = json;
+  const library = JSON.parse(json);
   const container = document.getElementById('library-body');
   if (library.length === 0) {
     container.innerHTML = '<p class="hint">No saved graphs yet</p>';

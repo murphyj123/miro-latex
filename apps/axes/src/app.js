@@ -606,7 +606,7 @@ function updatePreview() {
   debounceTimer = setTimeout(() => {
     els.preview.innerHTML = '';
     els.preview.appendChild(generateAxesSVG());
-  }, 100);
+  }, 250);
 }
 
 function updatePreviewImmediate() {
