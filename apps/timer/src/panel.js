@@ -284,7 +284,7 @@ window.addEventListener('storage', () => syncUI());
 
 // ── Timer Cards ───────────────────────────────────────────
 btnCards.addEventListener('click', async () => {
-  await miro.board.ui.openModal({ url: 'timer/cards.html', width: 420, height: 380 });
+  await miro.board.ui.openModal({ url: 'timer/cards.html', width: 420, height: 420 });
 });
 
 // ── Init ─────────────────────────────────────────────────

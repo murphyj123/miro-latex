@@ -108,6 +108,50 @@
       .btn-place:hover { filter: brightness(1.1); }
 
       .btn-place svg { width: 16px; height: 16px; }
+
+      .custom-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .custom-row input {
+        width: 64px;
+        padding: 6px 10px;
+        font-size: 13px;
+        font-weight: 500;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-secondary);
+        color: var(--text);
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+
+      .custom-row input:focus { border-color: var(--color-active); }
+
+      .custom-row label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      .btn-custom-set {
+        padding: 6px 14px;
+        background: var(--color-active);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: filter 0.15s;
+      }
+
+      .btn-custom-set:hover { filter: brightness(1.1); }
     </style>
   </head>
   <body>
@@ -127,6 +171,13 @@
         <button class="dur-pill" data-seconds="2700">45 min</button>
         <button class="dur-pill" data-seconds="3600">60 min</button>
       </div>
+      <div class="custom-row">
+        <label for="custom-min">Min</label>
+        <input type="number" id="custom-min" min="0" max="99" value="0" />
+        <label for="custom-sec">Sec</label>
+        <input type="number" id="custom-sec" min="0" max="59" value="0" />
+        <button class="btn-custom-set" id="btn-custom-set">Set</button>
+      </div>
     </div>
 
     <div>
@@ -142,25 +193,37 @@
     <script>
       let durationSeconds = 300;
 
-      document.querySelectorAll('.dur-pill').forEach(pill => {
-        pill.addEventListener('click', () => {
-          document.querySelectorAll('.dur-pill').forEach(p => p.classList.remove('active'));
-          pill.classList.add('active');
-          durationSeconds = parseInt(pill.dataset.seconds);
+      function setActivePill(seconds) {
+        durationSeconds = seconds;
+        document.querySelectorAll('.dur-pill').forEach(p => {
+          p.classList.toggle('active', parseInt(p.dataset.seconds) === seconds);
         });
+      }
+
+      document.querySelectorAll('.dur-pill').forEach(pill => {
+        pill.addEventListener('click', () => setActivePill(parseInt(pill.dataset.seconds)));
+      });
+
+      document.getElementById('btn-custom-set').addEventListener('click', () => {
+        const min = parseInt(document.getElementById('custom-min').value) || 0;
+        const sec = parseInt(document.getElementById('custom-sec').value) || 0;
+        const total = min * 60 + sec;
+        if (total > 0) setActivePill(total);
       });
 
       document.getElementById('btn-place').addEventListener('click', async () => {
         const label = document.getElementById('card-label').value.trim();
-        const mins = Math.round(durationSeconds / 60);
-        const title = label || `Timer — ${mins} min`;
+        const mins = Math.floor(durationSeconds / 60);
+        const secs = durationSeconds % 60;
+        const durLabel = secs > 0 ? `${mins}m ${secs}s` : `${mins} min`;
+        const title = label || `Timer — ${durLabel}`;
         const btn = document.getElementById('btn-place');
 
         try {
           await miro.board.createAppCard({
             title,
             description: String(durationSeconds),
-            fields: [{ value: `${mins} min`, tooltip: 'Click to open timer' }],
+            fields: [{ value: durLabel, tooltip: 'Click to open timer' }],
             status: 'connected',
           });
           const orig = btn.innerHTML;
