@@ -1,6 +1,8 @@
 /* ── Reset & Base ──────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html { height: 100%; overflow: hidden; }
+
 :root {
   --bg: #ffffff;
   --bg-secondary: #f5f6f8;
@@ -45,7 +47,9 @@ body {
   max-width: 320px;
   margin: 0 auto;
   padding: 16px 12px;
+  height: 100%;
   overflow-x: hidden;
+  overflow-y: auto;
   transition: background var(--transition), color var(--transition);
 }
 
