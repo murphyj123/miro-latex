@@ -1923,13 +1923,19 @@ extraTemplates['protractor'] = {
       field('Type', select('pr-type', [['180', 'Semicircle (180°)'], ['360', 'Full circle (360°)']])),
       field('Marked angle', numberInput('pr-angle', 0, 0, 360, 1)),
     ));
-    c.appendChild(row(checkbox('pr-rays', 'Show rays', true)));
+    c.appendChild(row(
+      checkbox('pr-rays', 'Show rays', true),
+      checkbox('pr-numbers', 'Show numbers', true),
+      checkbox('pr-transparent', 'Transparent', false),
+    ));
   },
   readConfig() {
     return {
       type: val('pr-type') || '180',
       markedAngle: val('pr-angle') || 0,
       showRays: val('pr-rays'),
+      showNumbers: val('pr-numbers') !== false,
+      transparent: val('pr-transparent'),
     };
   },
   generateSVG(s) {
@@ -1940,17 +1946,18 @@ extraTemplates['protractor'] = {
     const H = isFull ? R * 2 + pad * 2 : R + pad * 2 + 30;
     const svg = makeSVG(W, H);
     const cx = W / 2, cy = isFull ? H / 2 : H - pad - 10;
+    const arcFill = s.transparent ? 'none' : 'rgba(66,98,255,0.04)';
 
     /* base line */
     svg.appendChild(svgEl('line', { x1: cx - R - 10, y1: cy, x2: cx + R + 10, y2: cy, stroke: '#2b2d42', 'stroke-width': '1.5' }));
 
     /* arc */
     if (isFull) {
-      svg.appendChild(svgEl('circle', { cx, cy, r: R, fill: 'rgba(66,98,255,0.04)', stroke: '#2b2d42', 'stroke-width': '2' }));
+      svg.appendChild(svgEl('circle', { cx, cy, r: R, fill: arcFill, stroke: '#2b2d42', 'stroke-width': '2' }));
     } else {
       svg.appendChild(svgEl('path', {
         d: `M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`,
-        fill: 'rgba(66,98,255,0.04)', stroke: '#2b2d42', 'stroke-width': '2',
+        fill: arcFill, stroke: '#2b2d42', 'stroke-width': '2',
       }));
     }
 
@@ -1973,7 +1980,7 @@ extraTemplates['protractor'] = {
         stroke: isMajor ? '#2b2d42' : '#aaa',
         'stroke-width': isMajor ? '1.5' : '0.5',
       }));
-      if (isMajor && d < maxDeg) {
+      if (s.showNumbers && isMajor && d < maxDeg) {
         const lr = R - 24;
         const lx = cx + lr * Math.cos(a);
         const ly = cy - lr * Math.sin(a);

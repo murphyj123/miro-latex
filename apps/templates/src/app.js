@@ -47,7 +47,7 @@ const CATS = {};
  'multiplication-grid','number-line','fraction-number-line','double-number-line',
  'ten-frames','place-value-counters','part-whole-model','ratio-bar','percentage-bar',
  'red-yellow-counters','number-pattern','clock-face','thermometer','dice','spinner',
- 'factor-tree','formula-triangle','column-arithmetic','long-division','bidmas','conversion-chart'
+ 'factor-tree','column-arithmetic','long-division','bidmas','conversion-chart'
 ].forEach(id => CATS[id] = 'number');
 ['function-machine','algebra-tiles','area-model-multiplication-','coordinate-grid',
  'two-way-table','equation-balance','two-column-proof'
@@ -87,7 +87,6 @@ const KEYWORDS = {
   'dice': 'dice, die, random, probability, chance',
   'spinner': 'spinner, probability, chance, random, sectors, outcomes',
   'factor-tree': 'factor tree, prime factorisation, HCF, LCM, factors',
-  'formula-triangle': 'formula triangle, SDT, speed distance time, VIR, cover up',
   'column-arithmetic': 'column addition, column subtraction, carrying, borrowing, regrouping, written method',
   'long-division': 'long division, bus stop, short division, quotient, remainder',
   'bidmas': 'BIDMAS, BODMAS, PEMDAS, order of operations, brackets',
@@ -145,7 +144,7 @@ const DISPLAY_NAMES = {
   'percentage-bar': 'Percentage Bar', 'red-yellow-counters': 'Red-Yellow Counters',
   'number-pattern': 'Number Pattern', 'clock-face': 'Clock Face', 'thermometer': 'Thermometer',
   'dice': 'Dice', 'spinner': 'Spinner', 'factor-tree': 'Factor Tree',
-  'formula-triangle': 'Formula Triangle', 'column-arithmetic': 'Column Arithmetic',
+  'column-arithmetic': 'Column Arithmetic',
   'long-division': 'Long Division', 'bidmas': 'BIDMAS', 'conversion-chart': 'Conversion Chart',
   'function-machine': 'Function Machine', 'algebra-tiles': 'Algebra Tiles',
   'area-model-multiplication-': 'Area Model', 'coordinate-grid': 'Coordinate Grid',
@@ -193,7 +192,7 @@ const TEMPLATE_ORDER = [
   'multiplication-grid','number-line','fraction-number-line','double-number-line',
   'ten-frames','place-value-counters','part-whole-model','ratio-bar','percentage-bar',
   'red-yellow-counters','number-pattern','clock-face','thermometer','dice','spinner',
-  'factor-tree','formula-triangle','column-arithmetic','long-division','bidmas','conversion-chart',
+  'factor-tree','column-arithmetic','long-division','bidmas','conversion-chart',
   // algebra
   'function-machine','algebra-tiles','area-model-multiplication-','coordinate-grid',
   'two-way-table','equation-balance','two-column-proof',
