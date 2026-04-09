@@ -24,6 +24,7 @@ export default defineConfig({
         'timer-panel': resolve(import.meta.dirname, root, 'timer/panel.html'),
         'timer-modal': resolve(import.meta.dirname, root, 'timer/modal.html'),
         'timer-exam': resolve(import.meta.dirname, root, 'timer/exam.html'),
+        'timer-cards': resolve(import.meta.dirname, root, 'timer/cards.html'),
       },
     },
   },
