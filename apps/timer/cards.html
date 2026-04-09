@@ -223,7 +223,11 @@
           await miro.board.createAppCard({
             title,
             description: String(durationSeconds),
-            fields: [{ value: durLabel, tooltip: 'Click to open timer' }],
+            fields: [
+              { value: durLabel, fillColor: '#10b981', textColor: '#ffffff', tooltip: 'Timer duration' },
+              { value: 'Click to start', fillColor: '#f0fdf4', textColor: '#065f46', tooltip: 'Click this card to open the timer' },
+            ],
+            style: { cardTheme: '#10b981' },
             status: 'connected',
           });
           const orig = btn.innerHTML;
