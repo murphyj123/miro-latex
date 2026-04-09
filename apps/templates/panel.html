@@ -66,6 +66,11 @@
         </div>
       </div>
 
+      <!-- Feedback -->
+      <div class="section-footer" style="text-align:center;padding:10px 0 4px;">
+        <button class="clear-link" id="feedback-btn">Report a bug · Suggest a feature</button>
+      </div>
+
     </div>
 
     <script>
@@ -232,6 +237,10 @@
         renderFavourites();
         renderRecents();
       });
+
+      /* ── Feedback ────────────────────────────────── */
+      document.getElementById('feedback-btn').onclick = () =>
+        miro.board.ui.openLink('https://github.com/murphyj123/miro-apps/issues/new');
 
       /* ── Init ─────────────────────────────────────── */
       renderFavourites();
