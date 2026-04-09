@@ -43,10 +43,9 @@ body {
   color: var(--text);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 24px;
+  height: 100vh;
+  overflow: hidden;
+  padding: 20px 28px;
   transition: background var(--transition), color var(--transition);
 }
 
@@ -56,9 +55,27 @@ body {
   background: var(--bg-secondary);
   border-radius: var(--radius-pill);
   padding: 3px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   border: 1px solid var(--border);
-  min-width: 240px;
+  flex-shrink: 0;
+}
+
+/* ── Two-column content layout ────────────────────────── */
+.content-layout {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  min-height: 0;
+}
+
+.controls-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  justify-content: center;
+  min-width: 0;
 }
 
 .mode-btn {
@@ -87,7 +104,7 @@ body {
   position: relative;
   width: var(--ring-size);
   height: var(--ring-size);
-  margin: 0 auto 24px;
+  flex-shrink: 0;
 }
 
 .ring-svg {
@@ -148,8 +165,6 @@ body {
 .primary-controls {
   display: flex;
   gap: 12px;
-  justify-content: center;
-  margin-bottom: 24px;
 }
 
 .btn {
@@ -166,7 +181,7 @@ body {
 }
 
 .btn-start {
-  padding: 12px 32px;
+  padding: 12px 28px;
   background: var(--color-active);
   color: #fff;
   box-shadow: 0 2px 8px rgba(16,185,129,0.3);
@@ -202,9 +217,7 @@ body {
 .presets-row {
   display: flex;
   gap: 8px;
-  margin-bottom: 20px;
   flex-wrap: wrap;
-  justify-content: center;
 }
 
 .preset-pill {
@@ -235,8 +248,6 @@ body {
   display: flex;
   gap: 20px;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
 }
 
 .option-row {
