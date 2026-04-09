@@ -280,7 +280,25 @@ btnExam.addEventListener('click', async () => {
 });
 
 // Listen for storage events from modal
-window.addEventListener('storage', () => syncUI());
+window.addEventListener('storage', (e) => {
+  if (e.key === 'timer-card-load') {
+    const raw = localStorage.getItem('timer-card-load');
+    if (raw) {
+      try {
+        const { seconds } = JSON.parse(raw);
+        if (seconds > 0) {
+          reset();
+          setMode('countdown');
+          setDuration(seconds);
+          alarmPlayed = false;
+          lastTickSecond = -1;
+        }
+      } catch { /* ignore */ }
+      localStorage.removeItem('timer-card-load');
+    }
+  }
+  syncUI();
+});
 
 // ── Timer Cards ───────────────────────────────────────────
 btnCards.addEventListener('click', async () => {
