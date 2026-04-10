@@ -815,20 +815,20 @@ TEMPLATES['function-machine'] = {
       ops[i] = opSymbol + ' ' + opValue;
     });
 
-    const boxW = 90, boxH = 44, arrowLen = 40, pad = 30;
+    const boxW = 110, boxH = 56, arrowLen = 48, pad = 36;
     const totalW = pad * 2 + arrowLen + nStages * boxW + (nStages - 1) * arrowLen + arrowLen;
-    const totalH = pad * 2 + boxH + (showInverse ? boxH + 40 : 0);
+    const totalH = pad * 2 + boxH + (showInverse ? boxH + 48 : 0);
     const svg = makeSVG(totalW, totalH);
     svg.appendChild(svgEl('rect', { x: 0, y: 0, width: totalW, height: totalH, fill: '#fff' }));
 
     // Defs for arrowhead
     const defs = svgEl('defs', {});
-    const marker = svgEl('marker', { id: 'fmarr', markerWidth: '8', markerHeight: '6', refX: '8', refY: '3', orient: 'auto' });
-    marker.appendChild(svgEl('polygon', { points: '0 0, 8 3, 0 6', fill: '#555' }));
+    const marker = svgEl('marker', { id: 'fmarr', markerWidth: '10', markerHeight: '8', refX: '10', refY: '4', orient: 'auto' });
+    marker.appendChild(svgEl('polygon', { points: '0 0, 10 4, 0 8', fill: '#555' }));
     defs.appendChild(marker);
     if (showInverse) {
-      const marker2 = svgEl('marker', { id: 'fmarr-inv', markerWidth: '8', markerHeight: '6', refX: '0', refY: '3', orient: 'auto' });
-      marker2.appendChild(svgEl('polygon', { points: '8 0, 0 3, 8 6', fill: '#b71c1c' }));
+      const marker2 = svgEl('marker', { id: 'fmarr-inv', markerWidth: '10', markerHeight: '8', refX: '0', refY: '4', orient: 'auto' });
+      marker2.appendChild(svgEl('polygon', { points: '10 0, 0 4, 10 8', fill: '#b71c1c' }));
       defs.appendChild(marker2);
     }
     svg.appendChild(defs);
@@ -836,46 +836,46 @@ TEMPLATES['function-machine'] = {
     const cy = pad + boxH / 2;
 
     // Input label + arrow
-    svg.appendChild(textEl(inputVal, pad + 6, cy, { 'text-anchor': 'start', 'font-size': '14', 'font-weight': '600', fill: '#4262ff' }));
+    svg.appendChild(textEl(inputVal, pad + 6, cy, { 'text-anchor': 'start', 'font-size': '20', 'font-weight': '700', fill: '#4262ff' }));
     let x = pad + arrowLen - 12;
-    svg.appendChild(svgEl('line', { x1: x - 16, y1: cy, x2: x, y2: cy, stroke: '#555', 'stroke-width': 2, 'marker-end': 'url(#fmarr)' }));
+    svg.appendChild(svgEl('line', { x1: x - 16, y1: cy, x2: x, y2: cy, stroke: '#555', 'stroke-width': 2.5, 'marker-end': 'url(#fmarr)' }));
     x += 4;
 
     // Operation boxes
     for (let i = 0; i < nStages; i++) {
-      svg.appendChild(svgEl('rect', { x, y: pad, width: boxW, height: boxH, rx: 10, ry: 10, fill: '#e8eaf6', stroke: '#5c6bc0', 'stroke-width': 2 }));
-      svg.appendChild(textEl(ops[i] || '?', x + boxW / 2, cy, { 'font-size': '14', 'font-weight': '600', fill: '#333' }));
+      svg.appendChild(svgEl('rect', { x, y: pad, width: boxW, height: boxH, rx: 10, ry: 10, fill: '#e8eaf6', stroke: '#5c6bc0', 'stroke-width': 2.5 }));
+      svg.appendChild(textEl(ops[i] || '?', x + boxW / 2, cy, { 'font-size': '18', 'font-weight': '700', fill: '#333' }));
       x += boxW;
       // arrow to next
       if (i < nStages - 1) {
-        svg.appendChild(svgEl('line', { x1: x, y1: cy, x2: x + arrowLen - 4, y2: cy, stroke: '#555', 'stroke-width': 2, 'marker-end': 'url(#fmarr)' }));
+        svg.appendChild(svgEl('line', { x1: x, y1: cy, x2: x + arrowLen - 4, y2: cy, stroke: '#555', 'stroke-width': 2.5, 'marker-end': 'url(#fmarr)' }));
         x += arrowLen;
       }
     }
 
     // Output arrow + label
-    svg.appendChild(svgEl('line', { x1: x, y1: cy, x2: x + arrowLen - 12, y2: cy, stroke: '#555', 'stroke-width': 2, 'marker-end': 'url(#fmarr)' }));
-    svg.appendChild(textEl(outputVal, x + arrowLen - 4, cy, { 'text-anchor': 'start', 'font-size': '14', 'font-weight': '600', fill: '#4262ff' }));
+    svg.appendChild(svgEl('line', { x1: x, y1: cy, x2: x + arrowLen - 12, y2: cy, stroke: '#555', 'stroke-width': 2.5, 'marker-end': 'url(#fmarr)' }));
+    svg.appendChild(textEl(outputVal, x + arrowLen - 4, cy, { 'text-anchor': 'start', 'font-size': '20', 'font-weight': '700', fill: '#4262ff' }));
 
     // Inverse
     if (showInverse) {
-      const iy = pad + boxH + 30 + boxH / 2;
+      const iy = pad + boxH + 38 + boxH / 2;
       // reverse: output on left, input on right
       let ix = pad + arrowLen - 12 + 4;
-      svg.appendChild(textEl(outputVal, ix - 22, iy, { 'text-anchor': 'end', 'font-size': '13', 'font-weight': '600', fill: '#b71c1c' }));
+      svg.appendChild(textEl(outputVal, ix - 22, iy, { 'text-anchor': 'end', 'font-size': '17', 'font-weight': '700', fill: '#b71c1c' }));
       for (let i = nStages - 1; i >= 0; i--) {
         svg.appendChild(svgEl('rect', { x: ix, y: iy - boxH / 2, width: boxW, height: boxH, rx: 10, ry: 10, fill: '#fce4ec', stroke: '#e57373', 'stroke-width': 2 }));
         // inverse op
         const invOp = invertOp(ops[i] || '');
-        svg.appendChild(textEl(invOp, ix + boxW / 2, iy, { 'font-size': '13', 'font-weight': '600', fill: '#b71c1c' }));
+        svg.appendChild(textEl(invOp, ix + boxW / 2, iy, { 'font-size': '17', 'font-weight': '700', fill: '#b71c1c' }));
         ix += boxW;
         if (i > 0) {
-          svg.appendChild(svgEl('line', { x1: ix, y1: iy, x2: ix + arrowLen - 4, y2: iy, stroke: '#b71c1c', 'stroke-width': 1.5, 'marker-end': 'url(#fmarr)' }));
+          svg.appendChild(svgEl('line', { x1: ix, y1: iy, x2: ix + arrowLen - 4, y2: iy, stroke: '#b71c1c', 'stroke-width': 2, 'marker-end': 'url(#fmarr)' }));
           ix += arrowLen;
         }
       }
-      svg.appendChild(svgEl('line', { x1: ix, y1: iy, x2: ix + arrowLen - 12, y2: iy, stroke: '#b71c1c', 'stroke-width': 1.5, 'marker-end': 'url(#fmarr)' }));
-      svg.appendChild(textEl(inputVal, ix + arrowLen - 4, iy, { 'text-anchor': 'start', 'font-size': '13', 'font-weight': '600', fill: '#b71c1c' }));
+      svg.appendChild(svgEl('line', { x1: ix, y1: iy, x2: ix + arrowLen - 12, y2: iy, stroke: '#b71c1c', 'stroke-width': 2, 'marker-end': 'url(#fmarr)' }));
+      svg.appendChild(textEl(inputVal, ix + arrowLen - 4, iy, { 'text-anchor': 'start', 'font-size': '17', 'font-weight': '700', fill: '#b71c1c' }));
     }
 
     return svg;

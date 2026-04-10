@@ -451,20 +451,19 @@ extraTemplates['circle-sector'] = {
 
     if (s.showLabel) {
       const midA = degToRad(-90);
-      const lr = arcR + 14;
-      svg.appendChild(svgText(cx + lr * Math.cos(midA), cy + lr * Math.sin(midA), `${Math.round(s.angle)}°`, 12, 'middle', { fill: '#e63946', 'font-weight': '600' }));
+      const lr = arcR + 20;
+      svg.appendChild(svgText(cx + lr * Math.cos(midA), cy + lr * Math.sin(midA), `${Math.round(s.angle)}°`, 16, 'middle', { fill: '#e63946', 'font-weight': '700' }));
     }
 
     if (s.showArc) {
       const arcLen = (s.angle / 360) * 2 * Math.PI * s.radius;
       const midA = degToRad(-90);
-      const lr = s.radius + 18;
-      svg.appendChild(svgText(cx + lr * Math.cos(midA), cy + lr * Math.sin(midA), `arc = ${arcLen.toFixed(1)}`, 10, 'middle', { fill: '#555' }));
+      const lr = s.radius + 24;
+      svg.appendChild(svgText(cx + lr * Math.cos(midA), cy + lr * Math.sin(midA), `arc = ${arcLen.toFixed(1)}`, 14, 'middle', { fill: '#444', 'font-weight': '600' }));
     }
 
     /* radii labels */
-    const midSa = (sa + degToRad(-90)) / 2 || sa;
-    svg.appendChild(svgText((cx + sx) / 2 - 14, (cy + sy) / 2, `r=${s.radius}`, 10, 'middle', { fill: '#555' }));
+    svg.appendChild(svgText((cx + sx) / 2 - 16, (cy + sy) / 2, `r = ${s.radius}`, 14, 'middle', { fill: '#444', 'font-weight': '600' }));
 
     return svg;
   },
@@ -1924,15 +1923,24 @@ extraTemplates['protractor'] = {
       field('Marked angle', numberInput('pr-angle', 0, 0, 360, 1)),
     ));
     c.appendChild(row(
+      field('Measure from', select('pr-dir', [['right', 'Right (anticlockwise)'], ['left', 'Left (clockwise)']])),
+    ));
+    c.appendChild(row(
       checkbox('pr-rays', 'Show rays', true),
       checkbox('pr-numbers', 'Show numbers', true),
       checkbox('pr-transparent', 'Scale only (no body)', false),
     ));
+    // Usage tip
+    const tip = document.createElement('p');
+    tip.style.cssText = 'font-size:11px;color:#888;margin-top:8px;line-height:1.5;';
+    tip.textContent = 'Tip: to measure an angle on your board, place the protractor then right-click → Send to back. Use the pen tool to draw your angle lines on top.';
+    c.appendChild(tip);
   },
   readConfig() {
     return {
       type: val('pr-type') || '180',
       markedAngle: val('pr-angle') || 0,
+      fromRight: (val('pr-dir') || 'right') === 'right',
       showRays: val('pr-rays'),
       showNumbers: val('pr-numbers') !== false,
       transparent: val('pr-transparent'),
@@ -1946,14 +1954,27 @@ extraTemplates['protractor'] = {
     const H = isFull ? R * 2 + pad * 2 : R + pad * 2 + 30;
     const svg = makeSVG(W, H);
     const cx = W / 2, cy = isFull ? H / 2 : H - pad - 10;
-    // In transparent mode: no fill, no arc outline — just the scale (ticks + numbers + baseline)
+
     const arcFill   = s.transparent ? 'none' : 'rgba(66,98,255,0.04)';
     const arcStroke = s.transparent ? 'none' : '#2b2d42';
 
-    /* base line */
+    // All geometry uses math coords: angle d° → x = cx + r·cos(d°), y = cy − r·sin(d°)
+    // 0° = right, increases anticlockwise. For "from left" we mirror: d maps to (180−d).
+    const toAngle = (d) => s.fromRight ? d : 180 - d;
+
+    // Arc path helper in math coords (y-up), sweep counterclockwise in SVG (sweep=0)
+    const mathArc = (r, startD, endD) => {
+      const s1 = degToRad(startD), e1 = degToRad(endD);
+      const sx = cx + r * Math.cos(s1), sy = cy - r * Math.sin(s1);
+      const ex = cx + r * Math.cos(e1), ey = cy - r * Math.sin(e1);
+      const large = (endD - startD > 180) ? 1 : 0;
+      return `M ${sx} ${sy} A ${r} ${r} 0 ${large} 0 ${ex} ${ey}`;
+    };
+
+    /* baseline */
     svg.appendChild(svgEl('line', { x1: cx - R - 10, y1: cy, x2: cx + R + 10, y2: cy, stroke: '#2b2d42', 'stroke-width': '1.5' }));
 
-    /* arc */
+    /* body arc */
     if (isFull) {
       svg.appendChild(svgEl('circle', { cx, cy, r: R, fill: arcFill, stroke: arcStroke, 'stroke-width': '2' }));
     } else {
@@ -1966,19 +1987,16 @@ extraTemplates['protractor'] = {
     /* centre dot */
     svg.appendChild(svgEl('circle', { cx, cy, r: '3', fill: '#e63946' }));
 
-    /* degree ticks — 0° at right baseline, increases anti-clockwise */
+    /* degree ticks */
     const maxDeg = isFull ? 360 : 180;
     for (let d = 0; d <= maxDeg; d++) {
-      const a = degToRad(d);
+      const a = degToRad(toAngle(d));
       const isMajor = d % 10 === 0;
-      const isMid = d % 5 === 0;
+      const isMid   = d % 5 === 0;
       const tickLen = isMajor ? 18 : isMid ? 12 : 6;
-      const x1 = cx + (R - tickLen) * Math.cos(a);
-      const y1 = cy - (R - tickLen) * Math.sin(a);
-      const x2 = cx + R * Math.cos(a);
-      const y2 = cy - R * Math.sin(a);
       svg.appendChild(svgEl('line', {
-        x1, y1, x2, y2,
+        x1: cx + (R - tickLen) * Math.cos(a), y1: cy - (R - tickLen) * Math.sin(a),
+        x2: cx + R * Math.cos(a),             y2: cy - R * Math.sin(a),
         stroke: isMajor ? '#2b2d42' : '#aaa',
         'stroke-width': isMajor ? '1.5' : '0.5',
       }));
@@ -1990,20 +2008,23 @@ extraTemplates['protractor'] = {
       }
     }
 
-    /* marked angle ray */
+    /* marked angle ray + arc indicator */
     if (s.showRays && s.markedAngle > 0 && s.markedAngle <= maxDeg) {
-      const a = degToRad(s.markedAngle);
-      const rx = cx + (R + 15) * Math.cos(a);
-      const ry = cy - (R + 15) * Math.sin(a);
+      const rayA = degToRad(toAngle(s.markedAngle));
+      const rx = cx + (R + 15) * Math.cos(rayA);
+      const ry = cy - (R + 15) * Math.sin(rayA);
       svg.appendChild(svgEl('line', { x1: cx, y1: cy, x2: rx, y2: ry, stroke: '#e63946', 'stroke-width': '2' }));
 
-      /* angle arc from 0° (right) to marked angle */
-      const arcPath = describeArc(cx, cy, 35, 0, s.markedAngle);
-      svg.appendChild(svgEl('path', { d: arcPath, fill: 'none', stroke: '#e63946', 'stroke-width': '1.5' }));
-      /* label above centre */
-      const labelA = degToRad(s.markedAngle / 2);
-      const labelR = 52;
-      svg.appendChild(svgText(cx + labelR * Math.cos(labelA), cy - labelR * Math.sin(labelA), `${s.markedAngle}°`, 12, 'middle', { fill: '#e63946', 'font-weight': '600' }));
+      // Small arc in the correct direction (math coords, sweep=0 = CCW in SVG)
+      const baseA = toAngle(0);            // 0° or 180° depending on direction
+      const markA = toAngle(s.markedAngle);
+      const [arcStart, arcEnd] = baseA < markA ? [baseA, markA] : [markA, baseA];
+      svg.appendChild(svgEl('path', { d: mathArc(35, arcStart, arcEnd), fill: 'none', stroke: '#e63946', 'stroke-width': '1.5' }));
+
+      // Label at midpoint of the arc
+      const midA = degToRad((toAngle(0) + toAngle(s.markedAngle)) / 2);
+      const lr = 52;
+      svg.appendChild(svgText(cx + lr * Math.cos(midA), cy - lr * Math.sin(midA), `${s.markedAngle}°`, 12, 'middle', { fill: '#e63946', 'font-weight': '600' }));
     }
 
     return svg;
@@ -4853,9 +4874,9 @@ extraTemplates['conversion-chart'] = {
     c.appendChild(sectionLabel('Conversion Chart'));
     c.appendChild(row(
       field('Chart type', select('cc-type', [
-        ['metric_length', 'Metric Length (km, m, cm, mm)'],
-        ['metric_mass', 'Metric Mass (kg, g, mg)'],
-        ['metric_capacity', 'Metric Capacity (L, mL)'],
+        ['metric_length', 'Metric Length'],
+        ['metric_mass', 'Metric Mass'],
+        ['metric_capacity', 'Metric Capacity'],
         ['temperature', 'Temperature (C / F)'],
         ['custom', 'Custom'],
       ])),
@@ -4863,33 +4884,50 @@ extraTemplates['conversion-chart'] = {
     c.appendChild(row(
       checkbox('cc-arrows', 'Show conversion arrows', true),
     ));
+    c.appendChild(sectionLabel('Include prefixes'));
+    c.appendChild(row(
+      checkbox('cc-hecto', 'hecto (h) ×100', false),
+      checkbox('cc-deca', 'deca (da) ×10', false),
+    ));
+    c.appendChild(row(
+      checkbox('cc-deci', 'deci (d) ÷10', false),
+      checkbox('cc-centi', 'centi (c) ÷100', false),
+    ));
   },
   readConfig() {
     return {
       chartType: val('cc-type') || 'metric_length',
       showArrows: val('cc-arrows'),
+      showHecto: val('cc-hecto'),
+      showDeca: val('cc-deca'),
+      showDeci: val('cc-deci'),
+      showCenti: val('cc-centi'),
     };
   },
   generateSVG(s) {
+    /* ── metric prefix builder ─────────────────────────────── */
+    const METRIC_DEFS = {
+      metric_length:   { syms: ['km','hm','dam','m','dm','cm','mm'], title: 'Metric Length' },
+      metric_mass:     { syms: ['kg','hg','dag','g','dg','cg','mg'], title: 'Metric Mass' },
+      metric_capacity: { syms: ['kL','hL','daL','L','dL','cL','mL'], title: 'Metric Capacity' },
+    };
+    // positions: 0=kilo,1=hecto,2=deca,3=base,4=deci,5=centi,6=milli
+    const PREFIX_FLAGS = [null, 'showHecto', 'showDeca', null, 'showDeci', 'showCenti', null];
+
+    function buildMetric(type) {
+      const def = METRIC_DEFS[type];
+      const selPos = def.syms.map((sym, i) => ({ sym, pos: i })).filter(({ pos }) => PREFIX_FLAGS[pos] === null || s[PREFIX_FLAGS[pos]]);
+      const factors = [], reverseFactors = [];
+      for (let i = 0; i < selPos.length - 1; i++) {
+        const diff = selPos[i + 1].pos - selPos[i].pos;
+        const mult = Math.pow(10, diff);
+        factors.push('\u00D7' + mult);
+        reverseFactors.push('\u00F7' + mult);
+      }
+      return { units: selPos.map(u => u.sym), factors, reverseFactors, title: def.title };
+    }
+
     const presets = {
-      metric_length: {
-        units: ['km', 'm', 'cm', 'mm'],
-        factors: ['\u00D71000', '\u00D7100', '\u00D710'],
-        reverseFactors: ['\u00F71000', '\u00F7100', '\u00F710'],
-        title: 'Metric Length',
-      },
-      metric_mass: {
-        units: ['tonne', 'kg', 'g', 'mg'],
-        factors: ['\u00D71000', '\u00D71000', '\u00D71000'],
-        reverseFactors: ['\u00F71000', '\u00F71000', '\u00F71000'],
-        title: 'Metric Mass',
-      },
-      metric_capacity: {
-        units: ['kL', 'L', 'mL'],
-        factors: ['\u00D71000', '\u00D71000'],
-        reverseFactors: ['\u00F71000', '\u00F71000'],
-        title: 'Metric Capacity',
-      },
       temperature: null,
       custom: {
         units: ['Unit A', 'Unit B', 'Unit C'],
@@ -4937,7 +4975,7 @@ extraTemplates['conversion-chart'] = {
       return svg;
     }
 
-    const data = presets[s.chartType] || presets.custom;
+    const data = METRIC_DEFS[s.chartType] ? buildMetric(s.chartType) : (presets[s.chartType] || presets.custom);
     const n = data.units.length;
     const W = Math.max(400, n * 110 + 60);
     const H = 200;
