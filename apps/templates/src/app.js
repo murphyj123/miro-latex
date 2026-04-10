@@ -2022,11 +2022,11 @@ function showEditor(templateId) {
 
 let activeCat = 'all';
 
-const CAT_ORDER = ['number','algebra','geometry','3d-shapes','statistics','measurement','advanced'];
+const CAT_ORDER = ['number','algebra','geometry','3d-shapes','statistics','measurement','advanced','backgrounds'];
 const CAT_LABELS = {
   'number': 'Number', 'algebra': 'Algebra', 'geometry': 'Geometry',
   '3d-shapes': '3D Shapes', 'statistics': 'Statistics',
-  'measurement': 'Measurement', 'advanced': 'Advanced',
+  'measurement': 'Measurement', 'advanced': 'Advanced', 'backgrounds': 'Backgrounds',
 };
 
 function filterGallery() {
@@ -2179,6 +2179,19 @@ function init() {
       }
       localStorage.setItem('tpl-favourites', JSON.stringify(favs));
     });
+  }
+
+  // Check for start-category (e.g. Backgrounds button in panel)
+  const startCat = localStorage.getItem('tpl-start-cat');
+  if (startCat) {
+    localStorage.removeItem('tpl-start-cat');
+    const catPill = galleryCats.querySelector(`[data-cat="${startCat}"]`);
+    if (catPill) {
+      galleryCats.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+      catPill.classList.add('active');
+      activeCat = startCat;
+      filterGallery();
+    }
   }
 
   // Check for panel pre-selection (favourite clicked in panel)

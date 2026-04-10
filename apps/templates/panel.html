@@ -37,6 +37,16 @@
         Edit Selected
       </button>
 
+      <button class="action-btn action-btn-secondary" id="backgrounds-btn">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1.5" y="1.5" width="13" height="13" rx="2"/>
+          <line x1="1.5" y1="5.5" x2="14.5" y2="5.5"/>
+          <line x1="1.5" y1="9" x2="14.5" y2="9"/>
+          <line x1="5.5" y1="5.5" x2="5.5" y2="14.5"/>
+        </svg>
+        Paper &amp; Backgrounds
+      </button>
+
       <!-- Favourites -->
       <div class="section">
         <div class="section-header" id="fav-header">
@@ -138,6 +148,14 @@
       /* ── Browse Library ───────────────────────────── */
       document.getElementById('browse-btn').onclick = async () => {
         localStorage.removeItem('tpl-edit-settings');
+        await miro.board.ui.openModal({ url: 'templates/app.html', width: 1000, height: 700 });
+      };
+
+      /* ── Backgrounds ──────────────────────────────── */
+      document.getElementById('backgrounds-btn').onclick = async () => {
+        localStorage.setItem('tpl-start-cat', 'backgrounds');
+        localStorage.removeItem('tpl-edit-settings');
+        localStorage.removeItem('tpl-panel-select');
         await miro.board.ui.openModal({ url: 'templates/app.html', width: 1000, height: 700 });
       };
 
