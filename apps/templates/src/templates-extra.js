@@ -3141,7 +3141,7 @@ extraTemplates['binomial'] = {
     const maxP = Math.max(...probs);
 
     const barW0 = Math.max(4, Math.min(36, 560 / (n + 1) - 3));
-    const W = Math.min(800, Math.max(420, n * (barW0 + 3) + 110));
+    const W = Math.min(800, Math.max(420, (n + 1) * (barW0 + 3) + 110));
     const H = 400;
     const svg = makeSVG(W, H);
     const pad = { l: 58, r: 30, t: 50, b: 64 };
@@ -3152,7 +3152,7 @@ extraTemplates['binomial'] = {
     svg.appendChild(svgText(W / 2, 28, s.title, 15, 'middle', { fill: '#222', 'font-weight': '700' }));
 
     const barW = Math.max(4, gw / (n + 1) - 3);
-    const toX = (i) => pad.l + (i / n) * gw + gw / (n * 2);
+    const toX = (i) => pad.l + (i + 0.5) * gw / (n + 1);
     const toY = (pv) => pad.t + gh - (pv / maxP) * gh * 0.88;
 
     /* bars */
