@@ -451,3 +451,22 @@ body {
 
 /* ── Utility ────────────────────────────────────────── */
 .hidden { display: none; }
+
+/* ── Branding footer ────────────────────────────────── */
+.branding-footer {
+  text-align: center;
+  padding: 10px 0 6px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+.branding-footer a {
+  font-size: 10.5px;
+  color: var(--text-light);
+  text-decoration: none;
+  font-family: var(--font);
+  letter-spacing: 0.01em;
+  transition: color 0.12s;
+}
+
+.branding-footer a:hover { color: var(--accent); }

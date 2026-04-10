@@ -96,6 +96,15 @@
         </div>
       </div>
     </div>
+    <!-- Branding -->
+    <div class="branding-footer">
+      <a href="#" id="branding-link">Made by jmaths.xyz</a>
+    </div>
+
     <script type="module" src="/src/app.js"></script>
+    <script>
+      document.getElementById('branding-link').onclick = () =>
+        miro.board.ui.openLink('https://www.jmaths.xyz');
+    </script>
   </body>
 </html>

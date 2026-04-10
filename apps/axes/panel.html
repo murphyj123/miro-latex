@@ -62,6 +62,11 @@
         </div>
       </div>
 
+      <!-- Branding -->
+      <div class="branding-footer">
+        <a href="#" id="branding-link">Made by jmaths.xyz</a>
+      </div>
+
     </div>
 
     <!-- Rename dialog -->
@@ -77,5 +82,9 @@
     </div>
 
     <script type="module" src="/axes/src/panel.js"></script>
+    <script>
+      document.getElementById('branding-link').onclick = () =>
+        miro.board.ui.openLink('https://www.jmaths.xyz');
+    </script>
   </body>
 </html>

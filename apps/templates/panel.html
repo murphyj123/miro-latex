@@ -71,6 +71,11 @@
         <button class="clear-link" id="feedback-btn">Report a bug · Suggest a feature</button>
       </div>
 
+      <!-- Branding -->
+      <div class="branding-footer">
+        <a href="#" id="branding-link">Made by jmaths.xyz</a>
+      </div>
+
     </div>
 
     <script>
@@ -241,6 +246,9 @@
       /* ── Feedback ────────────────────────────────── */
       document.getElementById('feedback-btn').onclick = () =>
         miro.board.ui.openLink('https://github.com/murphyj123/miro-apps/issues/new');
+
+      document.getElementById('branding-link').onclick = () =>
+        miro.board.ui.openLink('https://www.jmaths.xyz');
 
       /* ── Init ─────────────────────────────────────── */
       renderFavourites();
