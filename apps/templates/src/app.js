@@ -68,6 +68,8 @@ const CATS = {};
 ].forEach(id => CATS[id] = 'advanced');
 ['ruler','weighing-scale','reading-scale','thermometer','clock-face'
 ].forEach(id => CATS[id] = 'measurement');
+['lined-paper','grid-paper','dot-grid','isometric-dot','isometric-grid'
+].forEach(id => CATS[id] = 'backgrounds');
 
 const KEYWORDS = {
   'bar-model': 'bar model, part whole, ratio, comparison, strip, tape diagram, proportion',
@@ -145,6 +147,11 @@ const KEYWORDS = {
   'ruler': 'ruler, length, measurement, cm, mm, centimetres, millimetres, inches, measuring',
   'weighing-scale': 'weighing scale, dial, mass, weight, reading, pointer, grams, kilograms, newtons',
   'reading-scale': 'reading scale, scale, measurement, pointer, linear, graduated, intervals',
+  'lined-paper': 'lined paper, ruled paper, notebook, writing lines, background, paper, margin',
+  'grid-paper': 'grid paper, graph paper, squared paper, background, grid, engineer, mm',
+  'dot-grid': 'dot grid, bullet journal, dot paper, background, dots, notebook',
+  'isometric-dot': 'isometric dot grid, isometric paper, iso dots, 3D drawing background, triangular grid',
+  'isometric-grid': 'isometric grid, triangular grid, isometric lines, 3D drawing background, engineering paper',
 };
 
 const DISPLAY_NAMES = {
@@ -182,6 +189,9 @@ const DISPLAY_NAMES = {
   'transformation-grid': 'Transformation Grid',
   'argand-diagram': 'Argand Diagram',
   'ruler': 'Ruler', 'weighing-scale': 'Weighing Scale', 'reading-scale': 'Reading Scale',
+  'lined-paper': 'Lined Paper', 'grid-paper': 'Grid Paper',
+  'dot-grid': 'Dot Grid', 'isometric-dot': 'Isometric Dot Grid',
+  'isometric-grid': 'Isometric Grid',
 };
 
 const CAT_ICONS = {
@@ -192,6 +202,7 @@ const CAT_ICONS = {
   'statistics': '\u03C3',
   'advanced': '\u221E',
   'measurement': '\u21C4',
+  'backgrounds': '\u25A4',
 };
 
 const CAT_COLORS = {
@@ -202,6 +213,7 @@ const CAT_COLORS = {
   'statistics': '#e0e7ff',
   'advanced': '#f3e8ff',
   'measurement': '#e0f2fe',
+  'backgrounds': '#f5f5f0',
 };
 
 // Ordered list of template IDs to control gallery order
@@ -231,6 +243,8 @@ const TEMPLATE_ORDER = [
   'transformation-grid','argand-diagram',
   // measurement
   'thermometer','clock-face','ruler','weighing-scale','reading-scale',
+  // backgrounds
+  'lined-paper','grid-paper','dot-grid','isometric-dot','isometric-grid',
 ];
 
 // ── Colour palettes ─────────────────────────────────

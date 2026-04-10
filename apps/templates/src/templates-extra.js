@@ -7199,5 +7199,274 @@ extraTemplates['binary-frame'] = {
   },
 };
 
+/* ================================================================
+   BACKGROUND PAPER TEMPLATES
+   1 cm ≈ 38 px at 96 dpi.  Canvas: 1600 × 1130 (A4 landscape).
+   ================================================================ */
+
+/* ── Shared colour palettes ──────────────────────────────────── */
+const _BG = {
+  white:    '#ffffff', cream:    '#fffef2', 'lt-blue':  '#eff5ff',
+  'lt-gray':'#f5f5f6', 'lt-yellow':'#fffbf0', 'lt-green':'#f2fbf5',
+  'lt-pink':'#fff0f5', 'lt-purple':'#f5f0ff', 'lt-teal': '#f0fbfa',
+};
+const _BG_OPTS = [
+  {v:'white',l:'White'},{v:'cream',l:'Cream'},{v:'lt-blue',l:'Light blue'},
+  {v:'lt-gray',l:'Light gray'},{v:'lt-yellow',l:'Light yellow'},
+  {v:'lt-green',l:'Light green'},{v:'lt-pink',l:'Light pink'},
+  {v:'lt-purple',l:'Light purple'},{v:'lt-teal',l:'Light teal'},
+];
+const _LC = {
+  blue:     {light:'#c4d6ee',bold:'#88aad0'},
+  gray:     {light:'#c4c4cc',bold:'#9898a8'},
+  green:    {light:'#b4d8bc',bold:'#78a882'},
+  lavender: {light:'#c4bedd',bold:'#9688bb'},
+  pink:     {light:'#ddbcc8',bold:'#bb8ea0'},
+  red:      {light:'#f4b4b4',bold:'#d47878'},
+  teal:     {light:'#aadcd8',bold:'#66b0aa'},
+  orange:   {light:'#f0d0a8',bold:'#d4a060'},
+};
+const _LC_OPTS = [
+  {v:'blue',l:'Blue'},{v:'gray',l:'Gray'},{v:'green',l:'Green'},
+  {v:'lavender',l:'Lavender'},{v:'pink',l:'Pink'},
+  {v:'red',l:'Red'},{v:'teal',l:'Teal'},{v:'orange',l:'Orange'},
+];
+/* cm to pixels.  Selectable sizes span 0.5 – 2 cm. */
+const _CM_PX = {'0.5':19,'0.7':26,'1':38,'1.5':57,'2':76};
+const _CM_OPTS = [
+  {v:'0.5',l:'0.5 cm'},{v:'0.7',l:'0.7 cm'},{v:'1',l:'1 cm (standard)'},
+  {v:'1.5',l:'1.5 cm'},{v:'2',l:'2 cm'},
+];
+
+/* ── Lined Paper ─────────────────────────────────────────────── */
+extraTemplates['lined-paper'] = {
+  name: 'Lined Paper',
+  category: 'Backgrounds',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Lined Paper'));
+    c.appendChild(row(
+      field('Line spacing', select('lp-sp', _CM_OPTS, '1')),
+      field('Line colour',  select('lp-lc', _LC_OPTS, 'blue')),
+    ));
+    c.appendChild(row(
+      field('Background', select('lp-bg', _BG_OPTS, 'white')),
+    ));
+    c.appendChild(row(
+      checkbox('lp-margin', 'Show margin line', true),
+    ));
+  },
+  readConfig() {
+    return {
+      sp:     val('lp-sp')     || '1',
+      lc:     val('lp-lc')     || 'blue',
+      bg:     val('lp-bg')     || 'white',
+      margin: val('lp-margin'),
+    };
+  },
+  generateSVG(s) {
+    const W = 1600, H = 1130;
+    const sp  = _CM_PX[s.sp] || 38;
+    const lc  = _LC[s.lc]    || _LC.blue;
+    const bgC = _BG[s.bg]    || '#ffffff';
+    const svg = makeSVG(W, H);
+    svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:bgC }));
+    for (let y = sp; y < H; y += sp) {
+      svg.appendChild(svgEl('line', {
+        x1:0, y1:y, x2:W, y2:y,
+        stroke: lc.light, 'stroke-width':'1',
+      }));
+    }
+    if (s.margin) {
+      svg.appendChild(svgEl('line', {
+        x1:130, y1:0, x2:130, y2:H,
+        stroke:'#f28b82', 'stroke-width':'1.5',
+      }));
+    }
+    return svg;
+  },
+};
+
+/* ── Grid Paper ──────────────────────────────────────────────── */
+extraTemplates['grid-paper'] = {
+  name: 'Grid Paper',
+  category: 'Backgrounds',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Grid Paper'));
+    c.appendChild(row(
+      field('Cell size',   select('gp-sp', _CM_OPTS, '1')),
+      field('Line colour', select('gp-lc', _LC_OPTS, 'blue')),
+    ));
+    c.appendChild(row(
+      field('Background', select('gp-bg', _BG_OPTS, 'white')),
+    ));
+    c.appendChild(row(
+      checkbox('gp-bold', 'Bold every 5 squares', true),
+    ));
+  },
+  readConfig() {
+    return {
+      sp:   val('gp-sp')   || '1',
+      lc:   val('gp-lc')   || 'blue',
+      bg:   val('gp-bg')   || 'white',
+      bold: val('gp-bold'),
+    };
+  },
+  generateSVG(s) {
+    const W = 1600, H = 1130;
+    const sp  = _CM_PX[s.sp] || 38;
+    const lc  = _LC[s.lc]    || _LC.blue;
+    const bgC = _BG[s.bg]    || '#ffffff';
+    const svg = makeSVG(W, H);
+    svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:bgC }));
+    for (let x = 0; x <= W; x += sp) {
+      const isBold = s.bold && Math.round(x / sp) % 5 === 0;
+      svg.appendChild(svgEl('line', {
+        x1:x, y1:0, x2:x, y2:H,
+        stroke: isBold ? lc.bold : lc.light,
+        'stroke-width': isBold ? '1.4' : '0.6',
+      }));
+    }
+    for (let y = 0; y <= H; y += sp) {
+      const isBold = s.bold && Math.round(y / sp) % 5 === 0;
+      svg.appendChild(svgEl('line', {
+        x1:0, y1:y, x2:W, y2:y,
+        stroke: isBold ? lc.bold : lc.light,
+        'stroke-width': isBold ? '1.4' : '0.6',
+      }));
+    }
+    return svg;
+  },
+};
+
+/* ── Dot Grid ────────────────────────────────────────────────── */
+extraTemplates['dot-grid'] = {
+  name: 'Dot Grid',
+  category: 'Backgrounds',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Dot Grid'));
+    c.appendChild(row(
+      field('Dot spacing', select('dg-sp', _CM_OPTS, '1')),
+      field('Dot colour',  select('dg-lc', _LC_OPTS, 'gray')),
+    ));
+    c.appendChild(row(
+      field('Background', select('dg-bg', _BG_OPTS, 'white')),
+      field('Dot size', select('dg-ds', [{v:'s',l:'Small'},{v:'m',l:'Medium'},{v:'l',l:'Large'}], 'm')),
+    ));
+  },
+  readConfig() {
+    return {
+      sp: val('dg-sp') || '1',
+      lc: val('dg-lc') || 'gray',
+      bg: val('dg-bg') || 'white',
+      ds: val('dg-ds') || 'm',
+    };
+  },
+  generateSVG(s) {
+    const W = 1600, H = 1130;
+    const sp  = _CM_PX[s.sp] || 38;
+    const lc  = _LC[s.lc]    || _LC.gray;
+    const bgC = _BG[s.bg]    || '#ffffff';
+    const r   = {s:1.2, m:1.8, l:2.8}[s.ds] || 1.8;
+    const svg = makeSVG(W, H);
+    svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:bgC }));
+    for (let x = sp / 2; x < W; x += sp) {
+      for (let y = sp / 2; y < H; y += sp) {
+        svg.appendChild(svgEl('circle', { cx:x, cy:y, r, fill: lc.bold }));
+      }
+    }
+    return svg;
+  },
+};
+
+/* ── Isometric Dot Grid ──────────────────────────────────────── */
+extraTemplates['isometric-dot'] = {
+  name: 'Isometric Dot Grid',
+  category: 'Backgrounds',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Isometric Dot Grid'));
+    c.appendChild(row(
+      field('Dot spacing', select('id-sp', _CM_OPTS, '1')),
+      field('Dot colour',  select('id-lc', _LC_OPTS, 'gray')),
+    ));
+    c.appendChild(row(
+      field('Background', select('id-bg', _BG_OPTS, 'white')),
+      field('Dot size', select('id-ds', [{v:'s',l:'Small'},{v:'m',l:'Medium'},{v:'l',l:'Large'}], 'm')),
+    ));
+  },
+  readConfig() {
+    return {
+      sp: val('id-sp') || '1',
+      lc: val('id-lc') || 'gray',
+      bg: val('id-bg') || 'white',
+      ds: val('id-ds') || 'm',
+    };
+  },
+  generateSVG(s) {
+    const W = 1600, H = 1130;
+    const sp   = _CM_PX[s.sp] || 38;
+    const lc   = _LC[s.lc]    || _LC.gray;
+    const bgC  = _BG[s.bg]    || '#ffffff';
+    const r    = {s:1.2, m:1.8, l:2.8}[s.ds] || 1.8;
+    const rowH = sp * Math.sqrt(3) / 2;
+    const svg  = makeSVG(W, H);
+    svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:bgC }));
+    let ri = 0;
+    for (let y = rowH / 2; y < H; y += rowH, ri++) {
+      const offX = ri % 2 === 1 ? sp / 2 : 0;
+      for (let x = offX + sp / 2; x < W; x += sp) {
+        svg.appendChild(svgEl('circle', { cx:x, cy:y, r, fill: lc.bold }));
+      }
+    }
+    return svg;
+  },
+};
+
+/* ── Isometric Grid ──────────────────────────────────────────── */
+extraTemplates['isometric-grid'] = {
+  name: 'Isometric Grid',
+  category: 'Backgrounds',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Isometric Grid'));
+    c.appendChild(row(
+      field('Cell size',   select('ig2-sp', _CM_OPTS, '1')),
+      field('Line colour', select('ig2-lc', _LC_OPTS, 'blue')),
+    ));
+    c.appendChild(row(
+      field('Background', select('ig2-bg', _BG_OPTS, 'white')),
+    ));
+  },
+  readConfig() {
+    return {
+      sp: val('ig2-sp') || '1',
+      lc: val('ig2-lc') || 'blue',
+      bg: val('ig2-bg') || 'white',
+    };
+  },
+  generateSVG(s) {
+    const W = 1600, H = 1130;
+    const sp    = _CM_PX[s.sp] || 38;
+    const lc    = _LC[s.lc]    || _LC.blue;
+    const bgC   = _BG[s.bg]    || '#ffffff';
+    const svg   = makeSVG(W, H);
+    svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:bgC }));
+    const rowH  = sp * Math.sqrt(3) / 2;
+    const diagW = H / Math.sqrt(3);
+    const stroke = lc.light, sw = '0.8';
+    /* Horizontal lines */
+    for (let y = 0; y <= H + rowH; y += rowH) {
+      svg.appendChild(svgEl('line', { x1:0, y1:y, x2:W, y2:y, stroke, 'stroke-width':sw }));
+    }
+    /* ↘ diagonals */
+    for (let x0 = -diagW - sp; x0 <= W + sp; x0 += sp) {
+      svg.appendChild(svgEl('line', { x1:x0, y1:0, x2:x0 + diagW, y2:H, stroke, 'stroke-width':sw }));
+    }
+    /* ↙ diagonals */
+    for (let x0 = 0; x0 <= W + diagW + sp; x0 += sp) {
+      svg.appendChild(svgEl('line', { x1:x0, y1:0, x2:x0 - diagW, y2:H, stroke, 'stroke-width':sw }));
+    }
+    return svg;
+  },
+};
+
 /* ── Export ─────────────────────────────────────────────── */
 export { extraTemplates };
