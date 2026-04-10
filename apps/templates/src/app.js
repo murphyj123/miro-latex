@@ -1045,10 +1045,26 @@ TEMPLATES['venn-diagram'] = {
       if (n === 2) {
         html += '<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">A only</label><input type="text" id="vn-r-aonly" class="cfg-input cfg-input-sm" value="" placeholder="" /></div><div class="cfg-field"><label class="cfg-field-label">A\u2229B</label><input type="text" id="vn-r-ab" class="cfg-input cfg-input-sm" value="" placeholder="" /></div><div class="cfg-field"><label class="cfg-field-label">B only</label><input type="text" id="vn-r-bonly" class="cfg-input cfg-input-sm" value="" placeholder="" /></div></div>';
         html += '<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">Outside</label><input type="text" id="vn-r-outside" class="cfg-input cfg-input-sm" value="" placeholder="" /></div></div>';
+        html += '<div style="font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 0 4px;">Shade regions</div>';
+        html += '<div class="cfg-row" style="flex-wrap:wrap;gap:6px 14px;">'
+          + '<label class="cfg-check"><input type="checkbox" id="vn-sh-aonly"><span>A only</span></label>'
+          + '<label class="cfg-check"><input type="checkbox" id="vn-sh-ab"><span>A\u2229B</span></label>'
+          + '<label class="cfg-check"><input type="checkbox" id="vn-sh-bonly"><span>B only</span></label>'
+          + '</div>';
       } else {
         html += '<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">A only</label><input type="text" id="vn-r-aonly" class="cfg-input cfg-input-sm" value="" placeholder="" /></div><div class="cfg-field"><label class="cfg-field-label">B only</label><input type="text" id="vn-r-bonly" class="cfg-input cfg-input-sm" value="" placeholder="" /></div><div class="cfg-field"><label class="cfg-field-label">C only</label><input type="text" id="vn-r-conly" class="cfg-input cfg-input-sm" value="" placeholder="" /></div></div>';
         html += '<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">A\u2229B</label><input type="text" id="vn-r-ab" class="cfg-input cfg-input-sm" value="" placeholder="" /></div><div class="cfg-field"><label class="cfg-field-label">A\u2229C</label><input type="text" id="vn-r-ac" class="cfg-input cfg-input-sm" value="" placeholder="" /></div><div class="cfg-field"><label class="cfg-field-label">B\u2229C</label><input type="text" id="vn-r-bc" class="cfg-input cfg-input-sm" value="" placeholder="" /></div></div>';
         html += '<div class="cfg-row"><div class="cfg-field"><label class="cfg-field-label">A\u2229B\u2229C</label><input type="text" id="vn-r-abc" class="cfg-input cfg-input-sm" value="" placeholder="" /></div><div class="cfg-field"><label class="cfg-field-label">Outside</label><input type="text" id="vn-r-outside" class="cfg-input cfg-input-sm" value="" placeholder="" /></div></div>';
+        html += '<div style="font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:8px 0 4px;">Shade regions</div>';
+        html += '<div class="cfg-row" style="flex-wrap:wrap;gap:6px 14px;">'
+          + '<label class="cfg-check"><input type="checkbox" id="vn-sh-aonly"><span>A only</span></label>'
+          + '<label class="cfg-check"><input type="checkbox" id="vn-sh-bonly"><span>B only</span></label>'
+          + '<label class="cfg-check"><input type="checkbox" id="vn-sh-conly"><span>C only</span></label>'
+          + '<label class="cfg-check"><input type="checkbox" id="vn-sh-ab"><span>A\u2229B</span></label>'
+          + '<label class="cfg-check"><input type="checkbox" id="vn-sh-ac"><span>A\u2229C</span></label>'
+          + '<label class="cfg-check"><input type="checkbox" id="vn-sh-bc"><span>B\u2229C</span></label>'
+          + '<label class="cfg-check"><input type="checkbox" id="vn-sh-abc"><span>A\u2229B\u2229C</span></label>'
+          + '</div>';
       }
       ct2.innerHTML = html;
       ct2.querySelectorAll('input').forEach(el => { el.addEventListener('input', schedulePreview); el.addEventListener('change', schedulePreview); });
@@ -1094,10 +1110,89 @@ TEMPLATES['venn-diagram'] = {
       }));
     }
 
+    /* ── Shaded regions ── */
+    const shadeCol = 'rgba(30,30,30,0.28)';
+    const shAonly  = nCircles >= 2 && checked('vn-sh-aonly');
+    const shAb     = nCircles >= 2 && checked('vn-sh-ab');
+    const shBonly  = nCircles >= 2 && checked('vn-sh-bonly');
+    const shConly  = nCircles >= 3 && checked('vn-sh-conly');
+    const shAc     = nCircles >= 3 && checked('vn-sh-ac');
+    const shBc     = nCircles >= 3 && checked('vn-sh-bc');
+    const shAbc    = nCircles >= 3 && checked('vn-sh-abc');
+    const anyShade = shAonly || shAb || shBonly || shConly || shAc || shBc || shAbc;
+
+    if (anyShade) {
+      const defs = svgEl('defs', {});
+      const ax = positions[0].x, ay = positions[0].y;
+      const bx = positions[1].x, by = positions[1].y;
+      const ccx = nCircles >= 3 ? positions[2].x : 0, ccy = nCircles >= 3 ? positions[2].y : 0;
+
+      /* clip paths — inner area of each circle */
+      const mkClip = (id, x, y) => {
+        const cp = svgEl('clipPath', { id });
+        cp.appendChild(svgEl('circle', { cx: x, cy: y, r }));
+        defs.appendChild(cp);
+      };
+      mkClip('vncp-a', ax, ay);
+      mkClip('vncp-b', bx, by);
+      if (nCircles >= 3) mkClip('vncp-c', ccx, ccy);
+
+      /* "not X" masks */
+      const mkMaskNot = (id, ...circles) => {
+        const mask = svgEl('mask', { id });
+        mask.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: 'white' }));
+        circles.forEach(([x, y]) => mask.appendChild(svgEl('circle', { cx: x, cy: y, r, fill: 'black' })));
+        defs.appendChild(mask);
+      };
+      mkMaskNot('vnm-notb', [bx, by]);
+      mkMaskNot('vnm-nota', [ax, ay]);
+      if (nCircles >= 3) {
+        mkMaskNot('vnm-notc', [ccx, ccy]);
+        mkMaskNot('vnm-notbc', [bx, by], [ccx, ccy]);
+        mkMaskNot('vnm-notac', [ax, ay], [ccx, ccy]);
+        mkMaskNot('vnm-notab', [ax, ay], [bx, by]);
+      }
+
+      /* compound clip: A∩B (clip circle A by circle B) */
+      const mkClipAb = (id, x, y, clipId) => {
+        const cp = svgEl('clipPath', { id });
+        cp.appendChild(svgEl('circle', { cx: x, cy: y, r, 'clip-path': `url(#${clipId})` }));
+        defs.appendChild(cp);
+      };
+      mkClipAb('vncp-ab', ax, ay, 'vncp-b');
+      if (nCircles >= 3) {
+        mkClipAb('vncp-ac', ax, ay, 'vncp-c');
+        mkClipAb('vncp-bc', bx, by, 'vncp-c');
+        /* A∩B∩C: clip A by B, then result by C */
+        const cpAbc = svgEl('clipPath', { id: 'vncp-abc' });
+        cpAbc.appendChild(svgEl('circle', { cx: ax, cy: ay, r, 'clip-path': 'url(#vncp-bc)' }));
+        defs.appendChild(cpAbc);
+      }
+
+      svg.appendChild(defs);
+
+      /* shade each region */
+      const shade = (cx2, cy2, clipId, maskId) => {
+        const attrs = { cx: cx2, cy: cy2, r, fill: shadeCol };
+        if (clipId) attrs['clip-path'] = `url(#${clipId})`;
+        if (maskId)  attrs['mask']      = `url(#${maskId})`;
+        svg.appendChild(svgEl('circle', attrs));
+      };
+
+      if (shAonly)  shade(ax, ay, 'vncp-a', nCircles >= 3 ? 'vnm-notbc' : 'vnm-notb');
+      if (shBonly)  shade(bx, by, 'vncp-b', nCircles >= 3 ? 'vnm-notac' : 'vnm-nota');
+      if (shAb && nCircles === 2)  shade(ax, ay, 'vncp-ab', null);
+      if (shAb && nCircles >= 3)  shade(ax, ay, 'vncp-ab', 'vnm-notc');
+      if (shConly)  shade(ccx, ccy, 'vncp-c', 'vnm-notab');
+      if (shAc)     shade(ax, ay, 'vncp-ac', 'vnm-notb');
+      if (shBc)     shade(bx, by, 'vncp-bc', 'vnm-nota');
+      if (shAbc)    shade(ax, ay, 'vncp-abc', null);
+    }
+
     // Labels
     const labelPositions = nCircles === 2
       ? [{ x: cx - offset - r + 20, y: cy - r + 10 }, { x: cx + offset + r - 20, y: cy - r + 10 }]
-      : [{ x: cx - offset - r + 15, y: cy + 25 + r - 10 }, { x: cx + offset + r - 15, y: cy + 25 + r - 10 }, { x: cx, y: cy - offset + 10 - r + 5 }];
+      : [{ x: cx - offset - r + 15, y: cy + 25 + r - 10 }, { x: cx + offset + r - 15, y: cy + 25 + r - 10 }, { x: cx, y: cy - offset + 10 - r - 18 }];
 
     for (let i = 0; i < nCircles; i++) {
       svg.appendChild(textEl(labels[i], labelPositions[i].x, labelPositions[i].y, { 'font-size': '15', 'font-weight': '700', fill: colours[i] }));

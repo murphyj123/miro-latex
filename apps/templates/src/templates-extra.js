@@ -1810,33 +1810,35 @@ extraTemplates['unit-circle'] = {
     };
   },
   generateSVG(s) {
-    const W = 880, H = 900;
-    const cx = W / 2, cy = H / 2 + 10;
-    const R = 280;
+    const W = 1100, H = 1080;
+    const cx = W / 2, cy = H / 2 + 20;
+    const R = 300;
     const svg = makeSVG(W, H);
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: '#fff' }));
 
-    /* ── axes ──────────────────────────────────── */
-    svg.appendChild(svgEl('line', { x1: 24, y1: cy, x2: W - 24, y2: cy, stroke: '#bbb', 'stroke-width': '1.5' }));
-    svg.appendChild(svgEl('line', { x1: cx, y1: 24, x2: cx, y2: H - 24, stroke: '#bbb', 'stroke-width': '1.5' }));
-    arrowHead(svg, W - 24, cy, 0, 10, '#999');
-    arrowHead(svg, cx, 24, -Math.PI / 2, 10, '#999');
-    svg.appendChild(svgText(W - 16, cy - 14, 'x', 16, 'start', { fill: '#777', 'font-weight': '700' }));
-    svg.appendChild(svgText(cx + 14, 32, 'y', 16, 'start', { fill: '#777', 'font-weight': '700' }));
+    /* axes */
+    const axEnd = R + 155;
+    svg.appendChild(svgEl('line', { x1: cx - axEnd + 16, y1: cy, x2: cx + axEnd - 14, y2: cy, stroke: '#c0c0c0', 'stroke-width': '2' }));
+    svg.appendChild(svgEl('line', { x1: cx, y1: cy + axEnd - 16, x2: cx, y2: cy - axEnd + 14, stroke: '#c0c0c0', 'stroke-width': '2' }));
+    arrowHead(svg, cx + axEnd - 14, cy, 0, 11, '#bbb');
+    arrowHead(svg, cx, cy - axEnd + 14, -Math.PI / 2, 11, '#bbb');
+    svg.appendChild(svgText(cx + axEnd + 4, cy + 6, 'x', 18, 'start', { fill: '#aaa', 'font-weight': '700', 'font-style': 'italic' }));
+    svg.appendChild(svgText(cx + 16, cy - axEnd + 12, 'y', 18, 'start', { fill: '#aaa', 'font-weight': '700', 'font-style': 'italic' }));
 
-    /* ── axis ±1 marks ──────────────────────────── */
+    /* ±1 marks */
     [[R, 0, '1', 'start'], [-R, 0, '−1', 'end'], [0, -R, '1', 'start'], [0, R, '−1', 'start']].forEach(([dx, dy, lbl, anchor]) => {
       const mx = cx + dx, my = cy + dy;
-      svg.appendChild(svgEl('line', { x1: mx - 6, y1: my, x2: mx + 6, y2: my, stroke: '#999', 'stroke-width': '1.5' }));
-      svg.appendChild(svgEl('line', { x1: mx, y1: my - 6, x2: mx, y2: my + 6, stroke: '#999', 'stroke-width': '1.5' }));
-      const offX = dx !== 0 ? (dx > 0 ? 12 : -12) : 14;
-      const offY = dy !== 0 ? (dy > 0 ? 20 : -10) : 6;
-      svg.appendChild(svgText(mx + offX, my + offY, lbl, 15, anchor, { fill: '#555', 'font-weight': '600' }));
+      svg.appendChild(svgEl('line', { x1: mx - 7, y1: my, x2: mx + 7, y2: my, stroke: '#999', 'stroke-width': '1.8' }));
+      svg.appendChild(svgEl('line', { x1: mx, y1: my - 7, x2: mx, y2: my + 7, stroke: '#999', 'stroke-width': '1.8' }));
+      const ox = dx !== 0 ? (dx > 0 ? 14 : -14) : 16;
+      const oy = dy !== 0 ? (dy > 0 ? 24 : -10) : 6;
+      svg.appendChild(svgText(mx + ox, my + oy, lbl, 16, anchor, { fill: '#555', 'font-weight': '600' }));
     });
 
-    /* ── circle ─────────────────────────────────── */
-    svg.appendChild(svgEl('circle', { cx, cy, r: R, fill: 'none', stroke: '#2b2d42', 'stroke-width': '2.5' }));
+    /* circle */
+    svg.appendChild(svgEl('circle', { cx, cy, r: R, fill: 'none', stroke: '#1a1a2e', 'stroke-width': '3.2' }));
 
-    /* ── standard values lookup ─────────────────── */
+    /* lookup tables — use '/' in values so drawVal renders proper stacked fractions */
     const radianLabels = {
       0: '0', 30: 'π/6', 45: 'π/4', 60: 'π/3', 90: 'π/2',
       120: '2π/3', 135: '3π/4', 150: '5π/6', 180: 'π',
@@ -1844,90 +1846,131 @@ extraTemplates['unit-circle'] = {
       300: '5π/3', 315: '7π/4', 330: '11π/6',
     };
     const cosVals = {
-      0: '1', 30: '√3/2', 45: '√2/2', 60: '½', 90: '0',
-      120: '−½', 135: '−√2/2', 150: '−√3/2', 180: '−1',
-      210: '−√3/2', 225: '−√2/2', 240: '−½', 270: '0',
-      300: '½', 315: '√2/2', 330: '√3/2',
+      0: '1',     30: '√3/2',  45: '√2/2',  60: '1/2',   90: '0',
+      120: '-1/2', 135: '-√2/2', 150: '-√3/2', 180: '-1',
+      210: '-√3/2', 225: '-√2/2', 240: '-1/2', 270: '0',
+      300: '1/2', 315: '√2/2', 330: '√3/2',
     };
     const sinVals = {
-      0: '0', 30: '½', 45: '√2/2', 60: '√3/2', 90: '1',
-      120: '√3/2', 135: '√2/2', 150: '½', 180: '0',
-      210: '−½', 225: '−√2/2', 240: '−√3/2', 270: '−1',
-      300: '−√3/2', 315: '−√2/2', 330: '−½',
+      0: '0',    30: '1/2',   45: '√2/2',  60: '√3/2',  90: '1',
+      120: '√3/2', 135: '√2/2', 150: '1/2',  180: '0',
+      210: '-1/2', 225: '-√2/2', 240: '-√3/2', 270: '-1',
+      300: '-√3/2', 315: '-√2/2', 330: '-1/2',
     };
 
-    const standardAngles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+    /* ── stacked fraction / plain value renderer, centered at (x, y) ── */
+    const drawVal = (x, y, str, fill, fsize) => {
+      if (str.includes('/')) {
+        const si = str.indexOf('/');
+        const num = str.slice(0, si);
+        const den = str.slice(si + 1);
+        const numW = num.replace(/[√\-]/g, 'X').length;
+        const barHW = Math.max(numW, den.length) * fsize * 0.37 + 4;
+        svg.appendChild(svgText(x, y - fsize * 0.58, num, fsize * 0.9, 'middle', { fill, 'font-weight': '700' }));
+        svg.appendChild(svgEl('line', { x1: x - barHW, y1: y, x2: x + barHW, y2: y, stroke: fill, 'stroke-width': '1.2' }));
+        svg.appendChild(svgText(x, y + fsize * 0.9, den, fsize * 0.9, 'middle', { fill, 'font-weight': '700' }));
+      } else {
+        svg.appendChild(svgText(x, y + 4, str, fsize, 'middle', { fill, 'font-weight': '700' }));
+      }
+    };
+
+    /* ── coordinate box renderers ── */
+    const boxW = 120, boxH = 50;
+    const drawCoordBox = (bx, by, cosStr, sinStr, valFill, isHL) => {
+      svg.appendChild(svgEl('rect', {
+        x: bx - boxW / 2, y: by - boxH / 2, width: boxW, height: boxH, rx: 7,
+        fill: '#fff', stroke: isHL ? '#e63946' : '#ccc', 'stroke-width': isHL ? '2.5' : '1.2',
+      }));
+      svg.appendChild(svgText(bx - 53, by + 5, '(', 22, 'middle', { fill: '#777', 'font-weight': '300' }));
+      svg.appendChild(svgText(bx + 53, by + 5, ')', 22, 'middle', { fill: '#777', 'font-weight': '300' }));
+      svg.appendChild(svgText(bx + 3, by + 11, ',', 13, 'middle', { fill: '#888' }));
+      drawVal(bx - 24, by, cosStr, valFill, 11);
+      drawVal(bx + 31, by, sinStr, valFill, 11);
+    };
+    const drawBlankBox = (bx, by) => {
+      svg.appendChild(svgEl('rect', {
+        x: bx - boxW / 2, y: by - boxH / 2, width: boxW, height: boxH, rx: 7,
+        fill: '#fff', stroke: '#ddd', 'stroke-width': '1.2',
+      }));
+      svg.appendChild(svgText(bx - 53, by + 5, '(', 22, 'middle', { fill: '#ccc', 'font-weight': '300' }));
+      svg.appendChild(svgText(bx + 53, by + 5, ')', 22, 'middle', { fill: '#ccc', 'font-weight': '300' }));
+      /* two blank sub-boxes — no comma inside them */
+      svg.appendChild(svgEl('rect', { x: bx - 49, y: by - 16, width: 37, height: 32, rx: 4, fill: '#f7f8fc', stroke: '#ddd', 'stroke-width': '1' }));
+      svg.appendChild(svgEl('rect', { x: bx + 12, y: by - 16, width: 37, height: 32, rx: 4, fill: '#f7f8fc', stroke: '#ddd', 'stroke-width': '1' }));
+      svg.appendChild(svgText(bx + 3, by + 10, ',', 13, 'middle', { fill: '#ccc' }));
+    };
+
+    const lrDeg   = R + 33;
+    const lrRad   = R + 70;
+    const lrOnly  = R + 48;
+    const lrCoord = s.format === 'both' ? R + 130 : R + 112;
+
+    const standardAngles = [0,30,45,60,90,120,135,150,180,210,225,240,270,300,315,330];
     const angles = s.show === 'all_standard' ? standardAngles : [Number(s.highlighted)];
 
-    /* ── reference triangle (for highlighted angle) ── */
+    /* reference triangle */
     if (s.showTri) {
       const hRad = degToRad(Number(s.highlighted));
       const hx = cx + R * Math.cos(hRad);
       const hy = cy - R * Math.sin(hRad);
       svg.appendChild(svgEl('polygon', {
         points: `${cx},${cy} ${hx},${cy} ${hx},${hy}`,
-        fill: 'rgba(66,98,255,0.08)', stroke: '#4262ff', 'stroke-width': '2',
+        fill: 'rgba(230,57,70,0.08)', stroke: '#e63946', 'stroke-width': '2.5',
       }));
-      drawAngleArc(svg, cx, cy, -Number(s.highlighted), 0, 30);
+      drawAngleArc(svg, cx, cy, -Number(s.highlighted), 0, 34);
     }
 
-    /* ── angle points ───────────────────────────── */
-    const lrAngle = s.format === 'both' ? R + 34 : R + 26;
-    const lrCoord = lrAngle + 50;
-    const boxW = 88, boxH = 24;
-
+    /* angle points */
     angles.forEach(deg => {
-      const isHighlighted = deg === Number(s.highlighted);
+      const isHL = deg === Number(s.highlighted);
       const rad = degToRad(deg);
-      const px = cx + R * Math.cos(rad);
-      const py = cy - R * Math.sin(rad);
+      const cosR = Math.cos(rad), sinR = Math.sin(rad);
+      const px = cx + R * cosR;
+      const py = cy - R * sinR;
 
-      /* point dot */
-      const dotCol = isHighlighted ? '#e63946' : '#4262ff';
-      svg.appendChild(svgEl('circle', { cx: px, cy: py, r: isHighlighted ? '5' : '4', fill: dotCol }));
+      /* tick */
+      const tk = isHL ? 12 : 8;
+      svg.appendChild(svgEl('line', {
+        x1: cx + (R - 2) * cosR, y1: cy - (R - 2) * sinR,
+        x2: cx + (R + tk) * cosR, y2: cy - (R + tk) * sinR,
+        stroke: isHL ? '#e63946' : '#555', 'stroke-width': isHL ? '2.8' : '1.5',
+      }));
 
-      /* angle label */
-      const lx = cx + lrAngle * Math.cos(rad);
-      const ly = cy - lrAngle * Math.sin(rad);
-      const labelFill = isHighlighted ? '#e63946' : '#333';
-      const labelWeight = '700';
+      /* dot */
+      svg.appendChild(svgEl('circle', { cx: px, cy: py, r: isHL ? '6' : '4.5', fill: isHL ? '#e63946' : '#4262ff' }));
 
+      const lFill = isHL ? '#e63946' : '#1a1a2e';
+      const lDim  = isHL ? '#e63946' : '#555';
+
+      /* angle label(s) */
       if (s.format === 'both') {
-        svg.appendChild(svgText(lx, ly - 7, `${deg}°`, 12, 'middle', { fill: labelFill, 'font-weight': labelWeight }));
-        svg.appendChild(svgText(lx, ly + 8, radianLabels[deg] || '', 11, 'middle', { fill: '#666' }));
+        const dlx = cx + lrDeg * cosR, dly = cy - lrDeg * sinR;
+        svg.appendChild(svgText(dlx, dly + 5, `${deg}°`, 14, 'middle', { fill: lFill, 'font-weight': '800' }));
+        const rlx = cx + lrRad * cosR, rly = cy - lrRad * sinR;
+        svg.appendChild(svgText(rlx, rly + 5, radianLabels[deg] || '', 12, 'middle', { fill: lDim, 'font-weight': '500' }));
       } else {
+        const lx = cx + lrOnly * cosR, ly = cy - lrOnly * sinR;
         const label = s.format === 'degrees' ? `${deg}°` : (radianLabels[deg] || `${deg}°`);
-        svg.appendChild(svgText(lx, ly + 5, label, 13, 'middle', { fill: labelFill, 'font-weight': labelWeight }));
+        const lsz = s.format === 'degrees' ? 15 : 13;
+        svg.appendChild(svgText(lx, ly + 5, label, lsz, 'middle', { fill: lFill, 'font-weight': '700' }));
       }
 
-      /* coordinates / answer box */
-      const clx = cx + lrCoord * Math.cos(rad);
-      const cly = cy - lrCoord * Math.sin(rad);
-
+      /* coordinate box */
+      const bx = cx + lrCoord * cosR;
+      const by = cy - lrCoord * sinR;
       if (s.answerBoxes) {
-        /* blank box for teacher to write in */
-        svg.appendChild(svgEl('rect', {
-          x: clx - boxW / 2, y: cly - boxH / 2,
-          width: boxW, height: boxH, rx: '5',
-          fill: '#fff', stroke: '#bbb', 'stroke-width': '1.5',
-        }));
-        svg.appendChild(svgText(clx, cly + 5, '(    ,    )', 11, 'middle', { fill: '#ddd' }));
+        drawBlankBox(bx, by);
       } else if (s.showCoords && cosVals[deg] !== undefined) {
-        svg.appendChild(svgEl('rect', {
-          x: clx - boxW / 2, y: cly - boxH / 2,
-          width: boxW, height: boxH, rx: '5',
-          fill: '#fff', stroke: '#ddd', 'stroke-width': '1',
-        }));
-        svg.appendChild(svgText(clx, cly + 5, `(${cosVals[deg]}, ${sinVals[deg]})`, 11, 'middle', { fill: '#555', 'font-weight': '600' }));
+        drawCoordBox(bx, by, cosVals[deg], sinVals[deg], lFill, isHL);
       }
     });
 
-    /* ── quadrant labels ────────────────────────── */
+    /* quadrant labels */
     if (s.showQuads) {
-      const qd = R / 2;
+      const qd = R * 0.56;
       [['I', 1, -1], ['II', -1, -1], ['III', -1, 1], ['IV', 1, 1]].forEach(([q, sx, sy]) => {
-        svg.appendChild(svgText(cx + sx * qd, cy + sy * qd, q, 28, 'middle', {
-          fill: 'rgba(0,0,0,0.07)', 'font-weight': '900',
+        svg.appendChild(svgText(cx + sx * qd, cy + sy * qd, q, 36, 'middle', {
+          fill: 'rgba(0,0,0,0.055)', 'font-weight': '900',
         }));
       });
     }
@@ -4990,6 +5033,9 @@ extraTemplates['scatter-plot'] = {
       checkbox('sp-lobf', 'Line of best fit', false),
     ));
     c.appendChild(row(
+      checkbox('sp-mean', 'Show mean lines (x̄, ȳ)', false),
+    ));
+    c.appendChild(row(
       field('Point colour', colourSwatch('sp-colour', '#4262ff')),
     ));
   },
@@ -5010,6 +5056,7 @@ extraTemplates['scatter-plot'] = {
       yLabel: val('sp-ylabel') || 'y',
       points,
       showLOBF: val('sp-lobf'),
+      showMean: val('sp-mean'),
       pointColour: val('sp-colour') || '#4262ff',
     };
   },
@@ -5080,6 +5127,24 @@ extraTemplates['scatter-plot'] = {
           stroke: '#e63946', 'stroke-width': '2', 'stroke-dasharray': '6,3',
         }));
       }
+    }
+
+    if (s.showMean && s.points.length > 0) {
+      const xMean = xs.reduce((a, b) => a + b, 0) / xs.length;
+      const yMean = ys.reduce((a, b) => a + b, 0) / ys.length;
+      const mxLine = px(xMean), myLine = py(yMean);
+      /* vertical mean x line */
+      svg.appendChild(svgEl('line', {
+        x1: mxLine, y1: margin.top, x2: mxLine, y2: margin.top + plotH,
+        stroke: '#14b8a6', 'stroke-width': '1.8', 'stroke-dasharray': '6,3',
+      }));
+      svg.appendChild(svgText(mxLine + 5, margin.top + 12, `x\u0305=${Math.round(xMean*100)/100}`, 10, 'start', { fill: '#14b8a6', 'font-weight': '700' }));
+      /* horizontal mean y line */
+      svg.appendChild(svgEl('line', {
+        x1: margin.left, y1: myLine, x2: margin.left + plotW, y2: myLine,
+        stroke: '#f59e0b', 'stroke-width': '1.8', 'stroke-dasharray': '6,3',
+      }));
+      svg.appendChild(svgText(margin.left + 5, myLine - 5, `y\u0305=${Math.round(yMean*100)/100}`, 10, 'start', { fill: '#f59e0b', 'font-weight': '700' }));
     }
 
     s.points.forEach(p => {
@@ -5261,7 +5326,8 @@ extraTemplates['cumulative-frequency'] = {
     sliderRow.appendChild(countLabel);
     c.appendChild(sliderRow);
 
-    c.appendChild(row(checkbox('cf-quartiles', 'Show quartile lines', true)));
+    c.appendChild(row(checkbox('cf-quartiles', 'Show quartiles (Q1, Q2, Q3)', false)));
+    c.appendChild(row(field('Custom percentile lines (e.g. 10,90)', textInput('cf-percentiles', '', 'e.g. 10,90'))));
 
     const classContainer = document.createElement('div');
     classContainer.id = 'cf-class-container';
@@ -5290,6 +5356,7 @@ extraTemplates['cumulative-frequency'] = {
       yLabel: val('cf-ylabel') || 'Cumulative frequency',
       classes,
       showQuartiles: val('cf-quartiles'),
+      customPercentiles: val('cf-percentiles') || '',
     };
   },
 
@@ -5381,7 +5448,33 @@ extraTemplates['cumulative-frequency'] = {
           x1: px(qX), y1: py(qVal), x2: px(qX), y2: margin.top + plotH,
           stroke: '#e63946', 'stroke-width': '1.2', 'stroke-dasharray': dashStyle,
         }));
-        svg.appendChild(svgText(px(qX), margin.top + plotH + 32, `Q${qi + 1}`, 10, 'middle', { fill: '#e63946', 'font-weight': '600' }));
+        const qLabel = qi === 1 ? 'Q2 (Median)' : `Q${qi + 1}`;
+        svg.appendChild(svgText(px(qX), margin.top + plotH + 32, qLabel, 10, 'middle', { fill: '#e63946', 'font-weight': '600' }));
+      });
+    }
+
+    if (s.customPercentiles) {
+      const maxCF = pts[pts.length - 1].cf;
+      const percents = s.customPercentiles.split(',').map(v => parseFloat(v.trim())).filter(p => !isNaN(p) && p > 0 && p < 100);
+      percents.forEach(p => {
+        const pVal = (p / 100) * maxCF;
+        let pX = 0;
+        for (let i = 0; i < allPts.length - 1; i++) {
+          if (allPts[i].cf <= pVal && allPts[i + 1].cf >= pVal) {
+            const t = (pVal - allPts[i].cf) / (allPts[i + 1].cf - allPts[i].cf);
+            pX = allPts[i].ub + t * (allPts[i + 1].ub - allPts[i].ub);
+            break;
+          }
+        }
+        svg.appendChild(svgEl('line', {
+          x1: margin.left, y1: py(pVal), x2: px(pX), y2: py(pVal),
+          stroke: '#7c3aed', 'stroke-width': '1.2', 'stroke-dasharray': '5,3',
+        }));
+        svg.appendChild(svgEl('line', {
+          x1: px(pX), y1: py(pVal), x2: px(pX), y2: margin.top + plotH,
+          stroke: '#7c3aed', 'stroke-width': '1.2', 'stroke-dasharray': '5,3',
+        }));
+        svg.appendChild(svgText(px(pX), margin.top + plotH + 32, `P${p}=${Math.round(pX * 10) / 10}`, 9, 'middle', { fill: '#7c3aed', 'font-weight': '600' }));
       });
     }
 
