@@ -1707,29 +1707,39 @@ function svgToSvgDataUrl(svg) {
   return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
 }
 
-// Renders SVG via an off-screen canvas and returns a PNG data URL with a
-// full alpha channel. Use this when the template needs a transparent background
-// (SVG data URLs are always rasterised with a white background by browsers).
+// Renders SVG to a PNG data URL with a genuine alpha channel.
+// Uses a Blob URL → canvas → PNG pipeline. Blob URLs preserve SVG transparency
+// more reliably than base64 data URLs, which some browsers rasterise with
+// a white background. Canvas starts fully transparent; only SVG content is drawn.
 function svgToPngDataUrl(svg) {
   const svgStr = new XMLSerializer().serializeToString(svg);
-  const svgUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
   const w = Math.round(parseFloat(svg.getAttribute('width')) || 600);
   const h = Math.round(parseFloat(svg.getAttribute('height')) || 600);
   const scale = 2; // retina-quality export
+
+  const fallbackSvgUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
 
   return new Promise((resolve) => {
     const canvas = document.createElement('canvas');
     canvas.width = w * scale;
     canvas.height = h * scale;
     const ctx = canvas.getContext('2d');
-    // Canvas starts fully transparent — do NOT fill with white
+    // Canvas pixels start at rgba(0,0,0,0) — do NOT fill white
+
+    const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+
     const img = new Image();
     img.onload = () => {
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(blobUrl);
       resolve(canvas.toDataURL('image/png'));
     };
-    img.onerror = () => resolve(svgUrl); // graceful fallback
-    img.src = svgUrl;
+    img.onerror = () => {
+      URL.revokeObjectURL(blobUrl);
+      resolve(fallbackSvgUrl);
+    };
+    img.src = blobUrl;
   });
 }
 
@@ -1890,10 +1900,11 @@ function showEditor(templateId) {
 
 let activeCat = 'all';
 
-const CAT_ORDER = ['number','algebra','geometry','3d-shapes','statistics','advanced'];
+const CAT_ORDER = ['number','algebra','geometry','3d-shapes','statistics','measurement','advanced'];
 const CAT_LABELS = {
   'number': 'Number', 'algebra': 'Algebra', 'geometry': 'Geometry',
-  '3d-shapes': '3D Shapes', 'statistics': 'Statistics', 'advanced': 'Advanced',
+  '3d-shapes': '3D Shapes', 'statistics': 'Statistics',
+  'measurement': 'Measurement', 'advanced': 'Advanced',
 };
 
 function filterGallery() {
