@@ -2373,6 +2373,36 @@ extraTemplates['stem-leaf'] = {
 };
 
 /* ================================================================
+   DISTRIBUTION MATH HELPERS
+   ================================================================ */
+function _lnGamma(x) {
+  const g = 7;
+  const c = [0.99999999999980993,676.5203681218851,-1259.1392167224028,
+    771.32342877765313,-176.61502916214059,12.507343278686905,
+    -0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - _lnGamma(1 - x);
+  x -= 1;
+  let a = c[0];
+  for (let i = 1; i < g + 2; i++) a += c[i] / (x + i);
+  const t = x + g + 0.5;
+  return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+}
+function _chiPDF(x, df) {
+  if (x <= 0) return 0;
+  const k2 = df / 2;
+  return Math.exp((k2 - 1) * Math.log(x) - x / 2 - k2 * Math.log(2) - _lnGamma(k2));
+}
+function _tPDF(x, df) {
+  return Math.exp(_lnGamma((df + 1) / 2) - 0.5 * Math.log(df * Math.PI) - _lnGamma(df / 2) - (df + 1) / 2 * Math.log(1 + x * x / df));
+}
+function _binomPMF(k, n, p) {
+  if (k < 0 || k > n) return 0;
+  const logC = _lnGamma(n + 1) - _lnGamma(k + 1) - _lnGamma(n - k + 1);
+  const logP = k * Math.log(p > 0 ? p : 1e-15) + (n - k) * Math.log(p < 1 ? 1 - p : 1e-15);
+  return Math.exp(logC + logP);
+}
+
+/* ================================================================
    20. NORMAL DISTRIBUTION
    ================================================================ */
 extraTemplates['normal-distribution'] = {
@@ -2389,13 +2419,23 @@ extraTemplates['normal-distribution'] = {
       checkbox('nd-pct', 'Show percentages', true),
     ));
     c.appendChild(row(
-      field('Shade from (\u03C3 from mean)', numberInput('nd-from', -1, -5, 5, 0.1)),
-      field('Shade to (\u03C3 from mean)', numberInput('nd-to', 1, -5, 5, 0.1)),
+      checkbox('nd-blank', 'Blank mode (no labels)', false),
     ));
-    const hint = document.createElement('div');
-    hint.style.cssText = 'font-size:11px;color:#888;padding:2px 4px 6px;';
-    hint.textContent = 'e.g. \u22121 to 1 shades the central 68.2%; 0 to 2 shades from the mean to +2\u03C3';
-    c.appendChild(hint);
+    c.appendChild(row(
+      field('X-axis labels', select('nd-xlabels', [
+        { v: 'both', l: 'σ notation + values' },
+        { v: 'sigma', l: 'σ notation only' },
+        { v: 'values', l: 'Actual values only' },
+        { v: 'none', l: 'None' },
+      ], 'both')),
+    ));
+    c.appendChild(row(
+      checkbox('nd-shade', 'Enable shading', true),
+    ));
+    c.appendChild(row(
+      field('Shade from (σ from μ)', numberInput('nd-from', -1, -5, 5, 0.1)),
+      field('Shade to (σ from μ)', numberInput('nd-to', 1, -5, 5, 0.1)),
+    ));
     c.appendChild(row(
       field('Title', textInput('nd-title', 'Normal Distribution')),
     ));
@@ -2404,45 +2444,46 @@ extraTemplates['normal-distribution'] = {
     return {
       mean: val('nd-mean'), sd: val('nd-sd') || 1,
       showSDLines: val('nd-sdlines'), showPct: val('nd-pct'),
+      blank: val('nd-blank'),
+      xlabels: val('nd-xlabels') || 'both',
+      shade: val('nd-shade'),
       shadeFrom: val('nd-from'), shadeTo: val('nd-to'),
       title: val('nd-title') || 'Normal Distribution',
     };
   },
   generateSVG(s) {
-    const W = 520, H = 320;
+    const W = 700, H = 400;
     const svg = makeSVG(W, H);
-    const pad = { l: 50, r: 30, t: 40, b: 50 };
+    const pad = { l: 55, r: 35, t: 48, b: 60 };
     const gw = W - pad.l - pad.r;
     const gh = H - pad.t - pad.b;
 
     /* title */
-    svg.appendChild(svgText(W / 2, 24, s.title, 14, 'middle', { fill: '#333', 'font-weight': '700' }));
+    svg.appendChild(svgText(W / 2, 28, s.title, 15, 'middle', { fill: '#222', 'font-weight': '700' }));
 
-    /* normal PDF */
+    /* normal PDF helpers */
     const norm = (x) => {
       const z = (x - s.mean) / s.sd;
       return Math.exp(-0.5 * z * z) / (s.sd * Math.sqrt(2 * Math.PI));
     };
-
     const xMin = s.mean - 4 * s.sd;
     const xMax = s.mean + 4 * s.sd;
-    const steps = 200;
+    const steps = 300;
     const xStep = (xMax - xMin) / steps;
-
-    let maxY = norm(s.mean);
+    const maxY = norm(s.mean);
     const toSVGx = (x) => pad.l + ((x - xMin) / (xMax - xMin)) * gw;
-    const toSVGy = (y) => pad.t + gh - (y / maxY) * gh;
+    const toSVGy = (y) => pad.t + gh - (y / maxY) * gh * 0.88;
 
     /* shaded region */
-    if (s.shadeFrom !== undefined && s.shadeTo !== undefined) {
+    if (s.shade && s.shadeFrom !== undefined && s.shadeTo !== undefined) {
       const sfReal = s.mean + s.shadeFrom * s.sd;
       const stReal = s.mean + s.shadeTo * s.sd;
       let shadePath = `M ${toSVGx(sfReal)} ${toSVGy(0)}`;
-      for (let x = sfReal; x <= stReal; x += xStep) {
-        shadePath += ` L ${toSVGx(x)} ${toSVGy(norm(x))}`;
+      for (let x = sfReal; x <= stReal + xStep * 0.5; x += xStep / 2) {
+        shadePath += ` L ${toSVGx(Math.min(x, stReal))} ${toSVGy(norm(Math.min(x, stReal)))}`;
       }
       shadePath += ` L ${toSVGx(stReal)} ${toSVGy(0)} Z`;
-      svg.appendChild(svgEl('path', { d: shadePath, fill: 'rgba(66,98,255,0.2)', stroke: 'none' }));
+      svg.appendChild(svgEl('path', { d: shadePath, fill: 'rgba(66,98,255,0.18)', stroke: 'none' }));
     }
 
     /* curve */
@@ -2451,41 +2492,652 @@ extraTemplates['normal-distribution'] = {
       const x = xMin + i * xStep;
       curvePath += ` L ${toSVGx(x)} ${toSVGy(norm(x))}`;
     }
-    svg.appendChild(svgEl('path', { d: curvePath, fill: 'none', stroke: '#4262ff', 'stroke-width': '2.5' }));
+    svg.appendChild(svgEl('path', { d: curvePath, fill: 'none', stroke: '#4262ff', 'stroke-width': '2.8' }));
 
     /* x-axis */
     svg.appendChild(svgEl('line', {
       x1: pad.l, y1: pad.t + gh, x2: W - pad.r, y2: pad.t + gh,
-      stroke: '#2b2d42', 'stroke-width': '1.5',
+      stroke: '#2b2d42', 'stroke-width': '1.8',
     }));
 
-    /* SD lines and labels */
+    /* SD lines, labels, percentages */
     const sdPercents = ['', '34.1%', '13.6%', '2.1%'];
     for (let i = -3; i <= 3; i++) {
-      const x = s.mean + i * s.sd;
-      const sx = toSVGx(x);
+      const xVal = s.mean + i * s.sd;
+      const sx = toSVGx(xVal);
 
       if (s.showSDLines) {
         svg.appendChild(svgEl('line', {
           x1: sx, y1: pad.t, x2: sx, y2: pad.t + gh,
-          stroke: i === 0 ? '#e63946' : '#ddd',
-          'stroke-width': i === 0 ? '1.5' : '1',
-          'stroke-dasharray': i === 0 ? 'none' : '4,3',
+          stroke: i === 0 ? '#e63946' : '#ccc',
+          'stroke-width': i === 0 ? '1.8' : '1',
+          'stroke-dasharray': i === 0 ? 'none' : '5,4',
         }));
       }
 
-      /* x-axis label */
-      const label = i === 0 ? `μ=${s.mean}` : `${i > 0 ? '+' : ''}${i}σ`;
-      svg.appendChild(svgText(sx, pad.t + gh + 18, label, 13, 'middle', { fill: '#555', 'font-weight': '600' }));
-      svg.appendChild(svgText(sx, pad.t + gh + 34, String(Math.round((s.mean + i * s.sd) * 100) / 100), 11, 'middle', { fill: '#888' }));
+      if (!s.blank) {
+        const sigmaLabel = i === 0 ? 'μ' : `${i > 0 ? '+' : ''}${i}σ`;
+        const valueLabel = String(Math.round(xVal * 100) / 100);
+        const labelY1 = pad.t + gh + 20;
+        const labelY2 = pad.t + gh + 36;
+
+        if (s.xlabels === 'both') {
+          svg.appendChild(svgText(sx, labelY1, sigmaLabel, 13, 'middle', { fill: '#444', 'font-weight': '700' }));
+          svg.appendChild(svgText(sx, labelY2, valueLabel, 11, 'middle', { fill: '#888' }));
+        } else if (s.xlabels === 'sigma') {
+          svg.appendChild(svgText(sx, labelY1, sigmaLabel, 13, 'middle', { fill: '#444', 'font-weight': '700' }));
+        } else if (s.xlabels === 'values') {
+          svg.appendChild(svgText(sx, labelY1, valueLabel, 13, 'middle', { fill: '#444', 'font-weight': '700' }));
+        }
+        /* 'none' → no label */
+      }
 
       /* percentages between SD lines */
-      if (s.showPct && i > 0 && i <= 3) {
+      if (s.showPct && !s.blank && i > 0 && i <= 3) {
         const lx = toSVGx(s.mean + (i - 0.5) * s.sd);
         const rx = toSVGx(s.mean - (i - 0.5) * s.sd);
-        const py = pad.t + gh * 0.55 + i * 20;
+        const py = pad.t + gh * 0.62 + i * 18;
         svg.appendChild(svgText(lx, py, sdPercents[i], 12, 'middle', { fill: '#4262ff', 'font-weight': '700' }));
         svg.appendChild(svgText(rx, py, sdPercents[i], 12, 'middle', { fill: '#4262ff', 'font-weight': '700' }));
+      }
+    }
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   20b. CHI-SQUARED DISTRIBUTION
+   ================================================================ */
+extraTemplates['chi-squared'] = {
+  name: 'Chi-Squared Distribution',
+  category: 'Statistics Extra',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Chi-Squared Distribution'));
+    c.appendChild(row(
+      field('Degrees of freedom (df)', numberInput('cs-df', 4, 1, 30, 1)),
+      field('Significance (α)', select('cs-alpha', [
+        { v: '0.10', l: 'α = 0.10' }, { v: '0.05', l: 'α = 0.05' },
+        { v: '0.025', l: 'α = 0.025' }, { v: '0.01', l: 'α = 0.01' },
+      ], '0.05')),
+    ));
+    c.appendChild(row(
+      checkbox('cs-shading', 'Shade critical region', true),
+      checkbox('cs-critline', 'Show critical value line', true),
+    ));
+    c.appendChild(row(
+      checkbox('cs-xlabels', 'Show x-axis labels', true),
+      checkbox('cs-blank', 'Blank mode (no labels)', false),
+    ));
+    c.appendChild(row(
+      field('Title', textInput('cs-title', 'Chi-Squared Distribution')),
+    ));
+  },
+  readConfig() {
+    return {
+      df: val('cs-df') || 4, alpha: parseFloat(val('cs-alpha') || 0.05),
+      shading: val('cs-shading'), critline: val('cs-critline'),
+      xlabels: val('cs-xlabels'), blank: val('cs-blank'),
+      title: val('cs-title') || 'Chi-Squared Distribution',
+    };
+  },
+  generateSVG(s) {
+    /* critical value lookup table: [df][alpha] */
+    const CHI_CRIT = {
+      1:{0.10:2.706,0.05:3.841,0.025:5.024,0.01:6.635},
+      2:{0.10:4.605,0.05:5.991,0.025:7.378,0.01:9.210},
+      3:{0.10:6.251,0.05:7.815,0.025:9.348,0.01:11.345},
+      4:{0.10:7.779,0.05:9.488,0.025:11.143,0.01:13.277},
+      5:{0.10:9.236,0.05:11.070,0.025:12.833,0.01:15.086},
+      6:{0.10:10.645,0.05:12.592,0.025:14.449,0.01:16.812},
+      7:{0.10:12.017,0.05:14.067,0.025:16.013,0.01:18.475},
+      8:{0.10:13.362,0.05:15.507,0.025:17.535,0.01:20.090},
+      9:{0.10:14.684,0.05:16.919,0.025:19.023,0.01:21.666},
+      10:{0.10:15.987,0.05:18.307,0.025:20.483,0.01:23.209},
+      12:{0.10:18.549,0.05:21.026,0.025:23.337,0.01:26.217},
+      15:{0.10:22.307,0.05:24.996,0.025:27.488,0.01:30.578},
+      20:{0.10:28.412,0.05:31.410,0.025:34.170,0.01:37.566},
+      25:{0.10:34.382,0.05:37.652,0.025:40.646,0.01:44.314},
+      30:{0.10:40.256,0.05:43.773,0.025:46.979,0.01:50.892},
+    };
+    const df = Math.min(Math.max(Math.round(s.df), 1), 30);
+    const alpha = s.alpha;
+    /* interpolate critical value */
+    const dfs = Object.keys(CHI_CRIT).map(Number).sort((a,b)=>a-b);
+    let critVal;
+    if (CHI_CRIT[df]) {
+      critVal = CHI_CRIT[df][alpha] || CHI_CRIT[df][0.05];
+    } else {
+      const lo = dfs.filter(d=>d<=df).pop();
+      const hi = dfs.filter(d=>d>df)[0];
+      const t = (df-lo)/(hi-lo);
+      critVal = CHI_CRIT[lo][alpha]*(1-t) + CHI_CRIT[hi][alpha]*t;
+    }
+
+    const W = 700, H = 380;
+    const svg = makeSVG(W, H);
+    const pad = { l: 50, r: 35, t: 48, b: 60 };
+    const gw = W - pad.l - pad.r;
+    const gh = H - pad.t - pad.b;
+
+    svg.appendChild(svgText(W / 2, 28, s.title, 15, 'middle', { fill: '#222', 'font-weight': '700' }));
+
+    /* x range: 0 to max(critVal*1.5, df*2) */
+    const xMax = Math.max(critVal * 1.55, df * 2.2, 10);
+    const xMin = 0;
+    const steps = 300;
+    const xStep = (xMax - xMin) / steps;
+    const toSVGx = (x) => pad.l + (x / xMax) * gw;
+
+    /* find peak y (at df-2 or near 0) */
+    const peakX = Math.max(df - 2, 0.1);
+    const peakY = _chiPDF(peakX, df);
+    const toSVGy = (y) => pad.t + gh - (y / peakY) * gh * 0.88;
+
+    /* shaded right-tail region */
+    if (s.shading) {
+      let shadePath = `M ${toSVGx(critVal)} ${toSVGy(0)}`;
+      for (let x = critVal; x <= xMax + xStep; x += xStep) {
+        const cx = Math.min(x, xMax);
+        shadePath += ` L ${toSVGx(cx)} ${toSVGy(_chiPDF(cx, df))}`;
+      }
+      shadePath += ` L ${toSVGx(xMax)} ${toSVGy(0)} Z`;
+      svg.appendChild(svgEl('path', { d: shadePath, fill: 'rgba(230,57,70,0.18)', stroke: 'none' }));
+    }
+
+    /* curve */
+    let curvePath = '';
+    for (let i = 0; i <= steps; i++) {
+      const x = xMin + i * xStep + 0.001;
+      const y = toSVGy(_chiPDF(x, df));
+      curvePath += i === 0 ? `M ${toSVGx(x)} ${y}` : ` L ${toSVGx(x)} ${y}`;
+    }
+    svg.appendChild(svgEl('path', { d: curvePath, fill: 'none', stroke: '#4262ff', 'stroke-width': '2.8' }));
+
+    /* x-axis */
+    svg.appendChild(svgEl('line', { x1: pad.l, y1: pad.t + gh, x2: W - pad.r, y2: pad.t + gh, stroke: '#2b2d42', 'stroke-width': '1.8' }));
+
+    /* critical value line */
+    if (s.critline) {
+      const cx = toSVGx(critVal);
+      svg.appendChild(svgEl('line', { x1: cx, y1: pad.t, x2: cx, y2: pad.t + gh, stroke: '#e63946', 'stroke-width': '1.8', 'stroke-dasharray': '6,4' }));
+    }
+
+    /* x-axis labels */
+    if (s.xlabels && !s.blank) {
+      /* 0 */
+      svg.appendChild(svgText(toSVGx(0), pad.t + gh + 20, '0', 13, 'middle', { fill: '#444', 'font-weight': '600' }));
+      /* critical value */
+      const cv = Math.round(critVal * 100) / 100;
+      svg.appendChild(svgText(toSVGx(critVal), pad.t + gh + 20, String(cv), 12, 'middle', { fill: '#e63946', 'font-weight': '700' }));
+      /* alpha label */
+      svg.appendChild(svgText(toSVGx((critVal + xMax) / 2), pad.t + gh * 0.72, `α = ${s.alpha}`, 11, 'middle', { fill: '#e63946' }));
+    }
+
+    if (!s.blank) {
+      /* df label */
+      svg.appendChild(svgText(W - pad.r, pad.t + 12, `χ²(${df})`, 12, 'end', { fill: '#666', 'font-style': 'italic' }));
+    }
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   20c. T-DISTRIBUTION
+   ================================================================ */
+extraTemplates['t-distribution'] = {
+  name: 't-Distribution',
+  category: 'Statistics Extra',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('t-Distribution'));
+    c.appendChild(row(
+      field('Degrees of freedom (df)', numberInput('td-df', 10, 1, 120, 1)),
+      field('Significance (α)', select('td-alpha', [
+        { v: '0.10', l: 'α = 0.10' }, { v: '0.05', l: 'α = 0.05' },
+        { v: '0.025', l: 'α = 0.025' }, { v: '0.01', l: 'α = 0.01' },
+      ], '0.05')),
+    ));
+    c.appendChild(row(
+      field('Tails', select('td-tails', [
+        { v: 'two', l: 'Two-tailed' }, { v: 'right', l: 'Right-tailed' }, { v: 'left', l: 'Left-tailed' },
+      ], 'two')),
+    ));
+    c.appendChild(row(
+      checkbox('td-shading', 'Shade critical region(s)', true),
+      checkbox('td-critline', 'Show critical value line(s)', true),
+    ));
+    c.appendChild(row(
+      checkbox('td-normal', 'Overlay normal curve', false),
+      checkbox('td-blank', 'Blank mode (no labels)', false),
+    ));
+    c.appendChild(row(
+      field('Title', textInput('td-title', 't-Distribution')),
+    ));
+  },
+  readConfig() {
+    return {
+      df: val('td-df') || 10, alpha: parseFloat(val('td-alpha') || 0.05),
+      tails: val('td-tails') || 'two',
+      shading: val('td-shading'), critline: val('td-critline'),
+      normal: val('td-normal'), blank: val('td-blank'),
+      title: val('td-title') || 't-Distribution',
+    };
+  },
+  generateSVG(s) {
+    const T_CRIT = {
+      1:{0.10:3.078,0.05:6.314,0.025:12.706,0.01:31.821},
+      2:{0.10:1.886,0.05:2.920,0.025:4.303,0.01:6.965},
+      3:{0.10:1.638,0.05:2.353,0.025:3.182,0.01:4.541},
+      4:{0.10:1.533,0.05:2.132,0.025:2.776,0.01:3.747},
+      5:{0.10:1.476,0.05:2.015,0.025:2.571,0.01:3.365},
+      6:{0.10:1.440,0.05:1.943,0.025:2.447,0.01:3.143},
+      7:{0.10:1.415,0.05:1.895,0.025:2.365,0.01:2.998},
+      8:{0.10:1.397,0.05:1.860,0.025:2.306,0.01:2.896},
+      9:{0.10:1.383,0.05:1.833,0.025:2.262,0.01:2.821},
+      10:{0.10:1.372,0.05:1.812,0.025:2.228,0.01:2.764},
+      15:{0.10:1.341,0.05:1.753,0.025:2.131,0.01:2.602},
+      20:{0.10:1.325,0.05:1.725,0.025:2.086,0.01:2.528},
+      25:{0.10:1.316,0.05:1.708,0.025:2.060,0.01:2.485},
+      30:{0.10:1.310,0.05:1.697,0.025:2.042,0.01:2.457},
+      40:{0.10:1.303,0.05:1.684,0.025:2.021,0.01:2.423},
+      60:{0.10:1.296,0.05:1.671,0.025:2.000,0.01:2.390},
+      120:{0.10:1.289,0.05:1.658,0.025:1.980,0.01:2.358},
+    };
+    const df = Math.min(Math.max(Math.round(s.df), 1), 120);
+    const alpha = s.alpha;
+    const dfs = Object.keys(T_CRIT).map(Number).sort((a,b)=>a-b);
+    let tCrit;
+    if (T_CRIT[df]) {
+      tCrit = T_CRIT[df][alpha] || T_CRIT[df][0.05];
+    } else {
+      const lo = dfs.filter(d=>d<=df).pop();
+      const hi = dfs.filter(d=>d>df)[0];
+      const t2 = (df-lo)/(hi-lo);
+      tCrit = T_CRIT[lo][alpha]*(1-t2) + T_CRIT[hi][alpha]*t2;
+    }
+
+    const W = 700, H = 400;
+    const svg = makeSVG(W, H);
+    const pad = { l: 50, r: 35, t: 48, b: 60 };
+    const gw = W - pad.l - pad.r;
+    const gh = H - pad.t - pad.b;
+
+    svg.appendChild(svgText(W / 2, 28, s.title, 15, 'middle', { fill: '#222', 'font-weight': '700' }));
+
+    const xRange = Math.max(tCrit * 1.5, 4);
+    const xMin = -xRange, xMax = xRange;
+    const steps = 300;
+    const xStep = (xMax - xMin) / steps;
+    const toSVGx = (x) => pad.l + ((x - xMin) / (xMax - xMin)) * gw;
+    const peakY = _tPDF(0, df);
+    const toSVGy = (y) => pad.t + gh - (y / peakY) * gh * 0.88;
+
+    /* shading */
+    if (s.shading) {
+      const shade = (from, to, clr) => {
+        let p = `M ${toSVGx(from)} ${toSVGy(0)}`;
+        const st = (to - from) / 100;
+        for (let x = from; x <= to + st * 0.5; x += st) {
+          const cx = Math.min(x, to);
+          p += ` L ${toSVGx(cx)} ${toSVGy(_tPDF(cx, df))}`;
+        }
+        p += ` L ${toSVGx(to)} ${toSVGy(0)} Z`;
+        svg.appendChild(svgEl('path', { d: p, fill: clr, stroke: 'none' }));
+      };
+      if (s.tails === 'two') {
+        shade(tCrit, xMax, 'rgba(230,57,70,0.18)');
+        shade(xMin, -tCrit, 'rgba(230,57,70,0.18)');
+      } else if (s.tails === 'right') {
+        shade(tCrit, xMax, 'rgba(230,57,70,0.18)');
+      } else {
+        shade(xMin, -tCrit, 'rgba(230,57,70,0.18)');
+      }
+    }
+
+    /* normal overlay */
+    if (s.normal) {
+      const normPDF = (x) => Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+      let np = `M ${toSVGx(xMin)} ${toSVGy(normPDF(xMin) / peakY * _tPDF(0, df))}`;
+      for (let i = 1; i <= steps; i++) {
+        const x = xMin + i * xStep;
+        np += ` L ${toSVGx(x)} ${toSVGy(normPDF(x) / peakY * _tPDF(0, df))}`;
+      }
+      svg.appendChild(svgEl('path', { d: np, fill: 'none', stroke: '#aaa', 'stroke-width': '1.5', 'stroke-dasharray': '6,4' }));
+    }
+
+    /* t curve */
+    let curvePath = `M ${toSVGx(xMin)} ${toSVGy(_tPDF(xMin, df))}`;
+    for (let i = 1; i <= steps; i++) {
+      const x = xMin + i * xStep;
+      curvePath += ` L ${toSVGx(x)} ${toSVGy(_tPDF(x, df))}`;
+    }
+    svg.appendChild(svgEl('path', { d: curvePath, fill: 'none', stroke: '#4262ff', 'stroke-width': '2.8' }));
+
+    /* x-axis */
+    svg.appendChild(svgEl('line', { x1: pad.l, y1: pad.t + gh, x2: W - pad.r, y2: pad.t + gh, stroke: '#2b2d42', 'stroke-width': '1.8' }));
+
+    /* critical value lines */
+    if (s.critline) {
+      const drawCrit = (x) => {
+        const cx = toSVGx(x);
+        svg.appendChild(svgEl('line', { x1: cx, y1: pad.t, x2: cx, y2: pad.t + gh, stroke: '#e63946', 'stroke-width': '1.8', 'stroke-dasharray': '6,4' }));
+      };
+      if (s.tails === 'two') { drawCrit(tCrit); drawCrit(-tCrit); }
+      else if (s.tails === 'right') drawCrit(tCrit);
+      else drawCrit(-tCrit);
+    }
+
+    /* labels */
+    if (!s.blank) {
+      svg.appendChild(svgText(toSVGx(0), pad.t + gh + 20, '0', 13, 'middle', { fill: '#444', 'font-weight': '600' }));
+      const cv = Math.round(tCrit * 1000) / 1000;
+      if (s.tails === 'two' || s.tails === 'right') {
+        svg.appendChild(svgText(toSVGx(tCrit), pad.t + gh + 20, String(cv), 12, 'middle', { fill: '#e63946', 'font-weight': '700' }));
+      }
+      if (s.tails === 'two' || s.tails === 'left') {
+        svg.appendChild(svgText(toSVGx(-tCrit), pad.t + gh + 20, `-${cv}`, 12, 'middle', { fill: '#e63946', 'font-weight': '700' }));
+      }
+      svg.appendChild(svgText(W - pad.r, pad.t + 12, `t(${df})`, 12, 'end', { fill: '#666', 'font-style': 'italic' }));
+      if (s.normal) {
+        svg.appendChild(svgText(pad.l + gw * 0.85, pad.t + gh * 0.15, 'N(0,1)', 10, 'middle', { fill: '#999', 'font-style': 'italic' }));
+      }
+    }
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   20d. BINOMIAL DISTRIBUTION
+   ================================================================ */
+extraTemplates['binomial'] = {
+  name: 'Binomial Distribution',
+  category: 'Statistics Extra',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Binomial Distribution'));
+    c.appendChild(row(
+      field('Trials (n)', numberInput('bd-n', 10, 1, 50, 1)),
+      field('Probability (p)', numberInput('bd-p', 0.5, 0.01, 0.99, 0.01)),
+    ));
+    c.appendChild(row(
+      field('Shade P(X ...)', select('bd-shade', [
+        { v: 'none', l: 'None' },
+        { v: 'eq', l: '= k' },
+        { v: 'le', l: '≤ k' },
+        { v: 'ge', l: '≥ k' },
+      ], 'none')),
+      field('k', numberInput('bd-k', 5, 0, 50, 1)),
+    ));
+    c.appendChild(row(
+      checkbox('bd-xlabels', 'Show x-axis labels', true),
+      checkbox('bd-blank', 'Blank mode (no labels)', false),
+    ));
+    c.appendChild(row(
+      field('Title', textInput('bd-title', 'Binomial Distribution')),
+    ));
+  },
+  readConfig() {
+    return {
+      n: val('bd-n') || 10, p: val('bd-p') || 0.5,
+      shade: val('bd-shade') || 'none', k: val('bd-k') || 5,
+      xlabels: val('bd-xlabels'), blank: val('bd-blank'),
+      title: val('bd-title') || 'Binomial Distribution',
+    };
+  },
+  generateSVG(s) {
+    const n = Math.min(Math.max(Math.round(s.n), 1), 50);
+    const p = Math.min(Math.max(s.p, 0.01), 0.99);
+    const k = Math.min(Math.max(Math.round(s.k), 0), n);
+
+    /* compute PMF */
+    const probs = [];
+    for (let i = 0; i <= n; i++) probs.push(_binomPMF(i, n, p));
+    const maxP = Math.max(...probs);
+
+    const W = Math.min(700, Math.max(400, n * 28 + 80));
+    const H = 380;
+    const svg = makeSVG(W, H);
+    const pad = { l: 55, r: 30, t: 48, b: 60 };
+    const gw = W - pad.l - pad.r;
+    const gh = H - pad.t - pad.b;
+
+    svg.appendChild(svgText(W / 2, 28, s.title, 15, 'middle', { fill: '#222', 'font-weight': '700' }));
+
+    const barW = Math.max(3, gw / (n + 1) - 2);
+    const toSVGx = (i) => pad.l + (i / n) * gw + gw / (n * 2);
+    const toSVGy = (pv) => pad.t + gh - (pv / maxP) * gh * 0.88;
+
+    /* bars */
+    for (let i = 0; i <= n; i++) {
+      const bx = toSVGx(i) - barW / 2;
+      const by = toSVGy(probs[i]);
+      const bh = pad.t + gh - by;
+
+      let fill = '#4262ff';
+      if (s.shade === 'eq' && i === k) fill = '#e63946';
+      else if (s.shade === 'le' && i <= k) fill = '#e63946';
+      else if (s.shade === 'ge' && i >= k) fill = '#e63946';
+
+      svg.appendChild(svgEl('rect', { x: bx, y: by, width: barW, height: bh, fill, opacity: '0.75' }));
+    }
+
+    /* x-axis */
+    svg.appendChild(svgEl('line', { x1: pad.l, y1: pad.t + gh, x2: W - pad.r, y2: pad.t + gh, stroke: '#2b2d42', 'stroke-width': '1.8' }));
+
+    /* y-axis */
+    svg.appendChild(svgEl('line', { x1: pad.l, y1: pad.t, x2: pad.l, y2: pad.t + gh, stroke: '#2b2d42', 'stroke-width': '1.5' }));
+
+    /* x-axis labels */
+    if (s.xlabels && !s.blank) {
+      const step = n <= 20 ? 1 : n <= 40 ? 2 : 5;
+      for (let i = 0; i <= n; i += step) {
+        svg.appendChild(svgText(toSVGx(i), pad.t + gh + 18, String(i), 11, 'middle', { fill: '#555' }));
+      }
+      svg.appendChild(svgText(W / 2, pad.t + gh + 42, 'k', 13, 'middle', { fill: '#333', 'font-style': 'italic' }));
+    }
+
+    /* y-axis label */
+    if (!s.blank) {
+      svg.appendChild(svgText(14, pad.t + gh / 2, 'P(X = k)', 11, 'middle', { fill: '#555', transform: `rotate(-90,14,${pad.t + gh / 2})` }));
+      svg.appendChild(svgText(W - pad.r, pad.t + 12, `B(${n}, ${p})`, 12, 'end', { fill: '#666', 'font-style': 'italic' }));
+    }
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   20e. CONTINGENCY TABLE (Chi-Test for Independence)
+   ================================================================ */
+extraTemplates['contingency-table'] = {
+  name: 'Contingency Table',
+  category: 'Statistics Extra',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Contingency Table'));
+    c.appendChild(row(
+      field('Rows (excl. totals)', numberInput('ct-rows', 2, 1, 5, 1)),
+      field('Columns (excl. totals)', numberInput('ct-cols', 2, 1, 5, 1)),
+    ));
+    c.appendChild(row(
+      checkbox('ct-totals', 'Show totals row/col', true),
+      checkbox('ct-blank', 'Blank cells (no values)', false),
+    ));
+
+    const valContainer = document.createElement('div');
+    valContainer.id = 'ct-val-container';
+    c.appendChild(valContainer);
+
+    const buildCTInputs = () => {
+      const nr = parseInt(document.getElementById('ct-rows').value, 10) || 2;
+      const nc = parseInt(document.getElementById('ct-cols').value, 10) || 2;
+      const container = document.getElementById('ct-val-container');
+      if (!container) return;
+
+      /* preserve old values */
+      const oldRowLabels = [], oldColLabels = [];
+      const oldVals = {};
+      container.querySelectorAll('[data-ct-rlabel]').forEach(el => oldRowLabels.push(el.value));
+      container.querySelectorAll('[data-ct-clabel]').forEach(el => oldColLabels.push(el.value));
+      container.querySelectorAll('[data-ct-cell]').forEach(el => {
+        const [r,cl] = el.dataset.ctCell.split('-').map(Number);
+        if (!oldVals[r]) oldVals[r] = {};
+        oldVals[r][cl] = el.value;
+      });
+      container.innerHTML = '';
+
+      /* column labels */
+      const defaultColLabels = ['Category A','Category B','Category C','Category D','Category E'];
+      const defaultRowLabels = ['Group 1','Group 2','Group 3','Group 4','Group 5'];
+      const clRow = document.createElement('div');
+      clRow.className = 'cfg-row';
+      clRow.style.cssText = 'gap:4px;margin-bottom:2px;';
+      for (let col = 0; col < nc; col++) {
+        const inp = document.createElement('input');
+        inp.type = 'text'; inp.className = 'cfg-input'; inp.style.flex = '1';
+        inp.setAttribute('data-ct-clabel', col);
+        inp.value = col < oldColLabels.length ? oldColLabels[col] : (defaultColLabels[col] || `Col ${col+1}`);
+        inp.placeholder = `Col ${col+1}`;
+        clRow.appendChild(inp);
+      }
+      container.appendChild(clRow);
+
+      /* value rows */
+      for (let r = 0; r < nr; r++) {
+        const rRow = document.createElement('div');
+        rRow.className = 'cfg-row';
+        rRow.style.cssText = 'gap:4px;margin-bottom:2px;';
+        const rl = document.createElement('input');
+        rl.type = 'text'; rl.className = 'cfg-input'; rl.style.flex = '1.4';
+        rl.setAttribute('data-ct-rlabel', r);
+        rl.value = r < oldRowLabels.length ? oldRowLabels[r] : (defaultRowLabels[r] || `Row ${r+1}`);
+        rl.placeholder = `Row ${r+1}`;
+        rRow.appendChild(rl);
+        for (let col = 0; col < nc; col++) {
+          const vi = document.createElement('input');
+          vi.type = 'number'; vi.className = 'cfg-input cfg-input-sm'; vi.style.flex = '1';
+          vi.setAttribute('data-ct-cell', `${r}-${col}`);
+          vi.min = 0;
+          vi.value = (oldVals[r] && oldVals[r][col] !== undefined) ? oldVals[r][col] : Math.floor(Math.random() * 30 + 5);
+          rRow.appendChild(vi);
+        }
+        container.appendChild(rRow);
+      }
+
+      container.querySelectorAll('input').forEach(el => {
+        el.addEventListener('input', () => { if (window._tplSchedulePreview) window._tplSchedulePreview(); });
+      });
+    };
+
+    document.getElementById('ct-rows').addEventListener('change', buildCTInputs);
+    document.getElementById('ct-cols').addEventListener('change', buildCTInputs);
+    buildCTInputs();
+
+    c.appendChild(row(field('Title', textInput('ct-title', 'Contingency Table'))));
+  },
+  readConfig() {
+    const rowLabels = [], colLabels = [];
+    const cells = {};
+    document.querySelectorAll('[data-ct-rlabel]').forEach(el => rowLabels.push(el.value.trim() || `Row ${rowLabels.length+1}`));
+    document.querySelectorAll('[data-ct-clabel]').forEach(el => colLabels.push(el.value.trim() || `Col ${colLabels.length+1}`));
+    document.querySelectorAll('[data-ct-cell]').forEach(el => {
+      const [r,col] = el.dataset.ctCell.split('-').map(Number);
+      if (!cells[r]) cells[r] = {};
+      cells[r][col] = parseInt(el.value) || 0;
+    });
+    return {
+      rows: val('ct-rows') || 2, cols: val('ct-cols') || 2,
+      rowLabels, colLabels, cells,
+      showTotals: val('ct-totals'), blank: val('ct-blank'),
+      title: val('ct-title') || 'Contingency Table',
+    };
+  },
+  generateSVG(s) {
+    const nr = Math.min(Math.max(Math.round(s.rows), 1), 5);
+    const nc = Math.min(Math.max(Math.round(s.cols), 1), 5);
+    const cells = s.cells || {};
+
+    /* row/col totals */
+    const rowTotals = [], colTotals = new Array(nc).fill(0);
+    let grandTotal = 0;
+    for (let r = 0; r < nr; r++) {
+      let rt = 0;
+      for (let col = 0; col < nc; col++) {
+        const v = cells[r] ? (cells[r][col] || 0) : 0;
+        rt += v; colTotals[col] += v; grandTotal += v;
+      }
+      rowTotals.push(rt);
+    }
+
+    const rowH = 40, headerH = 44;
+    const labelW = 120, cellW = 80;
+    const totalCols = nc + (s.showTotals ? 1 : 0);
+    const totalRows = nr + (s.showTotals ? 1 : 0);
+    const pad = 24;
+    const titleH = 36;
+    const W = pad * 2 + labelW + cellW * totalCols;
+    const H = pad * 2 + titleH + headerH + rowH * totalRows;
+    const svg = makeSVG(W, H);
+
+    const tableLeft = pad;
+    const tableTop = pad + titleH;
+
+    svg.appendChild(svgText(W / 2, pad + 18, s.title, 15, 'middle', { fill: '#222', 'font-weight': '700' }));
+
+    /* header row */
+    svg.appendChild(svgEl('rect', { x: tableLeft, y: tableTop, width: labelW, height: headerH, fill: '#f0f2ff', stroke: '#ccc', 'stroke-width': '1' }));
+    for (let col = 0; col < nc; col++) {
+      const cx = tableLeft + labelW + col * cellW;
+      svg.appendChild(svgEl('rect', { x: cx, y: tableTop, width: cellW, height: headerH, fill: '#4262ff', stroke: '#fff', 'stroke-width': '1' }));
+      const lbl = s.colLabels[col] || `Col ${col+1}`;
+      svg.appendChild(svgText(cx + cellW / 2, tableTop + headerH / 2 + 5, lbl.length > 10 ? lbl.slice(0,10)+'…' : lbl, 11, 'middle', { fill: '#fff', 'font-weight': '600' }));
+    }
+    if (s.showTotals) {
+      const cx = tableLeft + labelW + nc * cellW;
+      svg.appendChild(svgEl('rect', { x: cx, y: tableTop, width: cellW, height: headerH, fill: '#2b2d42', stroke: '#fff', 'stroke-width': '1' }));
+      svg.appendChild(svgText(cx + cellW / 2, tableTop + headerH / 2 + 5, 'Total', 11, 'middle', { fill: '#fff', 'font-weight': '700' }));
+    }
+
+    /* data rows */
+    for (let r = 0; r < nr; r++) {
+      const ry = tableTop + headerH + r * rowH;
+      const rFill = r % 2 === 0 ? '#fafafa' : '#fff';
+      svg.appendChild(svgEl('rect', { x: tableLeft, y: ry, width: labelW, height: rowH, fill: '#f0f2ff', stroke: '#ddd', 'stroke-width': '1' }));
+      const lbl = s.rowLabels[r] || `Row ${r+1}`;
+      svg.appendChild(svgText(tableLeft + labelW / 2, ry + rowH / 2 + 5, lbl.length > 12 ? lbl.slice(0,12)+'…' : lbl, 11, 'middle', { fill: '#333', 'font-weight': '600' }));
+      for (let col = 0; col < nc; col++) {
+        const cx = tableLeft + labelW + col * cellW;
+        svg.appendChild(svgEl('rect', { x: cx, y: ry, width: cellW, height: rowH, fill: rFill, stroke: '#ddd', 'stroke-width': '1' }));
+        if (!s.blank) {
+          const v = cells[r] ? (cells[r][col] || 0) : 0;
+          svg.appendChild(svgText(cx + cellW / 2, ry + rowH / 2 + 5, String(v), 14, 'middle', { fill: '#222', 'font-weight': '600' }));
+        }
+      }
+      if (s.showTotals) {
+        const cx = tableLeft + labelW + nc * cellW;
+        svg.appendChild(svgEl('rect', { x: cx, y: ry, width: cellW, height: rowH, fill: '#f5f5f5', stroke: '#ddd', 'stroke-width': '1' }));
+        if (!s.blank) {
+          svg.appendChild(svgText(cx + cellW / 2, ry + rowH / 2 + 5, String(rowTotals[r]), 14, 'middle', { fill: '#444', 'font-weight': '700' }));
+        }
+      }
+    }
+
+    /* totals row */
+    if (s.showTotals) {
+      const ry = tableTop + headerH + nr * rowH;
+      svg.appendChild(svgEl('rect', { x: tableLeft, y: ry, width: labelW, height: rowH, fill: '#2b2d42', stroke: '#fff', 'stroke-width': '1' }));
+      svg.appendChild(svgText(tableLeft + labelW / 2, ry + rowH / 2 + 5, 'Total', 12, 'middle', { fill: '#fff', 'font-weight': '700' }));
+      for (let col = 0; col < nc; col++) {
+        const cx = tableLeft + labelW + col * cellW;
+        svg.appendChild(svgEl('rect', { x: cx, y: ry, width: cellW, height: rowH, fill: '#f5f5f5', stroke: '#ddd', 'stroke-width': '1' }));
+        if (!s.blank) {
+          svg.appendChild(svgText(cx + cellW / 2, ry + rowH / 2 + 5, String(colTotals[col]), 14, 'middle', { fill: '#444', 'font-weight': '700' }));
+        }
+      }
+      const cx = tableLeft + labelW + nc * cellW;
+      svg.appendChild(svgEl('rect', { x: cx, y: ry, width: cellW, height: rowH, fill: '#e8e8f4', stroke: '#ddd', 'stroke-width': '1' }));
+      if (!s.blank) {
+        svg.appendChild(svgText(cx + cellW / 2, ry + rowH / 2 + 5, String(grandTotal), 14, 'middle', { fill: '#222', 'font-weight': '700' }));
       }
     }
 

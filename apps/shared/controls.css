@@ -1,0 +1,429 @@
+/* ══════════════════════════════════════════════════════
+   JMATHS MIRO APPS — SHARED FORM CONTROLS
+   Used by: Templates modal (cfg-*), Axes modal (ctrl-*)
+   Both namespaces are handled here — DRY by design.
+   ══════════════════════════════════════════════════════ */
+
+/* ── Token fallbacks (used if theme.css not imported) ── */
+:root {
+  --primary:      var(--primary,      #14b8a6);
+  --primary-hover:var(--primary-hover,#0d9488);
+  --primary-bg:   var(--primary-bg,   rgba(20,184,166,0.08));
+  --primary-light:var(--primary-light,#99f6e4);
+  --text:         var(--text,         #1e293b);
+  --text-muted:   var(--text-muted,   #64748b);
+  --text-light:   var(--text-light,   #94a3b8);
+  --border:       var(--border,       #e2e8f0);
+  --bg:           var(--bg,           #ffffff);
+  --bg-subtle:    var(--bg-subtle,    #f8fafc);
+  --bg-muted:     var(--bg-muted,     #f1f5f9);
+  --danger:       var(--danger,       #ef4444);
+  --radius:       var(--radius,       8px);
+  --font:         var(--font,         Inter, ui-sans-serif, system-ui, -apple-system, sans-serif);
+
+  /* Control-specific sizing */
+  --ctrl-h:       30px;   /* standard input/select height */
+  --ctrl-radius:  7px;    /* input border-radius          */
+  --ctrl-font:    12px;   /* control font size            */
+}
+
+/* ══════════════════════════════════════════════════════
+   SECTION LABELS
+   ══════════════════════════════════════════════════════ */
+
+.cfg-label,
+.ctrl-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 7px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cfg-section-label,
+.ctrl-section-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 0 2px;
+}
+
+/* ══════════════════════════════════════════════════════
+   ROWS & FIELDS
+   ══════════════════════════════════════════════════════ */
+
+.cfg-section,
+.ctrl-section {
+  padding: 4px 0 6px;
+}
+
+.cfg-divider,
+.ctrl-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 8px 0;
+}
+
+.cfg-row,
+.ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.cfg-field,
+.ctrl-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ctrl-field-full {
+  flex: unset;
+  width: 100%;
+}
+
+.cfg-field-label,
+.ctrl-field-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+/* ══════════════════════════════════════════════════════
+   TEXT / NUMBER INPUTS
+   ══════════════════════════════════════════════════════ */
+
+.cfg-input,
+.ctrl-input {
+  width: 100%;
+  height: var(--ctrl-h);
+  padding: 0 10px;
+  font-size: var(--ctrl-font);
+  font-family: var(--font);
+  border: 1.5px solid var(--border);
+  border-radius: var(--ctrl-radius);
+  background: var(--bg);
+  color: var(--text);
+  transition: border-color 0.12s, box-shadow 0.12s;
+  outline: none;
+}
+
+.cfg-input:focus,
+.ctrl-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2.5px rgba(20, 184, 166, 0.14);
+}
+
+.cfg-input::placeholder,
+.ctrl-input::placeholder {
+  color: var(--text-light);
+}
+
+.cfg-input-sm,
+.ctrl-input-sm {
+  width: 68px;
+  flex: none;
+}
+
+/* ══════════════════════════════════════════════════════
+   SELECTS  (custom chevron, no native arrow)
+   ══════════════════════════════════════════════════════ */
+
+.cfg-select,
+.ctrl-select {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: var(--ctrl-h);
+  padding: 0 28px 0 10px;
+  font-size: var(--ctrl-font);
+  font-family: var(--font);
+  border: 1.5px solid var(--border);
+  border-radius: var(--ctrl-radius);
+  background-color: var(--bg);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2394a3b8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.12s, box-shadow 0.12s;
+  outline: none;
+}
+
+.cfg-select:focus,
+.ctrl-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2.5px rgba(20, 184, 166, 0.14);
+}
+
+/* ══════════════════════════════════════════════════════
+   CHECKBOXES  (custom modern style, no HTML changes needed)
+   ══════════════════════════════════════════════════════ */
+
+.cfg-check,
+.ctrl-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--ctrl-font);
+  font-family: var(--font);
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+  line-height: 1.4;
+}
+
+.cfg-check input[type="checkbox"],
+.ctrl-check input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+  outline: none;
+}
+
+.cfg-check input[type="checkbox"]:focus-visible,
+.ctrl-check input[type="checkbox"]:focus-visible {
+  box-shadow: 0 0 0 2.5px rgba(20, 184, 166, 0.22);
+}
+
+.cfg-check input[type="checkbox"]:checked,
+.ctrl-check input[type="checkbox"]:checked {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  /* SVG checkmark */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 4L3.8 7L9 1' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 64%;
+}
+
+.cfg-check input[type="checkbox"]:hover:not(:checked),
+.ctrl-check input[type="checkbox"]:hover:not(:checked) {
+  border-color: var(--primary);
+}
+
+.cfg-check span,
+.ctrl-check span {
+  line-height: 1.35;
+}
+
+/* ══════════════════════════════════════════════════════
+   RADIOS
+   ══════════════════════════════════════════════════════ */
+
+.radio-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cfg-radio,
+.ctrl-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--ctrl-font);
+  font-family: var(--font);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cfg-radio input[type="radio"],
+.ctrl-radio input[type="radio"] {
+  accent-color: var(--primary);
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+/* ══════════════════════════════════════════════════════
+   RANGE SLIDERS
+   ══════════════════════════════════════════════════════ */
+
+.cfg-range,
+.ctrl-range {
+  flex: 1;
+  height: 4px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.cfg-range-value,
+.ctrl-range-value,
+.range-value {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 26px;
+  text-align: center;
+  font-family: var(--font);
+}
+
+/* ══════════════════════════════════════════════════════
+   COLOUR SWATCHES
+   ══════════════════════════════════════════════════════ */
+
+.cfg-swatch,
+.ctrl-swatch {
+  position: relative;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cfg-swatch input[type="color"],
+.ctrl-swatch input[type="color"] {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cfg-swatch-dot,
+.swatch-dot {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  transition: transform 0.1s, border-color 0.12s;
+}
+
+.cfg-swatch:hover .cfg-swatch-dot,
+.ctrl-swatch:hover .swatch-dot {
+  transform: scale(1.12);
+  border-color: var(--primary);
+}
+
+/* ══════════════════════════════════════════════════════
+   ADD / DELETE BUTTONS
+   ══════════════════════════════════════════════════════ */
+
+.cfg-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font);
+  border: 1.5px dashed var(--border);
+  border-radius: var(--ctrl-radius);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-top: 4px;
+}
+
+.cfg-add-btn:hover {
+  border-color: var(--primary);
+  border-style: solid;
+  color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.cfg-del-btn,
+.ctrl-del-btn {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: none;
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: all 0.12s;
+  font-family: var(--font);
+  padding: 0;
+}
+
+.cfg-del-btn:hover,
+.ctrl-del-btn:hover {
+  background: #fef2f2;
+  color: var(--danger);
+  border-color: #fecaca;
+}
+
+/* ══════════════════════════════════════════════════════
+   PRESET CHIPS  (axes-style pill selector)
+   ══════════════════════════════════════════════════════ */
+
+.preset-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.preset-strip::-webkit-scrollbar { height: 4px; }
+.preset-strip::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
+.preset-chip {
+  flex-shrink: 0;
+  padding: 5px 13px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.preset-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.preset-chip.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* ══════════════════════════════════════════════════════
+   SEGMENT / DYNAMIC ROW HELPERS
+   ══════════════════════════════════════════════════════ */
+
+.seg-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.seg-row .cfg-input { flex: 1; min-width: 0; }
+.seg-row .cfg-swatch { flex: none; }

@@ -61,7 +61,8 @@ const CATS = {};
 ].forEach(id => CATS[id] = '3d-shapes');
 ['venn-diagram','carroll-diagram','tree-diagram','box-whisker','probability-scale',
  'stem-leaf','normal-distribution','tally-chart','frequency-table',
- 'pie-chart-data','scatter-plot','histogram','cumulative-frequency'
+ 'pie-chart-data','scatter-plot','histogram','cumulative-frequency',
+ 'chi-squared','t-distribution','binomial','contingency-table'
 ].forEach(id => CATS[id] = 'statistics');
 ['transformation-grid','argand-diagram'
 ].forEach(id => CATS[id] = 'advanced');
@@ -135,6 +136,10 @@ const KEYWORDS = {
   'scatter-plot': 'scatter plot, scatter graph, correlation, line of best fit, regression, bivariate',
   'histogram': 'histogram, frequency density, continuous data, grouped, class width',
   'cumulative-frequency': 'cumulative frequency, ogive, S curve, quartiles, percentiles, median',
+  'chi-squared': 'chi squared, chi-squared distribution, hypothesis test, goodness of fit, independence, critical value',
+  't-distribution': 't distribution, t test, student t, hypothesis test, degrees of freedom, critical region',
+  'binomial': 'binomial distribution, probability, trials, success, PMF, bar chart, discrete',
+  'contingency-table': 'contingency table, two way table, chi test, independence, observed, expected, frequency',
   'transformation-grid': 'transformation, reflection, rotation, translation, enlargement, congruent, similar',
   'argand-diagram': 'argand diagram, complex numbers, imaginary, real, modulus, argument',
   'ruler': 'ruler, length, measurement, cm, mm, centimetres, millimetres, inches, measuring',
@@ -171,7 +176,10 @@ const DISPLAY_NAMES = {
   'normal-distribution': 'Normal Distribution', 'tally-chart': 'Tally Chart',
   'frequency-table': 'Frequency Table', 'pie-chart-data': 'Pie Chart',
   'scatter-plot': 'Scatter Plot', 'histogram': 'Histogram',
-  'cumulative-frequency': 'Cumulative Frequency', 'transformation-grid': 'Transformation Grid',
+  'cumulative-frequency': 'Cumulative Frequency',
+  'chi-squared': 'Chi-Squared Dist.', 't-distribution': 't-Distribution',
+  'binomial': 'Binomial Dist.', 'contingency-table': 'Contingency Table',
+  'transformation-grid': 'Transformation Grid',
   'argand-diagram': 'Argand Diagram',
   'ruler': 'Ruler', 'weighing-scale': 'Weighing Scale', 'reading-scale': 'Reading Scale',
 };
@@ -218,6 +226,7 @@ const TEMPLATE_ORDER = [
   'venn-diagram','carroll-diagram','tree-diagram','box-whisker','probability-scale',
   'stem-leaf','normal-distribution','tally-chart','frequency-table',
   'pie-chart-data','scatter-plot','histogram','cumulative-frequency',
+  'chi-squared','t-distribution','binomial','contingency-table',
   // advanced
   'transformation-grid','argand-diagram',
   // measurement
@@ -1971,7 +1980,21 @@ function buildGallery() {
       const pill = document.createElement('button');
       pill.className = 'template-pill';
       pill.dataset.template = id;
-      pill.textContent = name;
+      const PILL_BADGES = {
+        'normal-distribution': 'μσ',
+        'chi-squared': 'χ²',
+        't-distribution': 't',
+        'binomial': 'B(n,p)',
+      };
+      if (PILL_BADGES[id]) {
+        const badge = document.createElement('span');
+        badge.className = 'pill-badge';
+        badge.textContent = PILL_BADGES[id];
+        pill.appendChild(badge);
+        pill.appendChild(document.createTextNode(' ' + name));
+      } else {
+        pill.textContent = name;
+      }
       pill.addEventListener('click', () => showEditor(id));
       pillRow.appendChild(pill);
     }

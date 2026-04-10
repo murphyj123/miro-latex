@@ -1,4 +1,5 @@
 /* ── Maths Templates Styles — jmaths theme ────────── */
+@import '../../shared/controls.css';
 
 *,
 *::before,
@@ -159,6 +160,19 @@ html, body {
   border-color: var(--primary);
   color: var(--primary);
   background: var(--primary-bg);
+}
+
+.pill-badge {
+  display: inline-block;
+  background: #4262ff;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-right: 3px;
+  letter-spacing: 0;
+  vertical-align: middle;
 }
 
 /* Gallery scrollbar */
@@ -347,199 +361,6 @@ html, body {
   color: var(--primary);
   min-width: 28px;
   text-align: center;
-}
-
-/* ══════════════════════════════════════════════════════
-   CONFIG CONTROLS
-   ══════════════════════════════════════════════════════ */
-
-.cfg-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0 0 12px;
-}
-
-.cfg-section {
-  padding: 4px 0 6px;
-}
-
-.cfg-label {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 6px;
-}
-
-.cfg-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  flex-wrap: wrap;
-}
-
-.cfg-field {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.cfg-field-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.cfg-input {
-  width: 100%;
-  height: 30px;
-  padding: 2px 8px;
-  font-size: 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--text);
-  transition: border-color 0.12s;
-}
-
-.cfg-input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.12);
-}
-
-.cfg-input-sm {
-  width: 70px;
-  flex: none;
-}
-
-.cfg-select {
-  height: 30px;
-  padding: 2px 6px;
-  font-size: 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--text);
-  cursor: pointer;
-}
-
-.cfg-select:focus {
-  outline: none;
-  border-color: var(--primary);
-}
-
-.cfg-range {
-  flex: 1;
-  height: 4px;
-  accent-color: var(--primary);
-  cursor: pointer;
-}
-
-.cfg-range-value {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--primary);
-  min-width: 22px;
-  text-align: center;
-}
-
-.cfg-check {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.cfg-check input[type="checkbox"] {
-  accent-color: var(--primary);
-  width: 15px;
-  height: 15px;
-  cursor: pointer;
-}
-
-.cfg-check span {
-  user-select: none;
-}
-
-.cfg-divider {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 8px 0;
-}
-
-.cfg-swatch {
-  position: relative;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-}
-
-.cfg-swatch input[type="color"] {
-  position: absolute;
-  width: 0;
-  height: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.cfg-swatch-dot {
-  display: block;
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  border: 1.5px solid var(--border);
-  transition: transform 0.1s;
-}
-
-.cfg-swatch:hover .cfg-swatch-dot {
-  transform: scale(1.1);
-  border-color: var(--primary);
-}
-
-/* ── Segment / dynamic input rows (legacy) ───────── */
-
-.seg-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 4px;
-}
-
-.seg-row .cfg-input { flex: 1; min-width: 0; }
-.seg-row .cfg-swatch { flex: none; }
-
-/* ── Shared add / delete buttons ────────────────── */
-
-.cfg-add-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  font-family: inherit;
-  border: 1.5px dashed var(--border);
-  border-radius: 6px;
-  background: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.12s;
-  margin-top: 4px;
-}
-
-.cfg-add-btn:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  background: var(--primary-bg);
-  border-style: solid;
 }
 
 /* ── Bar model dynamic UI ────────────────────────── */
