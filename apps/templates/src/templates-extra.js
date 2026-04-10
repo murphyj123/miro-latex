@@ -306,7 +306,7 @@ extraTemplates['regular-polygon'] = {
         const lr = 24;
         const lx = pts[i].x + lr * Math.cos(mid);
         const ly = pts[i].y + lr * Math.sin(mid);
-        svg.appendChild(svgText(lx, ly, `${Math.round(intAngle)}°`, 9, 'middle', { fill: '#e63946' }));
+        svg.appendChild(svgText(lx, ly, `${Math.round(intAngle)}°`, 14, 'middle', { fill: '#e63946', 'font-weight': '700' }));
       }
     }
 
@@ -686,7 +686,7 @@ extraTemplates['parallel-transversal'] = {
         const txt = s.style === 'letters' ? letters[i] : `${vals[i]}°`;
         const fill = isHL ? hlCol : '#e63946';
         const weight = isHL ? '800' : '600';
-        svg.appendChild(svgText(p.x, p.y, txt, 11, 'middle', { fill, 'font-weight': weight }));
+        svg.appendChild(svgText(p.x, p.y, txt, 14, 'middle', { fill, 'font-weight': weight }));
       });
 
       /* Annotations - always show the standard summary at the bottom */
@@ -719,7 +719,7 @@ extraTemplates['parallel-transversal'] = {
       }
       const relStartY = 22;
       relTexts.forEach((txt, i) => {
-        svg.appendChild(svgText(W - 10, relStartY + i * 14, txt, 9, 'end', { fill: hlCol, 'font-style': 'italic' }));
+        svg.appendChild(svgText(W - 10, relStartY + i * 16, txt, 12, 'end', { fill: hlCol, 'font-weight': '600' }));
       });
     }
 
@@ -888,7 +888,7 @@ extraTemplates['circle-theorems'] = {
     }
 
     /* title */
-    svg.appendChild(svgText(W / 2, H - 16, title, 11, 'middle', { fill: '#555', 'font-style': 'italic' }));
+    svg.appendChild(svgText(W / 2, H - 14, title, 14, 'middle', { fill: '#444', 'font-weight': '600' }));
 
     return svg;
   },
@@ -1167,7 +1167,7 @@ extraTemplates['bearings-diagram'] = {
         const lx = pA.x + lr * Math.cos(degToRad(midDeg));
         const ly = pA.y + lr * Math.sin(degToRad(midDeg));
         const bearStr = String(Math.round(bearing)).padStart(3, '0') + '\u00B0';
-        svg.appendChild(svgText(lx, ly, bearStr, 11, 'middle', { fill: '#e63946', 'font-weight': '700' }));
+        svg.appendChild(svgText(lx, ly, bearStr, 15, 'middle', { fill: '#e63946', 'font-weight': '700' }));
       }
     }
 
@@ -1216,7 +1216,7 @@ extraTemplates['bearings-diagram'] = {
       const lx = pLast.x + lr * Math.cos(degToRad(midDeg));
       const ly = pLast.y + lr * Math.sin(degToRad(midDeg));
       const retStr = String(Math.round(retBearing)).padStart(3, '0') + '\u00B0';
-      svg.appendChild(svgText(lx, ly, retStr, 10, 'middle', { fill: '#999', 'font-weight': '600' }));
+      svg.appendChild(svgText(lx, ly, retStr, 13, 'middle', { fill: '#777', 'font-weight': '600' }));
     }
 
     return svg;
@@ -1793,6 +1793,7 @@ extraTemplates['unit-circle'] = {
     ));
     c.appendChild(row(
       checkbox('uc-quads', 'Show quadrant labels', true),
+      checkbox('uc-answers', 'Answer boxes (blank)', false),
     ));
   },
   readConfig() {
@@ -1803,26 +1804,37 @@ extraTemplates['unit-circle'] = {
       showCoords: val('uc-coords'),
       showTri: val('uc-tri'),
       showQuads: val('uc-quads'),
+      answerBoxes: val('uc-answers'),
     };
   },
   generateSVG(s) {
-    const W = 560, H = 560;
+    const W = 880, H = 900;
+    const cx = W / 2, cy = H / 2 + 10;
+    const R = 280;
     const svg = makeSVG(W, H);
-    const cx = W / 2, cy = H / 2, R = 200;
 
-    /* axes */
-    svg.appendChild(svgEl('line', { x1: 30, y1: cy, x2: W - 30, y2: cy, stroke: '#ccc', 'stroke-width': '1' }));
-    svg.appendChild(svgEl('line', { x1: cx, y1: 30, x2: cx, y2: H - 30, stroke: '#ccc', 'stroke-width': '1' }));
-    arrowHead(svg, W - 30, cy, 0, 8, '#aaa');
-    arrowHead(svg, cx, 30, -Math.PI / 2, 8, '#aaa');
-    svg.appendChild(svgText(W - 24, cy - 8, 'x', 12, 'start', { fill: '#888' }));
-    svg.appendChild(svgText(cx + 10, 36, 'y', 12, 'start', { fill: '#888' }));
+    /* ── axes ──────────────────────────────────── */
+    svg.appendChild(svgEl('line', { x1: 24, y1: cy, x2: W - 24, y2: cy, stroke: '#bbb', 'stroke-width': '1.5' }));
+    svg.appendChild(svgEl('line', { x1: cx, y1: 24, x2: cx, y2: H - 24, stroke: '#bbb', 'stroke-width': '1.5' }));
+    arrowHead(svg, W - 24, cy, 0, 10, '#999');
+    arrowHead(svg, cx, 24, -Math.PI / 2, 10, '#999');
+    svg.appendChild(svgText(W - 16, cy - 14, 'x', 16, 'start', { fill: '#777', 'font-weight': '700' }));
+    svg.appendChild(svgText(cx + 14, 32, 'y', 16, 'start', { fill: '#777', 'font-weight': '700' }));
 
-    /* circle */
-    svg.appendChild(svgEl('circle', { cx, cy, r: R, fill: 'none', stroke: '#2b2d42', 'stroke-width': '2' }));
+    /* ── axis ±1 marks ──────────────────────────── */
+    [[R, 0, '1', 'start'], [-R, 0, '−1', 'end'], [0, -R, '1', 'start'], [0, R, '−1', 'start']].forEach(([dx, dy, lbl, anchor]) => {
+      const mx = cx + dx, my = cy + dy;
+      svg.appendChild(svgEl('line', { x1: mx - 6, y1: my, x2: mx + 6, y2: my, stroke: '#999', 'stroke-width': '1.5' }));
+      svg.appendChild(svgEl('line', { x1: mx, y1: my - 6, x2: mx, y2: my + 6, stroke: '#999', 'stroke-width': '1.5' }));
+      const offX = dx !== 0 ? (dx > 0 ? 12 : -12) : 14;
+      const offY = dy !== 0 ? (dy > 0 ? 20 : -10) : 6;
+      svg.appendChild(svgText(mx + offX, my + offY, lbl, 15, anchor, { fill: '#555', 'font-weight': '600' }));
+    });
 
-    /* standard angles */
-    const standardAngles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+    /* ── circle ─────────────────────────────────── */
+    svg.appendChild(svgEl('circle', { cx, cy, r: R, fill: 'none', stroke: '#2b2d42', 'stroke-width': '2.5' }));
+
+    /* ── standard values lookup ─────────────────── */
     const radianLabels = {
       0: '0', 30: 'π/6', 45: 'π/4', 60: 'π/3', 90: 'π/2',
       120: '2π/3', 135: '3π/4', 150: '5π/6', 180: 'π',
@@ -1830,81 +1842,93 @@ extraTemplates['unit-circle'] = {
       300: '5π/3', 315: '7π/4', 330: '11π/6',
     };
     const cosVals = {
-      0: '1', 30: '√3/2', 45: '√2/2', 60: '1/2', 90: '0',
-      120: '-1/2', 135: '-√2/2', 150: '-√3/2', 180: '-1',
-      210: '-√3/2', 225: '-√2/2', 240: '-1/2', 270: '0',
-      300: '1/2', 315: '√2/2', 330: '√3/2',
+      0: '1', 30: '√3/2', 45: '√2/2', 60: '½', 90: '0',
+      120: '−½', 135: '−√2/2', 150: '−√3/2', 180: '−1',
+      210: '−√3/2', 225: '−√2/2', 240: '−½', 270: '0',
+      300: '½', 315: '√2/2', 330: '√3/2',
     };
     const sinVals = {
-      0: '0', 30: '1/2', 45: '√2/2', 60: '√3/2', 90: '1',
-      120: '√3/2', 135: '√2/2', 150: '1/2', 180: '0',
-      210: '-1/2', 225: '-√2/2', 240: '-√3/2', 270: '-1',
-      300: '-√3/2', 315: '-√2/2', 330: '-1/2',
+      0: '0', 30: '½', 45: '√2/2', 60: '√3/2', 90: '1',
+      120: '√3/2', 135: '√2/2', 150: '½', 180: '0',
+      210: '−½', 225: '−√2/2', 240: '−√3/2', 270: '−1',
+      300: '−√3/2', 315: '−√2/2', 330: '−½',
     };
 
-    const angles = s.show === 'all_standard' ? standardAngles : [s.highlighted];
+    const standardAngles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+    const angles = s.show === 'all_standard' ? standardAngles : [Number(s.highlighted)];
+
+    /* ── reference triangle (for highlighted angle) ── */
+    if (s.showTri) {
+      const hRad = degToRad(Number(s.highlighted));
+      const hx = cx + R * Math.cos(hRad);
+      const hy = cy - R * Math.sin(hRad);
+      svg.appendChild(svgEl('polygon', {
+        points: `${cx},${cy} ${hx},${cy} ${hx},${hy}`,
+        fill: 'rgba(66,98,255,0.08)', stroke: '#4262ff', 'stroke-width': '2',
+      }));
+      drawAngleArc(svg, cx, cy, -Number(s.highlighted), 0, 30);
+    }
+
+    /* ── angle points ───────────────────────────── */
+    const lrAngle = s.format === 'both' ? R + 34 : R + 26;
+    const lrCoord = lrAngle + 50;
+    const boxW = 88, boxH = 24;
 
     angles.forEach(deg => {
+      const isHighlighted = deg === Number(s.highlighted);
       const rad = degToRad(deg);
       const px = cx + R * Math.cos(rad);
       const py = cy - R * Math.sin(rad);
 
-      /* tick dot */
-      svg.appendChild(svgEl('circle', { cx: px, cy: py, r: '3', fill: '#4262ff' }));
+      /* point dot */
+      const dotCol = isHighlighted ? '#e63946' : '#4262ff';
+      svg.appendChild(svgEl('circle', { cx: px, cy: py, r: isHighlighted ? '5' : '4', fill: dotCol }));
 
       /* angle label */
-      const lr = R + 18;
-      const lx = cx + lr * Math.cos(rad);
-      const ly = cy - lr * Math.sin(rad);
-      let label = '';
-      if (s.format === 'degrees') label = `${deg}°`;
-      else if (s.format === 'radians') label = radianLabels[deg] || `${deg}°`;
-      else label = `${deg}° (${radianLabels[deg] || ''})`;
+      const lx = cx + lrAngle * Math.cos(rad);
+      const ly = cy - lrAngle * Math.sin(rad);
+      const labelFill = isHighlighted ? '#e63946' : '#333';
+      const labelWeight = '700';
 
-      if (s.show === 'all_standard') {
-        svg.appendChild(svgText(lx, ly + 4, label, 8, 'middle', { fill: '#555' }));
+      if (s.format === 'both') {
+        svg.appendChild(svgText(lx, ly - 7, `${deg}°`, 12, 'middle', { fill: labelFill, 'font-weight': labelWeight }));
+        svg.appendChild(svgText(lx, ly + 8, radianLabels[deg] || '', 11, 'middle', { fill: '#666' }));
       } else {
-        svg.appendChild(svgText(lx, ly + 4, label, 11, 'middle', { fill: '#e63946', 'font-weight': '600' }));
+        const label = s.format === 'degrees' ? `${deg}°` : (radianLabels[deg] || `${deg}°`);
+        svg.appendChild(svgText(lx, ly + 5, label, 13, 'middle', { fill: labelFill, 'font-weight': labelWeight }));
       }
 
-      /* coordinates */
-      if (s.showCoords && s.show === 'all_standard') {
-        const cr = R + 36;
-        const clx = cx + cr * Math.cos(rad);
-        const cly = cy - cr * Math.sin(rad);
-        svg.appendChild(svgText(clx, cly + 4, `(${cosVals[deg]}, ${sinVals[deg]})`, 7, 'middle', { fill: '#888' }));
+      /* coordinates / answer box */
+      const clx = cx + lrCoord * Math.cos(rad);
+      const cly = cy - lrCoord * Math.sin(rad);
+
+      if (s.answerBoxes) {
+        /* blank box for teacher to write in */
+        svg.appendChild(svgEl('rect', {
+          x: clx - boxW / 2, y: cly - boxH / 2,
+          width: boxW, height: boxH, rx: '5',
+          fill: '#fff', stroke: '#bbb', 'stroke-width': '1.5',
+        }));
+        svg.appendChild(svgText(clx, cly + 5, '(    ,    )', 11, 'middle', { fill: '#ddd' }));
+      } else if (s.showCoords && cosVals[deg] !== undefined) {
+        svg.appendChild(svgEl('rect', {
+          x: clx - boxW / 2, y: cly - boxH / 2,
+          width: boxW, height: boxH, rx: '5',
+          fill: '#fff', stroke: '#ddd', 'stroke-width': '1',
+        }));
+        svg.appendChild(svgText(clx, cly + 5, `(${cosVals[deg]}, ${sinVals[deg]})`, 11, 'middle', { fill: '#555', 'font-weight': '600' }));
       }
     });
 
-    /* highlighted angle: reference triangle */
-    if (s.showTri) {
-      const hRad = degToRad(s.highlighted);
-      const hx = cx + R * Math.cos(hRad);
-      const hy = cy - R * Math.sin(hRad);
-      const fx = cx + R * Math.cos(hRad); /* foot on x-axis */
-
-      svg.appendChild(svgEl('polygon', {
-        points: `${cx},${cy} ${hx},${cy} ${hx},${hy}`,
-        fill: 'rgba(66,98,255,0.1)', stroke: '#4262ff', 'stroke-width': '1.5',
-      }));
-
-      /* angle arc */
-      drawAngleArc(svg, cx, cy, -s.highlighted, 0, 25);
-    }
-
-    /* quadrant labels */
+    /* ── quadrant labels ────────────────────────── */
     if (s.showQuads) {
       const qd = R / 2;
       [['I', 1, -1], ['II', -1, -1], ['III', -1, 1], ['IV', 1, 1]].forEach(([q, sx, sy]) => {
-        svg.appendChild(svgText(cx + sx * qd, cy + sy * qd, q, 16, 'middle', { fill: 'rgba(0,0,0,0.08)', 'font-weight': '800' }));
+        svg.appendChild(svgText(cx + sx * qd, cy + sy * qd, q, 28, 'middle', {
+          fill: 'rgba(0,0,0,0.07)', 'font-weight': '900',
+        }));
       });
     }
-
-    /* axis labels */
-    svg.appendChild(svgText(cx + R + 4, cy + 16, '1', 10, 'start', { fill: '#555' }));
-    svg.appendChild(svgText(cx - R - 4, cy + 16, '-1', 10, 'end', { fill: '#555' }));
-    svg.appendChild(svgText(cx + 10, cy - R - 4, '1', 10, 'start', { fill: '#555' }));
-    svg.appendChild(svgText(cx + 10, cy + R + 14, '-1', 10, 'start', { fill: '#555' }));
 
     return svg;
   },
@@ -2004,7 +2028,7 @@ extraTemplates['protractor'] = {
         const lr = R - 24;
         const lx = cx + lr * Math.cos(a);
         const ly = cy - lr * Math.sin(a);
-        svg.appendChild(svgText(lx, ly + 4, String(d), 9, 'middle', { fill: '#333' }));
+        svg.appendChild(svgText(lx, ly + 4, String(d), 11, 'middle', { fill: '#333', 'font-weight': '600' }));
       }
     }
 
@@ -2141,7 +2165,7 @@ extraTemplates['symmetry-grid'] = {
     }));
 
     /* label */
-    svg.appendChild(svgText(W / 2, H - 8, 'Mirror Line', 11, 'middle', { fill: '#e63946', 'font-weight': '600' }));
+    svg.appendChild(svgText(W / 2, H - 8, 'Mirror Line', 14, 'middle', { fill: '#e63946', 'font-weight': '700' }));
 
     return svg;
   },
@@ -2452,16 +2476,16 @@ extraTemplates['normal-distribution'] = {
 
       /* x-axis label */
       const label = i === 0 ? `μ=${s.mean}` : `${i > 0 ? '+' : ''}${i}σ`;
-      svg.appendChild(svgText(sx, pad.t + gh + 16, label, 10, 'middle', { fill: '#555' }));
-      svg.appendChild(svgText(sx, pad.t + gh + 28, String(Math.round((s.mean + i * s.sd) * 100) / 100), 9, 'middle', { fill: '#999' }));
+      svg.appendChild(svgText(sx, pad.t + gh + 18, label, 13, 'middle', { fill: '#555', 'font-weight': '600' }));
+      svg.appendChild(svgText(sx, pad.t + gh + 34, String(Math.round((s.mean + i * s.sd) * 100) / 100), 11, 'middle', { fill: '#888' }));
 
       /* percentages between SD lines */
       if (s.showPct && i > 0 && i <= 3) {
         const lx = toSVGx(s.mean + (i - 0.5) * s.sd);
         const rx = toSVGx(s.mean - (i - 0.5) * s.sd);
         const py = pad.t + gh * 0.55 + i * 20;
-        svg.appendChild(svgText(lx, py, sdPercents[i], 9, 'middle', { fill: '#4262ff', 'font-weight': '600' }));
-        svg.appendChild(svgText(rx, py, sdPercents[i], 9, 'middle', { fill: '#4262ff', 'font-weight': '600' }));
+        svg.appendChild(svgText(lx, py, sdPercents[i], 12, 'middle', { fill: '#4262ff', 'font-weight': '700' }));
+        svg.appendChild(svgText(rx, py, sdPercents[i], 12, 'middle', { fill: '#4262ff', 'font-weight': '700' }));
       }
     }
 
