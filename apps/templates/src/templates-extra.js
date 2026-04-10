@@ -107,16 +107,18 @@ function checkbox(id, label, checked) {
   return lbl;
 }
 
-function select(id, options) {
+function select(id, options, defaultVal) {
   const sel = document.createElement('select');
   sel.className = 'cfg-select';
   sel.id = id;
-  options.forEach(([val, text]) => {
+  options.forEach((opt) => {
     const o = document.createElement('option');
-    o.value = val;
-    o.textContent = text;
+    const [v, l] = Array.isArray(opt) ? opt : [opt.v, opt.l];
+    o.value = v;
+    o.textContent = l;
     sel.appendChild(o);
   });
+  if (defaultVal !== undefined) sel.value = defaultVal;
   return sel;
 }
 
@@ -3227,7 +3229,7 @@ extraTemplates['contingency-table'] = {
     ));
     c.appendChild(row(
       checkbox('ct-totals', 'Show totals row/col', true),
-      checkbox('ct-blank', 'Blank cells (no values)', false),
+      checkbox('ct-blank', 'Blank cells (no values)', true),
     ));
 
     const valContainer = document.createElement('div');
@@ -3335,55 +3337,88 @@ extraTemplates['contingency-table'] = {
       rowTotals.push(rt);
     }
 
-    const rowH = 40, headerH = 44;
-    const labelW = 120, cellW = 80;
+    const rowH = 38, headerH = 42;
+    const labelW = 110, cellW = 76;
     const totalCols = nc + (s.showTotals ? 1 : 0);
     const totalRows = nr + (s.showTotals ? 1 : 0);
-    const pad = 24;
-    const titleH = 36;
+    const pad = 20;
+    const titleH = 34;
     const W = pad * 2 + labelW + cellW * totalCols;
     const H = pad * 2 + titleH + headerH + rowH * totalRows;
     const svg = makeSVG(W, H);
 
+    /* colour palette — clean, light */
+    const CLR = {
+      colHead: '#e8edf8',    /* column header bg */
+      colHeadTxt: '#1e3a5f', /* column header text */
+      rowHead: '#f4f6fb',    /* row label bg */
+      rowHeadTxt: '#2d3748', /* row label text */
+      totalHead: '#dde3f0',  /* totals header bg */
+      totalHeadTxt: '#1e3a5f',
+      cellEven: '#ffffff',
+      cellOdd: '#f8f9fc',
+      totalCell: '#eef1f8',
+      grandCell: '#dde3f0',
+      border: '#c8d0e0',
+      headerBorder: '#a0aec0',
+    };
+
     const tableLeft = pad;
     const tableTop = pad + titleH;
 
-    svg.appendChild(svgText(W / 2, pad + 18, s.title, 15, 'middle', { fill: '#222', 'font-weight': '700' }));
+    /* helper: cell text with dominant-baseline for true vertical centering */
+    const cellTxt = (x, y, h, txt, size, weight, fill) =>
+      svgText(x, y + h / 2, txt, size, 'middle', { fill, 'font-weight': weight, 'dominant-baseline': 'central' });
 
-    /* header row */
-    svg.appendChild(svgEl('rect', { x: tableLeft, y: tableTop, width: labelW, height: headerH, fill: '#f0f2ff', stroke: '#ccc', 'stroke-width': '1' }));
+    const truncate = (str, maxLen) => str.length > maxLen ? str.slice(0, maxLen) + '…' : str;
+
+    /* title */
+    svg.appendChild(svgText(W / 2, pad + 18, s.title, 14, 'middle', { fill: '#1a202c', 'font-weight': '700', 'dominant-baseline': 'central' }));
+
+    /* outer border */
+    const tableW = labelW + cellW * totalCols;
+    const tableH = headerH + rowH * totalRows;
+    svg.appendChild(svgEl('rect', { x: tableLeft, y: tableTop, width: tableW, height: tableH, fill: 'none', stroke: CLR.headerBorder, 'stroke-width': '1.5', rx: '3' }));
+
+    /* header row — top-left corner cell */
+    svg.appendChild(svgEl('rect', { x: tableLeft, y: tableTop, width: labelW, height: headerH, fill: CLR.totalHead, stroke: CLR.border, 'stroke-width': '0.75' }));
+
+    /* column headers */
     for (let col = 0; col < nc; col++) {
       const cx = tableLeft + labelW + col * cellW;
-      svg.appendChild(svgEl('rect', { x: cx, y: tableTop, width: cellW, height: headerH, fill: '#4262ff', stroke: '#fff', 'stroke-width': '1' }));
-      const lbl = s.colLabels[col] || `Col ${col+1}`;
-      svg.appendChild(svgText(cx + cellW / 2, tableTop + headerH / 2 + 5, lbl.length > 10 ? lbl.slice(0,10)+'…' : lbl, 11, 'middle', { fill: '#fff', 'font-weight': '600' }));
+      svg.appendChild(svgEl('rect', { x: cx, y: tableTop, width: cellW, height: headerH, fill: CLR.colHead, stroke: CLR.border, 'stroke-width': '0.75' }));
+      const lbl = truncate(s.colLabels[col] || `Col ${col+1}`, 10);
+      svg.appendChild(cellTxt(cx + cellW / 2, tableTop, headerH, lbl, 11, '700', CLR.colHeadTxt));
     }
     if (s.showTotals) {
       const cx = tableLeft + labelW + nc * cellW;
-      svg.appendChild(svgEl('rect', { x: cx, y: tableTop, width: cellW, height: headerH, fill: '#2b2d42', stroke: '#fff', 'stroke-width': '1' }));
-      svg.appendChild(svgText(cx + cellW / 2, tableTop + headerH / 2 + 5, 'Total', 11, 'middle', { fill: '#fff', 'font-weight': '700' }));
+      svg.appendChild(svgEl('rect', { x: cx, y: tableTop, width: cellW, height: headerH, fill: CLR.totalHead, stroke: CLR.border, 'stroke-width': '0.75' }));
+      svg.appendChild(cellTxt(cx + cellW / 2, tableTop, headerH, 'Total', 11, '700', CLR.totalHeadTxt));
     }
 
     /* data rows */
     for (let r = 0; r < nr; r++) {
       const ry = tableTop + headerH + r * rowH;
-      const rFill = r % 2 === 0 ? '#fafafa' : '#fff';
-      svg.appendChild(svgEl('rect', { x: tableLeft, y: ry, width: labelW, height: rowH, fill: '#f0f2ff', stroke: '#ddd', 'stroke-width': '1' }));
-      const lbl = s.rowLabels[r] || `Row ${r+1}`;
-      svg.appendChild(svgText(tableLeft + labelW / 2, ry + rowH / 2 + 5, lbl.length > 12 ? lbl.slice(0,12)+'…' : lbl, 11, 'middle', { fill: '#333', 'font-weight': '600' }));
+      const cFill = r % 2 === 0 ? CLR.cellEven : CLR.cellOdd;
+      /* row label */
+      svg.appendChild(svgEl('rect', { x: tableLeft, y: ry, width: labelW, height: rowH, fill: CLR.rowHead, stroke: CLR.border, 'stroke-width': '0.75' }));
+      const lbl = truncate(s.rowLabels[r] || `Row ${r+1}`, 12);
+      svg.appendChild(cellTxt(tableLeft + labelW / 2, ry, rowH, lbl, 11, '600', CLR.rowHeadTxt));
+      /* data cells */
       for (let col = 0; col < nc; col++) {
         const cx = tableLeft + labelW + col * cellW;
-        svg.appendChild(svgEl('rect', { x: cx, y: ry, width: cellW, height: rowH, fill: rFill, stroke: '#ddd', 'stroke-width': '1' }));
+        svg.appendChild(svgEl('rect', { x: cx, y: ry, width: cellW, height: rowH, fill: cFill, stroke: CLR.border, 'stroke-width': '0.75' }));
         if (!s.blank) {
           const v = cells[r] ? (cells[r][col] || 0) : 0;
-          svg.appendChild(svgText(cx + cellW / 2, ry + rowH / 2 + 5, String(v), 14, 'middle', { fill: '#222', 'font-weight': '600' }));
+          svg.appendChild(cellTxt(cx + cellW / 2, ry, rowH, String(v), 13, '500', '#2d3748'));
         }
       }
+      /* row total */
       if (s.showTotals) {
         const cx = tableLeft + labelW + nc * cellW;
-        svg.appendChild(svgEl('rect', { x: cx, y: ry, width: cellW, height: rowH, fill: '#f5f5f5', stroke: '#ddd', 'stroke-width': '1' }));
+        svg.appendChild(svgEl('rect', { x: cx, y: ry, width: cellW, height: rowH, fill: CLR.totalCell, stroke: CLR.border, 'stroke-width': '0.75' }));
         if (!s.blank) {
-          svg.appendChild(svgText(cx + cellW / 2, ry + rowH / 2 + 5, String(rowTotals[r]), 14, 'middle', { fill: '#444', 'font-weight': '700' }));
+          svg.appendChild(cellTxt(cx + cellW / 2, ry, rowH, String(rowTotals[r]), 13, '700', CLR.colHeadTxt));
         }
       }
     }
@@ -3391,19 +3426,22 @@ extraTemplates['contingency-table'] = {
     /* totals row */
     if (s.showTotals) {
       const ry = tableTop + headerH + nr * rowH;
-      svg.appendChild(svgEl('rect', { x: tableLeft, y: ry, width: labelW, height: rowH, fill: '#2b2d42', stroke: '#fff', 'stroke-width': '1' }));
-      svg.appendChild(svgText(tableLeft + labelW / 2, ry + rowH / 2 + 5, 'Total', 12, 'middle', { fill: '#fff', 'font-weight': '700' }));
+      /* "Total" label */
+      svg.appendChild(svgEl('rect', { x: tableLeft, y: ry, width: labelW, height: rowH, fill: CLR.totalHead, stroke: CLR.border, 'stroke-width': '0.75' }));
+      svg.appendChild(cellTxt(tableLeft + labelW / 2, ry, rowH, 'Total', 11, '700', CLR.totalHeadTxt));
+      /* col totals */
       for (let col = 0; col < nc; col++) {
         const cx = tableLeft + labelW + col * cellW;
-        svg.appendChild(svgEl('rect', { x: cx, y: ry, width: cellW, height: rowH, fill: '#f5f5f5', stroke: '#ddd', 'stroke-width': '1' }));
+        svg.appendChild(svgEl('rect', { x: cx, y: ry, width: cellW, height: rowH, fill: CLR.totalCell, stroke: CLR.border, 'stroke-width': '0.75' }));
         if (!s.blank) {
-          svg.appendChild(svgText(cx + cellW / 2, ry + rowH / 2 + 5, String(colTotals[col]), 14, 'middle', { fill: '#444', 'font-weight': '700' }));
+          svg.appendChild(cellTxt(cx + cellW / 2, ry, rowH, String(colTotals[col]), 13, '700', CLR.colHeadTxt));
         }
       }
+      /* grand total */
       const cx = tableLeft + labelW + nc * cellW;
-      svg.appendChild(svgEl('rect', { x: cx, y: ry, width: cellW, height: rowH, fill: '#e8e8f4', stroke: '#ddd', 'stroke-width': '1' }));
+      svg.appendChild(svgEl('rect', { x: cx, y: ry, width: cellW, height: rowH, fill: CLR.grandCell, stroke: CLR.border, 'stroke-width': '0.75' }));
       if (!s.blank) {
-        svg.appendChild(svgText(cx + cellW / 2, ry + rowH / 2 + 5, String(grandTotal), 14, 'middle', { fill: '#222', 'font-weight': '700' }));
+        svg.appendChild(cellTxt(cx + cellW / 2, ry, rowH, String(grandTotal), 13, '700', CLR.colHeadTxt));
       }
     }
 
