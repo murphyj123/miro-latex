@@ -47,7 +47,8 @@ const CATS = {};
  'multiplication-grid','number-line','fraction-number-line','double-number-line',
  'ten-frames','place-value-counters','part-whole-model','ratio-bar','percentage-bar',
  'red-yellow-counters','number-pattern','dice','spinner',
- 'factor-tree','column-arithmetic','long-division','bidmas','conversion-chart'
+ 'factor-tree','column-arithmetic','long-division','bidmas','conversion-chart',
+ 'si-prefixes','binary-frame'
 ].forEach(id => CATS[id] = 'number');
 ['function-machine','algebra-tiles','area-model-multiplication-','coordinate-grid',
  'two-way-table','equation-balance','two-column-proof'
@@ -93,6 +94,8 @@ const KEYWORDS = {
   'long-division': 'long division, bus stop, short division, quotient, remainder',
   'bidmas': 'BIDMAS, BODMAS, PEMDAS, order of operations, brackets',
   'conversion-chart': 'conversion, metric, units, km, m, cm, mm, kg, g, litres',
+  'si-prefixes': 'SI prefixes, kilo, mega, giga, milli, micro, nano, pico, femto, tera, bytes, scientific notation, powers of ten',
+  'binary-frame': 'binary, place value, bits, byte, nibble, decimal, powers of 2, binary frame, number systems, computing',
   'function-machine': 'function machine, input output, inverse, operations, mapping',
   'algebra-tiles': 'algebra tiles, expanding, factorising, completing the square, area model',
   'area-model-multiplication-': 'area model, grid method, multiplication, partial products, expanded',
@@ -201,6 +204,7 @@ const TEMPLATE_ORDER = [
   'ten-frames','place-value-counters','part-whole-model','ratio-bar','percentage-bar',
   'red-yellow-counters','number-pattern','dice','spinner',
   'factor-tree','column-arithmetic','long-division','bidmas','conversion-chart',
+  'si-prefixes','binary-frame',
   // algebra
   'function-machine','algebra-tiles','area-model-multiplication-','coordinate-grid',
   'two-way-table','equation-balance','two-column-proof',

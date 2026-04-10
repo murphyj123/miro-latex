@@ -5775,5 +5775,356 @@ extraTemplates['reading-scale'] = {
   },
 };
 
+/* ================================================================
+   SI PREFIX CHART
+   ================================================================ */
+extraTemplates['si-prefixes'] = {
+  name: 'SI Prefix Chart',
+  category: 'Number',
+  renderConfig(c) {
+    /* All SI prefixes in descending order */
+    const ALL = [
+      { id: 'sp-tera',  sym: 'T',  name: 'tera',  exp: 12  },
+      { id: 'sp-giga',  sym: 'G',  name: 'giga',  exp: 9   },
+      { id: 'sp-mega',  sym: 'M',  name: 'mega',  exp: 6   },
+      { id: 'sp-kilo',  sym: 'k',  name: 'kilo',  exp: 3   },
+      { id: 'sp-hecto', sym: 'h',  name: 'hecto', exp: 2   },
+      { id: 'sp-deca',  sym: 'da', name: 'deca',  exp: 1   },
+      { id: 'sp-base',  sym: '',   name: 'base',  exp: 0   },
+      { id: 'sp-deci',  sym: 'd',  name: 'deci',  exp: -1  },
+      { id: 'sp-centi', sym: 'c',  name: 'centi', exp: -2  },
+      { id: 'sp-milli', sym: 'm',  name: 'milli', exp: -3  },
+      { id: 'sp-micro', sym: 'μ',  name: 'micro', exp: -6  },
+      { id: 'sp-nano',  sym: 'n',  name: 'nano',  exp: -9  },
+      { id: 'sp-pico',  sym: 'p',  name: 'pico',  exp: -12 },
+      { id: 'sp-femto', sym: 'f',  name: 'femto', exp: -15 },
+    ];
+
+    c.appendChild(sectionLabel('SI Prefix Chart'));
+    c.appendChild(row(field('Base unit', textInput('sp-unit', 'm', 'e.g. m, g, W, J'))));
+    c.appendChild(row(checkbox('sp-bytes', 'Bytes mode (×1024)', false)));
+    c.appendChild(sectionLabel('Large prefixes'));
+    c.appendChild(row(
+      checkbox('sp-tera',  'tera (T) 10¹²', false),
+      checkbox('sp-giga',  'giga (G) 10⁹',  true),
+    ));
+    c.appendChild(row(
+      checkbox('sp-mega',  'mega (M) 10⁶',  true),
+      checkbox('sp-kilo',  'kilo (k) 10³',  true),
+    ));
+    c.appendChild(sectionLabel('Intermediate'));
+    c.appendChild(row(
+      checkbox('sp-hecto', 'hecto (h) 10²', false),
+      checkbox('sp-deca',  'deca (da) 10¹', false),
+    ));
+    c.appendChild(row(
+      checkbox('sp-base',  'base unit',     true),
+      checkbox('sp-deci',  'deci (d) 10⁻¹', false),
+    ));
+    c.appendChild(row(
+      checkbox('sp-centi', 'centi (c) 10⁻²', false),
+      checkbox('sp-milli', 'milli (m) 10⁻³', true),
+    ));
+    c.appendChild(sectionLabel('Small prefixes'));
+    c.appendChild(row(
+      checkbox('sp-micro', 'micro (μ) 10⁻⁶', true),
+      checkbox('sp-nano',  'nano (n) 10⁻⁹',  true),
+    ));
+    c.appendChild(row(
+      checkbox('sp-pico',  'pico (p) 10⁻¹²', false),
+      checkbox('sp-femto', 'femto (f) 10⁻¹⁵', false),
+    ));
+    c.appendChild(sectionLabel('Display'));
+    c.appendChild(row(
+      checkbox('sp-show-exp',  'Show 10ⁿ notation', true),
+      checkbox('sp-show-name', 'Show prefix name',  false),
+    ));
+  },
+  readConfig() {
+    return {
+      unit: val('sp-unit') || 'm',
+      bytesMode: val('sp-bytes'),
+      showExp:   val('sp-show-exp'),
+      showName:  val('sp-show-name'),
+      tera:  val('sp-tera'),  giga:  val('sp-giga'),  mega:  val('sp-mega'),
+      kilo:  val('sp-kilo'),  hecto: val('sp-hecto'), deca:  val('sp-deca'),
+      base:  val('sp-base'),  deci:  val('sp-deci'),  centi: val('sp-centi'),
+      milli: val('sp-milli'), micro: val('sp-micro'), nano:  val('sp-nano'),
+      pico:  val('sp-pico'),  femto: val('sp-femto'),
+    };
+  },
+  generateSVG(s) {
+    /* ── Bytes mode ─────────────────────────────── */
+    if (s.bytesMode) {
+      const byteUnits = [
+        { sym: 'PB', name: 'petabyte', exp: 5 },
+        { sym: 'TB', name: 'terabyte', exp: 4 },
+        { sym: 'GB', name: 'gigabyte', exp: 3 },
+        { sym: 'MB', name: 'megabyte', exp: 2 },
+        { sym: 'KB', name: 'kilobyte', exp: 1 },
+        { sym: 'B',  name: 'byte',     exp: 0 },
+      ];
+      const n = byteUnits.length;
+      const cellW = 110, cellH = 56, pad = 24;
+      const W = n * cellW + pad * 2;
+      const H = s.showName ? 220 : 190;
+      const svg = makeSVG(W, H);
+      svg.appendChild(svgText(W / 2, 24, 'Bytes Conversion', 16, 'middle', { 'font-weight': '700', fill: '#222' }));
+
+      const colours = ['#7b2d8e','#e63946','#f4a261','#2a9d8f','#4262ff','#555'];
+      byteUnits.forEach((u, i) => {
+        const x = pad + i * cellW;
+        const y = 44;
+        svg.appendChild(svgEl('rect', { x: x+2, y, width: cellW-4, height: cellH, rx: 8, fill: colours[i], stroke: '#fff', 'stroke-width': '2' }));
+        svg.appendChild(svgText(x + cellW/2, y + cellH/2 + 1, u.sym, 20, 'middle', { fill: '#fff', 'font-weight': '700', 'dominant-baseline': 'central' }));
+        if (s.showName) svg.appendChild(svgText(x + cellW/2, y + cellH + 18, u.name, 10, 'middle', { fill: '#555' }));
+        if (s.showExp && i > 0) {
+          const exp = u.exp;
+          svg.appendChild(svgText(x + cellW/2, y + cellH + (s.showName ? 32 : 18), `1024${exp > 1 ? '\u00B' + exp : ''} B`, 10, 'middle', { fill: '#888' }));
+        }
+      });
+
+      /* arrows between adjacent boxes (left=larger, right=smaller) */
+      for (let i = 0; i < n - 1; i++) {
+        const x1 = pad + i * cellW + cellW / 2;
+        const x2 = pad + (i+1) * cellW + cellW / 2;
+        const midX = (x1 + x2) / 2;
+        const topY = 44 - 6;
+        svg.appendChild(svgEl('path', { d: `M ${x1+10} ${topY} Q ${midX} ${topY-22} ${x2-10} ${topY}`, fill: 'none', stroke: '#333', 'stroke-width': '1.5' }));
+        arrowHead(svg, x2-10, topY, 0, 5, '#333');
+        svg.appendChild(svgText(midX, topY - 16, '\u00F71024', 10, 'middle', { fill: '#333', 'font-weight': '600' }));
+        const botY = 44 + cellH + 6;
+        svg.appendChild(svgEl('path', { d: `M ${x2-10} ${botY} Q ${midX} ${botY+22} ${x1+10} ${botY}`, fill: 'none', stroke: '#999', 'stroke-width': '1.5' }));
+        arrowHead(svg, x1+10, botY, Math.PI, 5, '#999');
+        svg.appendChild(svgText(midX, botY + 18, '\u00D71024', 10, 'middle', { fill: '#999', 'font-weight': '600' }));
+      }
+
+      svg.appendChild(svgText(W/2, H - 10, '1 KB = 1024 B (computing convention)', 10, 'middle', { fill: '#999', 'font-style': 'italic' }));
+      return svg;
+    }
+
+    /* ── Standard SI mode ───────────────────────── */
+    const SI_ALL = [
+      { key: 'tera',  sym: 'T',  name: 'tera',  exp: 12  },
+      { key: 'giga',  sym: 'G',  name: 'giga',  exp: 9   },
+      { key: 'mega',  sym: 'M',  name: 'mega',  exp: 6   },
+      { key: 'kilo',  sym: 'k',  name: 'kilo',  exp: 3   },
+      { key: 'hecto', sym: 'h',  name: 'hecto', exp: 2   },
+      { key: 'deca',  sym: 'da', name: 'deca',  exp: 1   },
+      { key: 'base',  sym: '',   name: 'base',  exp: 0   },
+      { key: 'deci',  sym: 'd',  name: 'deci',  exp: -1  },
+      { key: 'centi', sym: 'c',  name: 'centi', exp: -2  },
+      { key: 'milli', sym: 'm',  name: 'milli', exp: -3  },
+      { key: 'micro', sym: '\u03bc', name: 'micro', exp: -6  },
+      { key: 'nano',  sym: 'n',  name: 'nano',  exp: -9  },
+      { key: 'pico',  sym: 'p',  name: 'pico',  exp: -12 },
+      { key: 'femto', sym: 'f',  name: 'femto', exp: -15 },
+    ];
+
+    const selected = SI_ALL.filter(p => s[p.key]);
+    if (selected.length < 2) {
+      const svg = makeSVG(400, 100);
+      svg.appendChild(svgText(200, 50, 'Select at least 2 prefixes', 14, 'middle', { fill: '#888' }));
+      return svg;
+    }
+
+    const extraRows = (s.showExp ? 1 : 0) + (s.showName ? 1 : 0);
+    const cellW = 100, cellH = 52, arrowH = 44, pad = 20;
+    const n = selected.length;
+    const W = n * cellW + pad * 2;
+    const H = 48 + cellH + arrowH * 2 + extraRows * 16 + 16;
+    const svg = makeSVG(W, H);
+
+    const title = `SI Prefixes — ${s.unit}`;
+    svg.appendChild(svgText(W/2, 24, title, 15, 'middle', { 'font-weight': '700', fill: '#222' }));
+
+    const colours = ['#7b2d8e','#2563eb','#0891b2','#059669','#4262ff','#f4a261','#e63946','#888'];
+    const barY = 40;
+
+    selected.forEach((p, i) => {
+      const x = pad + i * cellW;
+      const col = colours[i % colours.length];
+      const label = p.sym ? `${p.sym}${s.unit}` : s.unit;
+      svg.appendChild(svgEl('rect', { x: x+2, y: barY, width: cellW-4, height: cellH, rx: 8, fill: col, stroke: '#fff', 'stroke-width': '2' }));
+      svg.appendChild(svgText(x + cellW/2, barY + cellH/2 + 1, label, 17, 'middle', { fill: '#fff', 'font-weight': '700', 'dominant-baseline': 'central' }));
+
+      let ry = barY + cellH + 8;
+      if (s.showExp) {
+        const expStr = p.exp === 0 ? '10⁰' : `10${p.exp > 0 ? superscript(p.exp) : '⁻' + superscript(-p.exp)}`;
+        svg.appendChild(svgText(x + cellW/2, ry, expStr, 11, 'middle', { fill: '#555', 'font-weight': '600' }));
+        ry += 16;
+      }
+      if (s.showName) {
+        svg.appendChild(svgText(x + cellW/2, ry, p.name, 10, 'middle', { fill: '#888' }));
+      }
+    });
+
+    /* Conversion arrows between adjacent selected prefixes */
+    for (let i = 0; i < selected.length - 1; i++) {
+      const expDiff = selected[i].exp - selected[i+1].exp; /* always positive — going right = smaller */
+      const factorStr = expDiff === 1 ? '×10' : expDiff === 3 ? '×1000' : `×10${superscript(expDiff)}`;
+      const revStr    = expDiff === 1 ? '÷10' : expDiff === 3 ? '÷1000' : `÷10${superscript(expDiff)}`;
+      const x1 = pad + (i+1)*cellW - cellW/2 + 2;
+      const x2 = pad + (i+1)*cellW + cellW/2 - 2;
+      const midX = (x1 + x2) / 2;
+      const topY = barY - 6;
+      svg.appendChild(svgEl('path', { d: `M ${x1} ${topY} Q ${midX} ${topY - 24} ${x2} ${topY}`, fill: 'none', stroke: '#333', 'stroke-width': '1.5' }));
+      arrowHead(svg, x2, topY, 0, 5, '#333');
+      svg.appendChild(svgText(midX, topY - 18, factorStr, 10, 'middle', { fill: '#333', 'font-weight': '600' }));
+      const botY = barY + cellH + (s.showExp ? 32 : 14) + (s.showName ? 14 : 0) + 8;
+      svg.appendChild(svgEl('path', { d: `M ${x2} ${botY} Q ${midX} ${botY + 22} ${x1} ${botY}`, fill: 'none', stroke: '#999', 'stroke-width': '1.5' }));
+      arrowHead(svg, x1, botY, Math.PI, 5, '#999');
+      svg.appendChild(svgText(midX, botY + 20, revStr, 10, 'middle', { fill: '#999', 'font-weight': '600' }));
+    }
+
+    return svg;
+  },
+};
+
+/* helper: integer → superscript string */
+function superscript(n) {
+  const SUPS = { '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹' };
+  return String(n).split('').map(d => SUPS[d] || d).join('');
+}
+
+/* ================================================================
+   BINARY PLACE VALUE FRAME
+   ================================================================ */
+extraTemplates['binary-frame'] = {
+  name: 'Binary Frame',
+  category: 'Number',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Binary Place Value'));
+    c.appendChild(row(
+      field('Number of bits', select('bf-bits', [['4','4 bits (nibble)'],['8','8 bits (byte)'],['16','16 bits']])),
+    ));
+    c.appendChild(sectionLabel('Show rows'));
+    c.appendChild(row(
+      checkbox('bf-powers',   'Powers (2ⁿ)',             true),
+      checkbox('bf-decimals', 'Decimal values',          true),
+    ));
+    c.appendChild(row(
+      checkbox('bf-hex',      'Hex equivalents',         false),
+    ));
+    c.appendChild(sectionLabel('Example'));
+    c.appendChild(row(field('Decimal number', numberInput('bf-num', 0, 0, 65535, 1))));
+    c.appendChild(row(
+      checkbox('bf-fill',    'Fill binary digits',       false),
+      checkbox('bf-working', 'Show working (sum)',       false),
+    ));
+    c.appendChild(row(
+      field('Box colour', colourSwatch('bf-colour', '#e8eaf6')),
+      field('Bit colour', colourSwatch('bf-bit-colour', '#4262ff')),
+    ));
+  },
+  readConfig() {
+    return {
+      bits:      parseInt(val('bf-bits') || '8', 10),
+      powers:    val('bf-powers'),
+      decimals:  val('bf-decimals'),
+      hex:       val('bf-hex'),
+      num:       parseInt(val('bf-num') || '0', 10),
+      fill:      val('bf-fill'),
+      working:   val('bf-working'),
+      colour:    val('bf-colour') || '#e8eaf6',
+      bitColour: val('bf-bit-colour') || '#4262ff',
+    };
+  },
+  generateSVG(s) {
+    const n = Math.max(4, Math.min(16, s.bits));
+    const num = Math.max(0, Math.min(Math.pow(2, n) - 1, s.num || 0));
+
+    /* Build binary digits array (MSB first) */
+    const digits = [];
+    for (let i = n - 1; i >= 0; i--) digits.push((num >> i) & 1);
+
+    /* Layout */
+    const cellW = n <= 8 ? 64 : 36;
+    const cellH = 52;
+    const rowGap = 4;
+    const pad = 28;
+    const labelW = 90;
+
+    const rows = [];
+    if (s.powers)   rows.push('powers');
+    if (s.decimals) rows.push('decimals');
+    if (s.hex)      rows.push('hex');
+    rows.push('bits');
+    if (s.working && s.fill) rows.push('working');
+
+    const W = labelW + n * cellW + pad;
+    const H = pad + rows.length * (cellH + rowGap) + (s.working && s.fill ? 48 : 24);
+    const svg = makeSVG(W, H);
+
+    svg.appendChild(svgText(W/2, 18, 'Binary Place Value', 15, 'middle', { 'font-weight': '700', fill: '#222' }));
+
+    rows.forEach((rowType, ri) => {
+      const y = pad + ri * (cellH + rowGap);
+
+      /* Row label */
+      const labelMap = {
+        powers:   '2ⁿ',
+        decimals: 'Value',
+        hex:      'Hex',
+        bits:     'Binary',
+        working:  '',
+      };
+      svg.appendChild(svgText(labelW - 10, y + cellH/2 + 1, labelMap[rowType], 12, 'end', { fill: '#555', 'font-weight': '600', 'dominant-baseline': 'central' }));
+
+      for (let i = 0; i < n; i++) {
+        const exp = n - 1 - i;
+        const x = labelW + i * cellW;
+        const val2 = Math.pow(2, exp);
+
+        if (rowType === 'bits') {
+          /* Student input box */
+          const filled = s.fill;
+          const bit = digits[i];
+          const boxFill = filled && bit === 1 ? s.bitColour : s.colour;
+          const textFill = filled && bit === 1 ? '#fff' : '#333';
+          svg.appendChild(svgEl('rect', { x: x+1, y: y+1, width: cellW-2, height: cellH-2, rx: 6, fill: boxFill, stroke: '#5c6bc0', 'stroke-width': '2' }));
+          if (filled) {
+            svg.appendChild(svgText(x + cellW/2, y + cellH/2 + 1, String(bit), n <= 8 ? 24 : 18, 'middle', { fill: textFill, 'font-weight': '700', 'dominant-baseline': 'central' }));
+          }
+          /* Group separators every 4 bits */
+          if (i > 0 && (n - i) % 4 === 0) {
+            svg.appendChild(svgEl('line', { x1: x, y1: y, x2: x, y2: y + cellH, stroke: '#7b2d8e', 'stroke-width': '2', 'stroke-dasharray': '4 2' }));
+          }
+        } else if (rowType === 'powers') {
+          svg.appendChild(svgEl('rect', { x: x+1, y: y+1, width: cellW-2, height: cellH-2, rx: 4, fill: '#f8fafc', stroke: '#cbd5e1', 'stroke-width': '1.5' }));
+          const expStr = `2${superscript(exp)}`;
+          svg.appendChild(svgText(x + cellW/2, y + cellH/2 + 1, expStr, n <= 8 ? 14 : 11, 'middle', { fill: '#334155', 'font-weight': '600', 'dominant-baseline': 'central' }));
+        } else if (rowType === 'decimals') {
+          svg.appendChild(svgEl('rect', { x: x+1, y: y+1, width: cellW-2, height: cellH-2, rx: 4, fill: '#f0fdf4', stroke: '#86efac', 'stroke-width': '1.5' }));
+          svg.appendChild(svgText(x + cellW/2, y + cellH/2 + 1, String(val2), n <= 8 ? 14 : 10, 'middle', { fill: '#166534', 'font-weight': '700', 'dominant-baseline': 'central' }));
+        } else if (rowType === 'hex') {
+          const hexNibble = n <= 8 ? (i < n/2 ? 'upper' : 'lower') : null;
+          svg.appendChild(svgEl('rect', { x: x+1, y: y+1, width: cellW-2, height: cellH-2, rx: 4, fill: '#fdf4ff', stroke: '#e879f9', 'stroke-width': '1.5' }));
+          /* for hex, show grouped nibble values */
+          if ((exp + 1) % 4 === 0) {
+            const nibbleVal = s.fill ? ((num >> exp) & 0xF) : null;
+            const hexStr = nibbleVal !== null ? nibbleVal.toString(16).toUpperCase() : '_';
+            svg.appendChild(svgEl('rect', { x: x+1, y: y+1, width: cellW*4-2, height: cellH-2, rx: 4, fill: '#fdf4ff', stroke: '#e879f9', 'stroke-width': '1.5' }));
+            svg.appendChild(svgText(x + cellW*2, y + cellH/2 + 1, hexStr, 16, 'middle', { fill: '#7e22ce', 'font-weight': '700', 'dominant-baseline': 'central' }));
+          }
+        }
+      }
+    });
+
+    /* Working row */
+    if (s.working && s.fill && num > 0) {
+      const workY = pad + rows.length * (cellH + rowGap) + 8;
+      const parts = [];
+      for (let i = 0; i < n; i++) {
+        if (digits[i] === 1) parts.push(String(Math.pow(2, n - 1 - i)));
+      }
+      const workStr = parts.join(' + ') + ' = ' + num;
+      svg.appendChild(svgText(W/2, workY + 16, workStr, 13, 'middle', { fill: '#333', 'font-weight': '600' }));
+    }
+
+    return svg;
+  },
+};
+
 /* ── Export ─────────────────────────────────────────────── */
 export { extraTemplates };
