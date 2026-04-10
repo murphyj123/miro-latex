@@ -5880,7 +5880,7 @@ extraTemplates['si-prefixes'] = {
         if (s.showName) svg.appendChild(svgText(x + cellW/2, y + cellH + 18, u.name, 10, 'middle', { fill: '#555' }));
         if (s.showExp && i > 0) {
           const exp = u.exp;
-          svg.appendChild(svgText(x + cellW/2, y + cellH + (s.showName ? 32 : 18), `1024${exp > 1 ? '\u00B' + exp : ''} B`, 10, 'middle', { fill: '#888' }));
+          svg.appendChild(svgText(x + cellW/2, y + cellH + (s.showName ? 32 : 18), `1024${superscript(exp)} B`, 10, 'middle', { fill: '#888' }));
         }
       });
 
