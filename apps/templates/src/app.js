@@ -55,7 +55,7 @@ const CATS = {};
 ].forEach(id => CATS[id] = 'algebra');
 ['regular-polygon','compound-shape','circle-sector','right-angled-triangle',
  'trig-triangle','parallel-transversal','circle-theorems','bearings-diagram',
- 'unit-circle','protractor','symmetry-grid','iso-dot-grid'
+ 'unit-circle','protractor','symmetry-grid','iso-dot-grid','geoboard'
 ].forEach(id => CATS[id] = 'geometry');
 ['cube','cuboid','cylinder','cone','sphere','triangular-prism','square-pyramid'
 ].forEach(id => CATS[id] = '3d-shapes');
@@ -152,6 +152,7 @@ const KEYWORDS = {
   'dot-grid': 'dot grid, bullet journal, dot paper, background, dots, notebook',
   'isometric-dot': 'isometric dot grid, isometric paper, iso dots, 3D drawing background, triangular grid',
   'isometric-grid': 'isometric grid, triangular grid, isometric lines, 3D drawing background, engineering paper',
+  'geoboard': 'geoboard, pin board, circular geoboard, elastic bands, circle theorems, angles, geometry exploration',
 };
 
 const DISPLAY_NAMES = {
@@ -192,6 +193,7 @@ const DISPLAY_NAMES = {
   'lined-paper': 'Lined Paper', 'grid-paper': 'Grid Paper',
   'dot-grid': 'Dot Grid', 'isometric-dot': 'Isometric Dot Grid',
   'isometric-grid': 'Isometric Grid',
+  'geoboard': 'Geoboard',
 };
 
 const CAT_ICONS = {
@@ -231,7 +233,7 @@ const TEMPLATE_ORDER = [
   // geometry
   'regular-polygon','compound-shape','circle-sector','right-angled-triangle',
   'trig-triangle','parallel-transversal','circle-theorems','bearings-diagram',
-  'unit-circle','protractor','symmetry-grid','iso-dot-grid',
+  'unit-circle','protractor','symmetry-grid','iso-dot-grid','geoboard',
   // 3d
   'cube','cuboid','cylinder','cone','sphere','triangular-prism','square-pyramid',
   // statistics

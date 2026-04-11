@@ -1069,7 +1069,169 @@ extraTemplates['circle-theorems'] = {
 };
 
 /* ================================================================
-   6. TRIGONOMETRY TRIANGLE
+   6. GEOBOARD (Circular Pin Board)
+   ================================================================ */
+extraTemplates['geoboard'] = {
+  name: 'Geoboard',
+  category: 'Geometry Tools',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Circular Geoboard'));
+    c.appendChild(row(
+      field('Angle between pins', select('gb-step', [
+        {v:'5',  l:'Every 5°  (72 pins)'},
+        {v:'10', l:'Every 10° (36 pins)'},
+        {v:'15', l:'Every 15° (24 pins)'},
+        {v:'20', l:'Every 20° (18 pins)'},
+        {v:'30', l:'Every 30° (12 pins)'},
+        {v:'45', l:'Every 45° (8 pins)'},
+      ], '10')),
+    ));
+    c.appendChild(row(
+      field('Angle labels', select('gb-labels', [
+        {v:'all',   l:'All pins'},
+        {v:'major', l:'0 / 90 / 180 / 270 only'},
+        {v:'none',  l:'No labels'},
+      ], 'all')),
+    ));
+    c.appendChild(row(
+      checkbox('gb-ring',   'Show outer circle',  true),
+      checkbox('gb-centre', 'Show centre dot', true),
+    ));
+    c.appendChild(sectionLabel('Chord (optional)'));
+    c.appendChild(row(
+      checkbox('gb-chord', 'Draw a chord', false),
+    ));
+    c.appendChild(row(
+      field('From angle°', numberInput('gb-c1', 0, 0, 359, 1)),
+      field('To angle°',   numberInput('gb-c2', 90, 0, 359, 1)),
+    ));
+    c.appendChild(row(
+      field('Chord colour', textInput('gb-ccol', '#e63946')),
+    ));
+    c.appendChild(row(
+      checkbox('gb-chord2', 'Draw a second chord', false),
+    ));
+    c.appendChild(row(
+      field('From angle°', numberInput('gb-d1', 180, 0, 359, 1)),
+      field('To angle°',   numberInput('gb-d2', 270, 0, 359, 1)),
+    ));
+    c.appendChild(row(
+      field('Chord 2 colour', textInput('gb-dcol', '#4262ff')),
+    ));
+  },
+  readConfig() {
+    return {
+      step:    parseInt(val('gb-step'))  || 10,
+      labels:  val('gb-labels')         || 'all',
+      ring:    val('gb-ring'),
+      centre:  val('gb-centre'),
+      chord:   val('gb-chord'),
+      c1:      parseFloat(val('gb-c1')) || 0,
+      c2:      parseFloat(val('gb-c2')) || 90,
+      ccol:    val('gb-ccol')           || '#e63946',
+      chord2:  val('gb-chord2'),
+      d1:      parseFloat(val('gb-d1')) || 180,
+      d2:      parseFloat(val('gb-d2')) || 270,
+      dcol:    val('gb-dcol')           || '#4262ff',
+    };
+  },
+  generateSVG(s) {
+    const W = 580, H = 580;
+    const svg = makeSVG(W, H);
+    const cx = W / 2, cy = H / 2;
+    const R  = 220;   /* pin circle radius */
+    const PIN_R = s.step <= 10 ? 3 : 5;
+    const LABEL_R = R + 22;
+
+    /* white background */
+    svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:'#ffffff' }));
+
+    /* outer ring */
+    if (s.ring) {
+      svg.appendChild(svgEl('circle', {
+        cx, cy, r: R,
+        fill: 'none', stroke: '#d0d5e0', 'stroke-width': '1.5',
+      }));
+    }
+
+    /* angle-to-cartesian: 0° = top (12 o'clock), clockwise */
+    const pinPt = (deg) => ({
+      x: cx + R * Math.sin(degToRad(deg)),
+      y: cy - R * Math.cos(degToRad(deg)),
+    });
+
+    /* chord helper */
+    const drawChord = (a1, a2, col) => {
+      const p1 = pinPt(a1), p2 = pinPt(a2);
+      svg.appendChild(svgEl('line', {
+        x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
+        stroke: col, 'stroke-width': '2.5', 'stroke-linecap': 'round',
+      }));
+    };
+
+    /* draw chords first (behind pins) */
+    if (s.chord)  drawChord(s.c1, s.c2, s.ccol);
+    if (s.chord2) drawChord(s.d1, s.d2, s.dcol);
+
+    /* pins + labels */
+    const step = Math.max(1, Math.min(45, s.step));
+    for (let deg = 0; deg < 360; deg += step) {
+      const p = pinPt(deg);
+
+      /* pin dot */
+      svg.appendChild(svgEl('circle', {
+        cx: p.x, cy: p.y, r: PIN_R,
+        fill: '#2b2d42',
+      }));
+
+      /* highlight chord endpoint pins */
+      if (s.chord  && (deg === s.c1 || deg === s.c2)) {
+        svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: PIN_R + 3, fill: 'none', stroke: s.ccol, 'stroke-width': '1.5' }));
+      }
+      if (s.chord2 && (deg === s.d1 || deg === s.d2)) {
+        svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: PIN_R + 3, fill: 'none', stroke: s.dcol, 'stroke-width': '1.5' }));
+      }
+
+      /* labels */
+      const showLabel =
+        s.labels === 'all' ||
+        (s.labels === 'major' && deg % 90 === 0);
+
+      if (showLabel) {
+        const lx = cx + LABEL_R * Math.sin(degToRad(deg));
+        const ly = cy - LABEL_R * Math.cos(degToRad(deg));
+        const isMajor = deg % 90 === 0;
+        svg.appendChild(svgText(lx, ly, `${deg}°`, isMajor ? 12 : 10, 'middle', {
+          fill: isMajor ? '#2b2d42' : '#94a3b8',
+          'font-weight': isMajor ? '700' : '400',
+        }));
+      }
+    }
+
+    /* centre dot */
+    if (s.centre) {
+      svg.appendChild(svgEl('circle', { cx, cy, r: '4', fill: '#94a3b8' }));
+    }
+
+    /* spoke lines from centre for major angles (subtle) */
+    if (s.labels === 'major' || s.labels === 'all') {
+      [0, 90, 180, 270].forEach(deg => {
+        if (deg % step === 0) {
+          const p = pinPt(deg);
+          svg.appendChild(svgEl('line', {
+            x1: cx, y1: cy, x2: p.x, y2: p.y,
+            stroke: '#e8eaee', 'stroke-width': '1',
+          }));
+        }
+      });
+    }
+
+    return svg;
+  },
+};
+
+/* ================================================================
+   7. TRIGONOMETRY TRIANGLE
    ================================================================ */
 extraTemplates['trig-triangle'] = {
   name: 'Trigonometry Triangle',
