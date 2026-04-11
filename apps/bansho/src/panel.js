@@ -3,7 +3,7 @@ import { getSafeJSON } from '../../shared/storage-utils.js';
 // ── Open modal ───────────────────────────────────────
 
 async function openEditor(settings) {
-  if (settings) localStorage.setItem('bansho-settings', JSON.stringify(settings));
+  if (settings) setSafeJSON('bansho-settings', settings);
   await miro.board.ui.openModal({ url: 'bansho/app.html', width: 1100, height: 720 });
 }
 

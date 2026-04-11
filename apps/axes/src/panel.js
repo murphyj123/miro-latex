@@ -4,7 +4,7 @@ import { makeCollapsible } from '../../shared/ui-helpers.js';
 // ── Open modal helpers ───────────────────────────────
 
 async function openEditor(settings) {
-  if (settings) localStorage.setItem('axes-settings', JSON.stringify(settings));
+  if (settings) setSafeJSON('axes-settings', settings);
   await miro.board.ui.openModal({ url: 'axes/app.html', width: 950, height: 650 });
 }
 

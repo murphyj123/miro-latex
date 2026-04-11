@@ -36,9 +36,16 @@ function renderPresets() {
   presets.forEach((p, i) => {
     const pill = document.createElement('div');
     pill.className = 'exam-preset-pill';
-    pill.innerHTML = `<span>${presetLabel(p)}</span><button class="exam-preset-del" title="Delete preset">×</button>`;
-    pill.querySelector('span').addEventListener('click', () => loadPreset(p));
-    pill.querySelector('.exam-preset-del').addEventListener('click', (e) => {
+    const labelSpan = document.createElement('span');
+    labelSpan.textContent = presetLabel(p);
+    labelSpan.addEventListener('click', () => loadPreset(p));
+    const delBtn = document.createElement('button');
+    delBtn.className = 'exam-preset-del';
+    delBtn.title = 'Delete preset';
+    delBtn.textContent = '×';
+    pill.appendChild(labelSpan);
+    pill.appendChild(delBtn);
+    delBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const updated = getPresets();
       updated.splice(i, 1);
@@ -131,13 +138,11 @@ function sustainedTone(freq, duration) {
 
 // ── State management ────────────────────────────────────
 function getState() {
-  const raw = localStorage.getItem(EXAM_KEY);
-  if (!raw) return null;
-  return JSON.parse(raw);
+  return getSafeJSON(EXAM_KEY, null);
 }
 
 function setState(state) {
-  localStorage.setItem(EXAM_KEY, JSON.stringify(state));
+  setSafeJSON(EXAM_KEY, state);
 }
 
 function clearState() {

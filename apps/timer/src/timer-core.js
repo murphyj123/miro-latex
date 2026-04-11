@@ -1,4 +1,6 @@
 // Singleton timer state stored in localStorage so panel and modal stay in sync
+import { getSafeJSON, setSafeJSON } from '../../shared/storage-utils.js';
+
 const STORAGE_KEY = 'miro-timer-state';
 
 function defaultState() {
@@ -21,10 +23,8 @@ function defaultState() {
 let _cache = null;
 
 function _loadCache() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    _cache = raw ? { ...defaultState(), ...JSON.parse(raw) } : defaultState();
-  } catch { _cache = defaultState(); }
+  const saved = getSafeJSON(STORAGE_KEY, null);
+  _cache = saved ? { ...defaultState(), ...saved } : defaultState();
 }
 
 window.addEventListener('storage', (e) => {
@@ -39,7 +39,7 @@ export function getState() {
 
 export function setState(state) {
   _cache = state;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  setSafeJSON(STORAGE_KEY, state);
   // No dispatchEvent: same-window callers (panel buttons) call syncUI() directly.
   // Cross-window callers (modal) are synced via native browser storage events.
 }
