@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/bansho/src/app.css" />
+    <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+  </head>
+  <body>
+    <div class="bansho-layout">
+
+      <!-- Config panel -->
+      <div class="config-panel" id="config-panel">
+
+        <div class="cfg-label">Layout</div>
+        <div class="cfg-row">
+          <div class="cfg-field">
+            <label class="cfg-field-label">Student slots</label>
+            <select id="bs-slots" class="cfg-select">
+              <option value="2">2 students</option>
+              <option value="3" selected>3 students</option>
+              <option value="4">4 students</option>
+              <option value="5">5 students</option>
+              <option value="6">6 students</option>
+            </select>
+          </div>
+        </div>
+        <div class="cfg-row" style="flex-direction:column;gap:5px;">
+          <label class="cfg-check"><input type="checkbox" id="bs-prior"/><span>Prior knowledge zone</span></label>
+          <label class="cfg-check"><input type="checkbox" id="bs-hatsumon" checked/><span>Discussion prompts zone</span></label>
+          <label class="cfg-check"><input type="checkbox" id="bs-matome" checked/><span>Consolidation zone</span></label>
+          <label class="cfg-check"><input type="checkbox" id="bs-extension"/><span>Extension zone</span></label>
+        </div>
+
+        <hr class="cfg-divider"/>
+        <div class="cfg-label">Zone Labels</div>
+        <div class="cfg-row">
+          <div class="cfg-field">
+            <label class="cfg-field-label">Problem / Task</label>
+            <input type="text" id="bs-lbl-problem" class="cfg-input" value="Problem / Task"/>
+          </div>
+        </div>
+        <div class="cfg-row">
+          <div class="cfg-field">
+            <label class="cfg-field-label">Student Thinking</label>
+            <input type="text" id="bs-lbl-neriage" class="cfg-input" value="Student Thinking"/>
+          </div>
+        </div>
+        <div class="cfg-row">
+          <div class="cfg-field">
+            <label class="cfg-field-label">Discussion Prompts</label>
+            <input type="text" id="bs-lbl-hatsumon" class="cfg-input" value="Discussion Prompts"/>
+          </div>
+        </div>
+        <div class="cfg-row">
+          <div class="cfg-field">
+            <label class="cfg-field-label">Consolidation</label>
+            <input type="text" id="bs-lbl-matome" class="cfg-input" value="Consolidation"/>
+          </div>
+        </div>
+        <div class="cfg-row" id="prior-lbl-row" style="display:none">
+          <div class="cfg-field">
+            <label class="cfg-field-label">Prior Knowledge</label>
+            <input type="text" id="bs-lbl-prior" class="cfg-input" value="Prior Knowledge"/>
+          </div>
+        </div>
+        <div class="cfg-row" id="ext-lbl-row" style="display:none">
+          <div class="cfg-field">
+            <label class="cfg-field-label">Extension</label>
+            <input type="text" id="bs-lbl-extension" class="cfg-input" value="Extension"/>
+          </div>
+        </div>
+
+        <hr class="cfg-divider"/>
+        <div class="cfg-label">Style</div>
+        <div class="cfg-row">
+          <div class="cfg-field">
+            <label class="cfg-field-label">Theme</label>
+            <select id="bs-theme" class="cfg-select">
+              <option value="light" selected>Light</option>
+              <option value="dark">Dark</option>
+              <option value="chalk">Chalk</option>
+            </select>
+          </div>
+          <div class="cfg-field">
+            <label class="cfg-field-label">Mode</label>
+            <select id="bs-mode" class="cfg-select">
+              <option value="blank" selected>Blank</option>
+              <option value="demo">Demo filled</option>
+            </select>
+          </div>
+        </div>
+
+        <hr class="cfg-divider"/>
+        <div class="cfg-label">Size</div>
+        <div class="cfg-row" style="align-items:center;gap:10px;">
+          <input type="range" id="bs-size" class="cfg-range" min="400" max="2400" step="100" value="1200"/>
+          <span class="cfg-range-value" id="bs-size-val">1200</span>
+        </div>
+
+      </div>
+
+      <!-- Preview -->
+      <div class="preview-panel">
+        <div class="preview-area" id="preview-area"></div>
+      </div>
+
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="bottom-bar">
+      <button class="place-btn" id="place-btn">Place on Board</button>
+      <button class="bar-btn" id="edit-selected-btn">Edit Selected</button>
+      <div style="margin-left:auto;font-size:11px;color:#999;font-family:Inter,sans-serif;" id="status-msg"></div>
+    </div>
+
+    <script type="module" src="/bansho/src/app.js"></script>
+  </body>
+</html>

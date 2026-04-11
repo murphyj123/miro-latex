@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/shared/panel.css" />
+    <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+  </head>
+  <body>
+
+    <div class="panel-header">
+      <div class="panel-header-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1.5" y="1.5" width="7" height="10" rx="1"/>
+          <rect x="10" y="1.5" width="6.5" height="6" rx="1"/>
+          <rect x="10" y="9" width="6.5" height="7.5" rx="1"/>
+          <rect x="1.5" y="13" width="7" height="3" rx="1"/>
+        </svg>
+      </div>
+      <div class="panel-header-text">
+        <h1>Bansho Board</h1>
+        <p>Scaffold a Bansho lesson</p>
+      </div>
+    </div>
+
+    <div class="panel-body">
+
+      <button class="action-btn action-btn-primary" id="new-btn">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+        New Bansho Board
+      </button>
+
+      <button class="action-btn action-btn-secondary" id="edit-btn">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5l2 2-8 8H3.5v-2l8-8z"/></svg>
+        Edit Selected
+      </button>
+
+      <div class="section">
+        <div class="section-header" id="recents-header">
+          <span class="section-title">Recently Used</span>
+          <span class="section-chevron" id="recents-chevron">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="2,4 6,8 10,4"/></svg>
+          </span>
+        </div>
+        <div class="section-body" id="recents-body">
+          <p class="hint">No recent boards yet</p>
+        </div>
+      </div>
+
+      <div class="branding-footer">
+        <a href="#" id="branding-link">Made by jmaths.xyz</a>
+      </div>
+
+    </div>
+
+    <script type="module" src="/bansho/src/panel.js"></script>
+    <script>
+      document.getElementById('branding-link').onclick = () =>
+        miro.board.ui.openLink('https://www.jmaths.xyz');
+    </script>
+  </body>
+</html>

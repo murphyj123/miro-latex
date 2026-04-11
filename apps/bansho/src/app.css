@@ -1,0 +1,125 @@
+/* ── Bansho Board App ──────────────────────────────── */
+@import '../../shared/controls.css';
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: #1e293b;
+  background: #f8fafc;
+}
+
+/* ── Main layout ─────────────────────────────────── */
+.bansho-layout {
+  display: flex;
+  height: calc(100% - 46px);
+  overflow: hidden;
+}
+
+.config-panel {
+  width: 300px;
+  min-width: 300px;
+  overflow-y: auto;
+  padding: 14px 14px;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+}
+
+.config-panel::-webkit-scrollbar { width: 5px; }
+.config-panel::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+.preview-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.preview-area {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #e8eaee;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.preview-area svg {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* ── Bottom bar ──────────────────────────────────── */
+.bottom-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+  z-index: 10;
+}
+
+.place-btn {
+  height: 30px;
+  padding: 0 20px;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(20,184,166,0.3);
+  font-family: inherit;
+}
+
+.place-btn:hover {
+  background: linear-gradient(135deg, #0d9488, #0f766e);
+  box-shadow: 0 4px 12px rgba(20,184,166,0.4);
+  transform: translateY(-1px);
+}
+
+.place-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.bar-btn {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #d0d4dc;
+  border-radius: 6px;
+  background: #f5f6f8;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: inherit;
+}
+
+.bar-btn:hover {
+  background: #e6faf8;
+  color: #0d9488;
+  border-color: #99f6e4;
+}
