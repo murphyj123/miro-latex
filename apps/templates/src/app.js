@@ -1877,67 +1877,77 @@ async function placeOnBoard() {
     return;
   }
 
-  const tpl = TEMPLATES[activeTemplate];
-  const cfg = tpl.readConfig ? tpl.readConfig() : undefined;
-  const svg = tpl.generateSVG(cfg);
+  // Guard against double-click / re-entrance
+  if (placeBtn.disabled) return;
+  placeBtn.disabled = true;
 
-  // Use PNG (with alpha) when the template requests a transparent background,
-  // otherwise use the lighter SVG data URL.
-  const needsPng = cfg && cfg.transparent;
-  const dataUrl = needsPng ? await svgToPngDataUrl(svg) : svgToSvgDataUrl(svg);
+  try {
+    const tpl = TEMPLATES[activeTemplate];
+    const cfg = tpl.readConfig ? tpl.readConfig() : undefined;
+    const svg = tpl.generateSVG(cfg);
 
-  const size = parseInt(imgSizeEl.value, 10) || 600;
+    // Use PNG (with alpha) when the template requests a transparent background,
+    // otherwise use the lighter SVG data URL.
+    const needsPng = cfg && cfg.transparent;
+    const dataUrl = needsPng ? await svgToPngDataUrl(svg) : svgToSvgDataUrl(svg);
 
-  // Store template name + all config input values for edit
-  const settings = { _tplGen: true, template: activeTemplate, inputs: {} };
-  configPanel.querySelectorAll('input, select, textarea').forEach(el => {
-    const key = el.id || el.getAttribute('data-seg-label') || el.getAttribute('data-seg-colour')
-      || el.getAttribute('data-fm-op') || el.getAttribute('data-tw-row') || el.getAttribute('data-tw-col')
-      || el.getAttribute('data-td-label') || el.getAttribute('data-td-prob')
-      || el.getAttribute('data-ps-label') || el.getAttribute('data-ps-pos')
-      || el.getAttribute('data-tc-label') || el.getAttribute('data-tc-tally')
-      || el.getAttribute('data-ft-interval') || el.getAttribute('data-di-val')
-      || el.getAttribute('data-group');
-    if (!key) return;
-    if (el.type === 'checkbox') {
-      // For data-group checkboxes, store as array
-      if (el.getAttribute('data-group')) {
-        if (!settings.inputs['_grp_' + key]) settings.inputs['_grp_' + key] = [];
-        if (el.checked) settings.inputs['_grp_' + key].push(el.value);
+    const size = parseInt(imgSizeEl.value, 10) || 600;
+
+    // Store template name + all config input values for edit
+    const settings = { _tplGen: true, template: activeTemplate, inputs: {} };
+    configPanel.querySelectorAll('input, select, textarea').forEach(el => {
+      const key = el.id || el.getAttribute('data-seg-label') || el.getAttribute('data-seg-colour')
+        || el.getAttribute('data-fm-op') || el.getAttribute('data-tw-row') || el.getAttribute('data-tw-col')
+        || el.getAttribute('data-td-label') || el.getAttribute('data-td-prob')
+        || el.getAttribute('data-ps-label') || el.getAttribute('data-ps-pos')
+        || el.getAttribute('data-tc-label') || el.getAttribute('data-tc-tally')
+        || el.getAttribute('data-ft-interval') || el.getAttribute('data-di-val')
+        || el.getAttribute('data-group');
+      if (!key) return;
+      if (el.type === 'checkbox') {
+        // For data-group checkboxes, store as array
+        if (el.getAttribute('data-group')) {
+          if (!settings.inputs['_grp_' + key]) settings.inputs['_grp_' + key] = [];
+          if (el.checked) settings.inputs['_grp_' + key].push(el.value);
+        } else {
+          settings.inputs[key] = el.checked;
+        }
       } else {
-        settings.inputs[key] = el.checked;
+        settings.inputs[key] = el.value;
       }
-    } else {
-      settings.inputs[key] = el.value;
-    }
-  });
+    });
 
-  const titleJson = JSON.stringify(settings);
+    const titleJson = JSON.stringify(settings);
 
-  const vp = await miro.board.viewport.get();
-  await miro.board.createImage({
-    url: dataUrl,
-    x: vp.x + vp.width / 2,
-    y: vp.y + vp.height / 2,
-    width: size,
-    title: titleJson,
-  });
+    const vp = await miro.board.viewport.get();
+    await miro.board.createImage({
+      url: dataUrl,
+      x: vp.x + vp.width / 2,
+      y: vp.y + vp.height / 2,
+      width: size,
+      title: titleJson,
+    });
 
-  // Save to recents
-  const recents = getSafeJSON('tpl-recents', []);
-  const recentEntry = { id: activeTemplate, name: DISPLAY_NAMES[activeTemplate] || activeTemplate, time: Date.now() };
-  const recentInputs = {};
-  configPanel.querySelectorAll('input, select, textarea').forEach(el => {
-    const key = el.id || el.name;
-    if (!key) return;
-    recentInputs[key] = el.type === 'checkbox' ? el.checked : el.value;
-  });
-  recentEntry.settings = recentInputs;
-  const filteredRecents = recents.filter(r => r.id !== recentEntry.id);
-  filteredRecents.unshift(recentEntry);
-  setSafeJSON('tpl-recents', filteredRecents.slice(0, 8));
+    // Save to recents
+    const recents = getSafeJSON('tpl-recents', []);
+    const recentEntry = { id: activeTemplate, name: DISPLAY_NAMES[activeTemplate] || activeTemplate, time: Date.now() };
+    const recentInputs = {};
+    configPanel.querySelectorAll('input, select, textarea').forEach(el => {
+      const key = el.id || el.name;
+      if (!key) return;
+      recentInputs[key] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+    recentEntry.settings = recentInputs;
+    const filteredRecents = recents.filter(r => r.id !== recentEntry.id);
+    filteredRecents.unshift(recentEntry);
+    setSafeJSON('tpl-recents', filteredRecents.slice(0, 8));
 
-  miro.board.ui.closeModal();
+    miro.board.ui.closeModal();
+  } catch (err) {
+    console.error('[templates] placeOnBoard failed:', err);
+    await miro.board.notifications.showError('Failed to place template — see console');
+    placeBtn.disabled = false;
+  }
 }
 
 // ── Edit Selected ───────────────────────────────────

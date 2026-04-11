@@ -400,9 +400,11 @@ function buildEndTimesTable(state, currentPhase) {
 }
 
 // ── Tick loop ───────────────────────────────────────────
+let rafId = null;
+
 function tick() {
   updateDisplay();
-  requestAnimationFrame(tick);
+  rafId = requestAnimationFrame(tick);
 }
 
 // ── Setup handlers ──────────────────────────────────────
@@ -489,8 +491,13 @@ btnPause.addEventListener('click', () => {
 
 // ── End Exam ────────────────────────────────────────────
 btnEnd.addEventListener('click', async () => {
+  if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
   clearState();
   await miro.board.ui.closeModal();
+});
+
+window.addEventListener('pagehide', () => {
+  if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
 });
 
 // ── Show/hide screens ───────────────────────────────────

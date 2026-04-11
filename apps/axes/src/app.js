@@ -620,34 +620,42 @@ function updatePreviewImmediate() {
 // ── Place on board ──────────────────────────────────
 
 async function placeOnBoard() {
-  const svg = generateAxesSVG();
-  const serializer = new XMLSerializer();
-  const svgStr = serializer.serializeToString(svg);
-  const dataUrl = 'data:image/svg+xml;base64,' + svgToBase64(svgStr);
+  if (els.placeBtn.disabled) return;
+  els.placeBtn.disabled = true;
+  try {
+    const svg = generateAxesSVG();
+    const serializer = new XMLSerializer();
+    const svgStr = serializer.serializeToString(svg);
+    const dataUrl = 'data:image/svg+xml;base64,' + svgToBase64(svgStr);
 
-  const size = parseInt(els.imgSize.value, 10) || 500;
-  const settings = readSettings();
+    const size = parseInt(els.imgSize.value, 10) || 500;
+    const settings = readSettings();
 
-  // Store settings in title as JSON so Edit Selected can recover them
-  const titleJson = JSON.stringify({ _axesGen: true, ...settings });
+    // Store settings in title as JSON so Edit Selected can recover them
+    const titleJson = JSON.stringify({ _axesGen: true, ...settings });
 
-  const vp = await miro.board.viewport.get();
-  await miro.board.createImage({
-    url: dataUrl,
-    x: vp.x + vp.width / 2,
-    y: vp.y + vp.height / 2,
-    width: size,
-    title: titleJson,
-  });
+    const vp = await miro.board.viewport.get();
+    await miro.board.createImage({
+      url: dataUrl,
+      x: vp.x + vp.width / 2,
+      y: vp.y + vp.height / 2,
+      width: size,
+      title: titleJson,
+    });
 
-  // Save to recents (max 5, deduplicate by window bounds)
-  const recents = getSafeJSON('axes-recents', []);
-  const key = `${settings.xMin},${settings.xMax},${settings.yMin},${settings.yMax}`;
-  const filtered = recents.filter((r) => `${r.xMin},${r.xMax},${r.yMin},${r.yMax}` !== key);
-  filtered.unshift(settings);
-  setSafeJSON('axes-recents', filtered.slice(0, 5));
+    // Save to recents (max 5, deduplicate by window bounds)
+    const recents = getSafeJSON('axes-recents', []);
+    const key = `${settings.xMin},${settings.xMax},${settings.yMin},${settings.yMax}`;
+    const filtered = recents.filter((r) => `${r.xMin},${r.xMax},${r.yMin},${r.yMax}` !== key);
+    filtered.unshift(settings);
+    setSafeJSON('axes-recents', filtered.slice(0, 5));
 
-  miro.board.ui.closeModal();
+    miro.board.ui.closeModal();
+  } catch (err) {
+    console.error('[axes] placeOnBoard failed:', err);
+    await miro.board.notifications.showError('Failed to place graph — see console');
+    els.placeBtn.disabled = false;
+  }
 }
 
 // ── Edit selected ───────────────────────────────────

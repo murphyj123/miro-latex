@@ -394,7 +394,7 @@ function chk(id) { const e = $(id); return e ? e.checked : false; }
 
 function readConfig() {
   return {
-    slots:         parseInt(val('bs-slots')) || 3,
+    slots:         Math.max(1, parseInt(val('bs-slots')) || 3),
     theme:         val('bs-theme')           || 'light',
     mode:          val('bs-mode')            || 'blank',
     showPrior:     chk('bs-prior'),
