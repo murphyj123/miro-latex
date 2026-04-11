@@ -1,3 +1,6 @@
+import { getSafeJSON, setSafeJSON } from '../../shared/storage-utils.js';
+import { makeCollapsible } from '../../shared/ui-helpers.js';
+
 // ── Open modal helpers ───────────────────────────────
 
 async function openEditor(settings) {
@@ -28,21 +31,13 @@ document.getElementById('edit-btn').onclick = async () => {
     } else {
       await miro.board.notifications.showError('Selected item is not an axes image');
     }
-  } catch {
+  } catch (err) {
+    console.warn('[axes] editSelected: could not parse image title', err);
     await miro.board.notifications.showError('Selected item has no axes data');
   }
 };
 
 // ── Collapsible sections ─────────────────────────────
-
-function makeCollapsible(headerId, chevronId, bodyId) {
-  let open = true;
-  document.getElementById(headerId).addEventListener('click', () => {
-    open = !open;
-    document.getElementById(bodyId).classList.toggle('hidden', !open);
-    document.getElementById(chevronId).classList.toggle('closed', !open);
-  });
-}
 
 makeCollapsible('recents-header', 'recents-chevron', 'recents-body');
 makeCollapsible('library-header', 'library-chevron', 'library-body');
@@ -56,7 +51,7 @@ function renderRecents() {
   const json = localStorage.getItem('axes-recents') || '[]';
   if (json === _lastRecentsJson) return;
   _lastRecentsJson = json;
-  const recents = JSON.parse(json);
+  const recents = getSafeJSON('axes-recents', []);
   const container = document.getElementById('recents-body');
   if (recents.length === 0) {
     container.innerHTML = '<p class="hint">No recent graphs yet</p>';
@@ -113,7 +108,7 @@ function renderLibrary() {
   const json = localStorage.getItem('axes-library') || '[]';
   if (json === _lastLibraryJson) return;
   _lastLibraryJson = json;
-  const library = JSON.parse(json);
+  const library = getSafeJSON('axes-library', []);
   const container = document.getElementById('library-body');
   if (library.length === 0) {
     container.innerHTML = '<p class="hint">No saved graphs yet</p>';
@@ -140,9 +135,9 @@ function renderLibrary() {
     renameBtn.onclick = (e) => {
       e.stopPropagation();
       showRenameDialog(entry.name || '', (newName) => {
-        const updated = JSON.parse(localStorage.getItem('axes-library') || '[]');
+        const updated = getSafeJSON('axes-library', []);
         if (updated[index]) updated[index].name = newName;
-        localStorage.setItem('axes-library', JSON.stringify(updated));
+        setSafeJSON('axes-library', updated);
         renderLibrary();
       });
     };
@@ -153,9 +148,9 @@ function renderLibrary() {
     deleteBtn.innerHTML = `<svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="2" y1="2" x2="11" y2="11"/><line x1="11" y1="2" x2="2" y2="11"/></svg>`;
     deleteBtn.onclick = (e) => {
       e.stopPropagation();
-      const updated = JSON.parse(localStorage.getItem('axes-library') || '[]');
+      const updated = getSafeJSON('axes-library', []);
       updated.splice(index, 1);
-      localStorage.setItem('axes-library', JSON.stringify(updated));
+      setSafeJSON('axes-library', updated);
       renderLibrary();
     };
 

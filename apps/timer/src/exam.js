@@ -1,15 +1,17 @@
 // ── Exam Mode ───────────────────────────────────────────
+import { getSafeJSON, setSafeJSON } from '../../shared/storage-utils.js';
+
 const EXAM_KEY = 'miro-exam-state';
 
 // ── Exam Presets ─────────────────────────────────────────
 const PRESETS_KEY = 'miro-exam-presets';
 
 function getPresets() {
-  try { return JSON.parse(localStorage.getItem(PRESETS_KEY) || '[]'); } catch { return []; }
+  return getSafeJSON(PRESETS_KEY, []);
 }
 
 function savePresets(presets) {
-  localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+  setSafeJSON(PRESETS_KEY, presets);
 }
 
 function presetLabel(p) {

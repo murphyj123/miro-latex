@@ -1,3 +1,5 @@
+import { getSafeJSON } from '../../shared/storage-utils.js';
+
 // ── Open modal ───────────────────────────────────────
 
 async function openEditor(settings) {
@@ -23,9 +25,10 @@ document.getElementById('edit-btn').onclick = async () => {
   }
   try {
     const cfg = JSON.parse(img.title);
-    if (!cfg._banshoGen) throw new Error();
+    if (!cfg._banshoGen) throw new Error('Not a Bansho image');
     await openEditor(cfg);
-  } catch {
+  } catch (err) {
+    console.warn('[bansho] editSelected: could not parse image title', err);
     await miro.board.notifications.showError('Selected image is not a Bansho board');
   }
 };
@@ -42,7 +45,7 @@ document.getElementById('recents-header').addEventListener('click', () => {
 // ── Recents ──────────────────────────────────────────
 
 function renderRecents() {
-  const recents = JSON.parse(localStorage.getItem('bansho-recents') || '[]');
+  const recents = getSafeJSON('bansho-recents', []);
   const container = document.getElementById('recents-body');
   if (!recents.length) {
     container.innerHTML = '<p class="hint">No recent boards yet</p>';
@@ -53,10 +56,21 @@ function renderRecents() {
     const btn = document.createElement('button');
     btn.className = 'panel-card';
     const themeLabel = { light: 'Light', dark: 'Dark', chalk: 'Chalk' }[cfg.theme] || cfg.theme;
-    btn.innerHTML = `<div class="card-content">
-      <div class="card-name">${cfg.slots}-slot Bansho · ${themeLabel}</div>
-      <div class="card-desc">${cfg.mode === 'demo' ? 'Demo mode' : 'Blank'}</div>
-    </div>`;
+
+    const content = document.createElement('div');
+    content.className = 'card-content';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'card-name';
+    nameEl.textContent = `${cfg.slots}-slot Bansho · ${themeLabel}`;
+
+    const descEl = document.createElement('div');
+    descEl.className = 'card-desc';
+    descEl.textContent = cfg.mode === 'demo' ? 'Demo mode' : 'Blank';
+
+    content.appendChild(nameEl);
+    content.appendChild(descEl);
+    btn.appendChild(content);
     btn.onclick = () => openEditor(cfg);
     container.appendChild(btn);
   });

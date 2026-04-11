@@ -1,6 +1,8 @@
 // Modal — full-featured LaTeX editor with symbols, templates, and preview
 import { symbolGroups } from './latex-data.js';
 import { formulaLibrary } from './formula-library.js';
+import { svgToBase64 } from '../shared/svg-utils.js';
+import { getSafeJSON, setSafeJSON } from '../shared/storage-utils.js';
 import functionPlot from 'function-plot';
 
 function debounce(func, timeout = 300) {
@@ -51,7 +53,7 @@ function svgToDataUrl(svgElement, bgColor, textColor) {
     }
   });
 
-  return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(clone.outerHTML)))}`;
+  return `data:image/svg+xml;base64,${svgToBase64(clone.outerHTML)}`;
 }
 
 async function renderLatex(latex) {
@@ -177,11 +179,11 @@ async function placeOnBoard() {
   });
 
   // Save to recent
-  const recents = JSON.parse(localStorage.getItem('miro-latex-recent') || '[]');
+  const recents = getSafeJSON('miro-latex-recent', []);
   const entry = { latex: latex.substring(0, 100), time: Date.now() };
   const filtered = recents.filter(r => r.latex !== entry.latex);
   filtered.unshift(entry);
-  localStorage.setItem('miro-latex-recent', JSON.stringify(filtered.slice(0, 8)));
+  setSafeJSON('miro-latex-recent', filtered.slice(0, 8));
 
   // Close the modal after placing
   miro.board.ui.closeModal();
@@ -693,7 +695,7 @@ function buildGraphOverlay() {
     const clone = svgEl.cloneNode(true);
     clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
     const svgStr = clone.outerHTML;
-    const url = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgStr)))}`;
+    const url = `data:image/svg+xml;base64,${svgToBase64(svgStr)}`;
 
     const fns = getFunctions();
     const title = fns.map((f) => f.fn).join(', ');

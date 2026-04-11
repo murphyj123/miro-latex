@@ -1,5 +1,7 @@
 // Side panel — actions + formula library
 import { formulaLibrary } from './formula-library.js';
+import { svgToBase64 } from '../shared/svg-utils.js';
+import { getSafeJSON, setSafeJSON } from '../shared/storage-utils.js';
 
 function debounce(func, timeout = 300) {
   let timer;
@@ -34,7 +36,7 @@ function svgToDataUrl(svgElement) {
   bg.setAttribute('fill', '#ffffff');
   clone.insertBefore(bg, clone.firstChild);
 
-  return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(clone.outerHTML)))}`;
+  return `data:image/svg+xml;base64,${svgToBase64(clone.outerHTML)}`;
 }
 
 async function renderLatex(latex) {
@@ -156,7 +158,7 @@ function buildSubjectButtons() {
 function renderRecents() {
   const section = document.getElementById('recent-section');
   const list = document.getElementById('recent-list');
-  const recents = JSON.parse(localStorage.getItem('miro-latex-recent') || '[]');
+  const recents = getSafeJSON('miro-latex-recent', []);
   list.innerHTML = '';
   if (recents.length === 0) {
     section.style.display = 'none';

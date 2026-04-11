@@ -1,5 +1,8 @@
 /* ── Graph Axes Generator ─────────────────────────── */
 
+import { svgToBase64 } from '../../shared/svg-utils.js';
+import { getSafeJSON, setSafeJSON } from '../../shared/storage-utils.js';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 // ── DOM references ──────────────────────────────────
@@ -620,7 +623,7 @@ async function placeOnBoard() {
   const svg = generateAxesSVG();
   const serializer = new XMLSerializer();
   const svgStr = serializer.serializeToString(svg);
-  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+  const dataUrl = 'data:image/svg+xml;base64,' + svgToBase64(svgStr);
 
   const size = parseInt(els.imgSize.value, 10) || 500;
   const settings = readSettings();
@@ -638,15 +641,11 @@ async function placeOnBoard() {
   });
 
   // Save to recents (max 5, deduplicate by window bounds)
-  try {
-    const recents = JSON.parse(localStorage.getItem('axes-recents') || '[]');
-    const key = `${settings.xMin},${settings.xMax},${settings.yMin},${settings.yMax}`;
-    const filtered = recents.filter((r) => {
-      return `${r.xMin},${r.xMax},${r.yMin},${r.yMax}` !== key;
-    });
-    filtered.unshift(settings);
-    localStorage.setItem('axes-recents', JSON.stringify(filtered.slice(0, 5)));
-  } catch { /* ignore storage errors */ }
+  const recents = getSafeJSON('axes-recents', []);
+  const key = `${settings.xMin},${settings.xMax},${settings.yMin},${settings.yMax}`;
+  const filtered = recents.filter((r) => `${r.xMin},${r.xMax},${r.yMin},${r.yMax}` !== key);
+  filtered.unshift(settings);
+  setSafeJSON('axes-recents', filtered.slice(0, 5));
 
   miro.board.ui.closeModal();
 }
@@ -666,7 +665,8 @@ async function editSelected() {
   try {
     settings = JSON.parse(img.title);
     if (!settings._axesGen) throw new Error('Not an axes image');
-  } catch {
+  } catch (err) {
+    console.warn('[axes] editSelected: could not parse image config', err);
     await miro.board.notifications.showInfo('Selected image was not created by Axes Generator.');
     return;
   }
@@ -691,9 +691,9 @@ function saveToLibrary() {
 
   function doSave() {
     const name = input.value.trim() || defaultName;
-    const library = JSON.parse(localStorage.getItem('axes-library') || '[]');
+    const library = getSafeJSON('axes-library', []);
     library.unshift({ name, settings });
-    localStorage.setItem('axes-library', JSON.stringify(library.slice(0, 20)));
+    setSafeJSON('axes-library', library.slice(0, 20));
     overlay.style.display = 'none';
   }
 
@@ -815,14 +815,13 @@ function init() {
 
   // Load settings from localStorage if opened from panel
   try {
-    const stored = localStorage.getItem('axes-settings');
-    if (stored) {
-      const settings = JSON.parse(stored);
+    const settings = getSafeJSON('axes-settings', null);
+    localStorage.removeItem('axes-settings');
+    if (settings) {
       if (settings._axesGen) delete settings._axesGen;
       applySettings(settings);
-      localStorage.removeItem('axes-settings');
     }
-  } catch { /* ignore */ }
+  } catch (err) { console.warn('[axes] init: failed to restore settings', err); }
 
   // Initial render
   updatePreviewImmediate();

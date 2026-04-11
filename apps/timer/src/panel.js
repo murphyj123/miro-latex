@@ -3,6 +3,7 @@ import {
   start, pause, reset, setDuration, setMode,
   setTickSound, setDarkTheme, fireAlarm,
 } from './timer-core.js';
+import { getSafeJSON } from '../../shared/storage-utils.js';
 
 // ── DOM refs ─────────────────────────────────────────────
 const timeDigits = document.getElementById('time-digits');
@@ -285,16 +286,14 @@ window.addEventListener('storage', (e) => {
   if (e.key === 'timer-card-load') {
     const raw = localStorage.getItem('timer-card-load');
     if (raw) {
-      try {
-        const { seconds } = JSON.parse(raw);
-        if (seconds > 0) {
-          reset();
-          setMode('countdown');
-          setDuration(seconds);
-          alarmPlayed = false;
-          lastTickSecond = -1;
-        }
-      } catch { /* ignore */ }
+      const parsed = getSafeJSON('timer-card-load', null);
+      if (parsed && parsed.seconds > 0) {
+        reset();
+        setMode('countdown');
+        setDuration(parsed.seconds);
+        alarmPlayed = false;
+        lastTickSecond = -1;
+      }
       localStorage.removeItem('timer-card-load');
     }
   }
@@ -315,16 +314,11 @@ window.addEventListener('pagehide', () => {
 // ── Init ─────────────────────────────────────────────────
 
 // Load duration from a board card click (set by index.js via localStorage)
-const cardPreset = localStorage.getItem('timer-card-load');
-if (cardPreset) {
-  try {
-    const { seconds } = JSON.parse(cardPreset);
-    if (seconds > 0) {
-      setMode('countdown');
-      setDuration(seconds);
-    }
-  } catch { /* ignore */ }
-  localStorage.removeItem('timer-card-load');
+const cardPreset = getSafeJSON('timer-card-load', null);
+localStorage.removeItem('timer-card-load');
+if (cardPreset && cardPreset.seconds > 0) {
+  setMode('countdown');
+  setDuration(cardPreset.seconds);
 }
 
 syncUI();

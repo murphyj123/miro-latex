@@ -1,5 +1,8 @@
 /* ── Bansho Board Generator ────────────────────────── */
 
+import { svgToDataUrl, svgToPngDataUrl } from '../../shared/svg-utils.js';
+import { getSafeJSON, setSafeJSON } from '../../shared/storage-utils.js';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 function svgEl(tag, attrs = {}) {
@@ -379,35 +382,7 @@ function generateBanshoSVG(cfg) {
   return svg;
 }
 
-/* ════════════════════════════════════════════════════
-   SVG → DATA URL
-   ════════════════════════════════════════════════════ */
-
-function svgToDataUrl(svgEl) {
-  const s = new XMLSerializer().serializeToString(svgEl);
-  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(s)));
-}
-
-async function svgToPngUrl(svgEl) {
-  const s    = new XMLSerializer().serializeToString(svgEl);
-  const blob = new Blob([s], { type: 'image/svg+xml' });
-  const url  = URL.createObjectURL(blob);
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width  = W * 2;
-      canvas.height = H * 2;
-      const ctx = canvas.getContext('2d');
-      ctx.scale(2, 2);
-      ctx.drawImage(img, 0, 0, W, H);
-      URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL('image/png'));
-    };
-    img.onerror = reject;
-    img.src = url;
-  });
-}
+/* svgToDataUrl and svgToPngDataUrl imported from ../../shared/svg-utils.js */
 
 /* ════════════════════════════════════════════════════
    CONFIG READ
@@ -503,7 +478,7 @@ async function placeOnBoard() {
     let dataUrl;
     if (T.chalk) {
       status.textContent = 'Rendering chalk…';
-      dataUrl = await svgToPngUrl(svg);
+      dataUrl = await svgToPngDataUrl(svg);
     } else {
       dataUrl = svgToDataUrl(svg);
     }
@@ -540,10 +515,11 @@ async function editSelected() {
   }
   try {
     const cfg = JSON.parse(img.title);
-    if (!cfg._banshoGen) throw new Error();
+    if (!cfg._banshoGen) throw new Error('Not a Bansho image');
     applyConfig(cfg);
     updatePreview();
-  } catch {
+  } catch (err) {
+    console.warn('[bansho] editSelected: could not parse image config', err);
     await miro.board.notifications.showError('Selected image is not a Bansho board');
   }
 }
@@ -553,12 +529,10 @@ async function editSelected() {
    ════════════════════════════════════════════════════ */
 
 function saveRecent(cfg) {
-  try {
-    const recents = JSON.parse(localStorage.getItem('bansho-recents') || '[]');
-    recents.unshift({ ts: Date.now(), cfg });
-    recents.length = Math.min(recents.length, 5);
-    localStorage.setItem('bansho-recents', JSON.stringify(recents));
-  } catch { /* ignore */ }
+  const recents = getSafeJSON('bansho-recents', []);
+  recents.unshift({ ts: Date.now(), cfg });
+  recents.length = Math.min(recents.length, 5);
+  setSafeJSON('bansho-recents', recents);
 }
 
 /* ════════════════════════════════════════════════════
@@ -584,10 +558,10 @@ function init() {
   $('edit-selected-btn').addEventListener('click', editSelected);
 
   /* restore settings if opened from "edit selected" panel flow */
-  const saved = localStorage.getItem('bansho-settings');
+  const saved = getSafeJSON('bansho-settings', null);
+  localStorage.removeItem('bansho-settings');
   if (saved) {
-    localStorage.removeItem('bansho-settings');
-    try { applyConfig(JSON.parse(saved)); } catch { /* ignore */ }
+    try { applyConfig(saved); } catch (err) { console.warn('[bansho] init: bad saved config', err); }
   } else {
     syncOptionalRows(null);
   }

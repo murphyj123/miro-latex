@@ -1,6 +1,8 @@
 /* ── Maths Templates Generator ────────────────────── */
 import { extraTemplates } from './templates-extra.js';
 import { interactiveTemplates } from './templates-interactive.js';
+import { svgToBase64 } from '../../shared/svg-utils.js';
+import { getSafeJSON, setSafeJSON } from '../../shared/storage-utils.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -1813,7 +1815,7 @@ function selectTemplate(name) {
 
   // Update favourite button state
   if (favBtn) {
-    const favs = JSON.parse(localStorage.getItem('tpl-favourites') || '[]');
+    const favs = getSafeJSON('tpl-favourites', []);
     if (favs.includes(name)) {
       favBtn.textContent = '\u2605';
       favBtn.classList.add('active');
@@ -1828,7 +1830,7 @@ function selectTemplate(name) {
 
 function svgToSvgDataUrl(svg) {
   const svgStr = new XMLSerializer().serializeToString(svg);
-  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+  return 'data:image/svg+xml;base64,' + svgToBase64(svgStr);
 }
 
 // Renders SVG to a PNG data URL with a genuine alpha channel.
@@ -1841,7 +1843,7 @@ function svgToPngDataUrl(svg) {
   const h = Math.round(parseFloat(svg.getAttribute('height')) || 600);
   const scale = 2; // retina-quality export
 
-  const fallbackSvgUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+  const fallbackSvgUrl = 'data:image/svg+xml;base64,' + svgToBase64(svgStr);
 
   return new Promise((resolve) => {
     const canvas = document.createElement('canvas');
@@ -1922,7 +1924,7 @@ async function placeOnBoard() {
   });
 
   // Save to recents
-  const recents = JSON.parse(localStorage.getItem('tpl-recents') || '[]');
+  const recents = getSafeJSON('tpl-recents', []);
   const recentEntry = { id: activeTemplate, name: DISPLAY_NAMES[activeTemplate] || activeTemplate, time: Date.now() };
   const recentInputs = {};
   configPanel.querySelectorAll('input, select, textarea').forEach(el => {
@@ -1933,7 +1935,7 @@ async function placeOnBoard() {
   recentEntry.settings = recentInputs;
   const filteredRecents = recents.filter(r => r.id !== recentEntry.id);
   filteredRecents.unshift(recentEntry);
-  localStorage.setItem('tpl-recents', JSON.stringify(filteredRecents.slice(0, 8)));
+  setSafeJSON('tpl-recents', filteredRecents.slice(0, 8));
 
   miro.board.ui.closeModal();
 }
@@ -1953,7 +1955,8 @@ async function editSelected() {
   try {
     settings = JSON.parse(img.title);
     if (!settings._tplGen) throw new Error('Not a template image');
-  } catch {
+  } catch (err) {
+    console.warn('[templates] editSelected: could not parse image config', err);
     await miro.board.notifications.showInfo('Selected image was not created by Maths Templates.');
     return;
   }
@@ -2167,7 +2170,7 @@ function init() {
   if (favBtn) {
     favBtn.addEventListener('click', () => {
       if (!activeTemplate) return;
-      const favs = JSON.parse(localStorage.getItem('tpl-favourites') || '[]');
+      const favs = getSafeJSON('tpl-favourites', []);
       const idx = favs.indexOf(activeTemplate);
       if (idx >= 0) {
         favs.splice(idx, 1);
@@ -2179,7 +2182,7 @@ function init() {
         favBtn.textContent = '\u2605'; // filled star
         favBtn.classList.add('active');
       }
-      localStorage.setItem('tpl-favourites', JSON.stringify(favs));
+      setSafeJSON('tpl-favourites', favs);
     });
   }
 
@@ -2248,7 +2251,7 @@ function init() {
           schedulePreview();
         }, 80);
       }
-    } catch { /* ignore invalid JSON */ }
+    } catch (err) { console.warn('[templates] init: failed to restore recent settings', err); }
   }
 }
 
