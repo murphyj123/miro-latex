@@ -736,161 +736,333 @@ extraTemplates['circle-theorems'] = {
   name: 'Circle Theorems',
   category: '2D Shapes',
   renderConfig(c) {
-    c.appendChild(sectionLabel('Theorem'));
+    c.appendChild(sectionLabel('Circle Theorem'));
     c.appendChild(row(
-      field('Type', select('ct-type', [
-        ['inscribed_angle', 'Inscribed Angle (2x)'],
-        ['tangent_radius', 'Tangent-Radius (90°)'],
-        ['angle_in_semicircle', 'Angle in Semicircle (90°)'],
-        ['cyclic_quadrilateral', 'Cyclic Quadrilateral (180°)'],
-        ['tangent_chord', 'Tangent-Chord (Alt. Segment)'],
-        ['alternate_segment', 'Alternate Segment'],
-      ])),
+      field('Theorem', select('ct-type', [
+        {v:'centre_circumference', l:'Angle at centre = 2× circumference'},
+        {v:'same_segment',        l:'Angles in the same segment'},
+        {v:'semicircle',          l:'Angle in a semicircle (90°)'},
+        {v:'cyclic_quad',         l:'Cyclic quadrilateral (180°)'},
+        {v:'tangent_radius',      l:'Tangent–radius (90°)'},
+        {v:'alt_segment',         l:'Alternate segment theorem'},
+        {v:'two_tangents',        l:'Two tangents from external point'},
+        {v:'chord_bisect',        l:'Perpendicular from centre bisects chord'},
+      ], 'centre_circumference')),
+    ));
+    c.appendChild(row(
+      checkbox('ct-labels', 'Show angle labels', true),
+      checkbox('ct-title',  'Show theorem title', true),
     ));
   },
   readConfig() {
-    return { type: val('ct-type') || 'inscribed_angle' };
+    return {
+      type:      val('ct-type')   || 'centre_circumference',
+      labels:    val('ct-labels'),
+      showTitle: val('ct-title'),
+    };
   },
   generateSVG(s) {
-    const W = 460, H = 420;
+    const W = 560, H = 500;
     const svg = makeSVG(W, H);
-    const cx = W / 2, cy = 200, R = 140;
+    const cx = W / 2, cy = H / 2 - 10, R = 170;
 
-    /* circle */
-    svg.appendChild(svgEl('circle', { cx, cy, r: R, fill: 'none', stroke: '#2b2d42', 'stroke-width': '2' }));
-    svg.appendChild(svgEl('circle', { cx, cy, r: '3', fill: '#2b2d42' }));
-
+    /* ── helpers ── */
     const pt = (deg) => ({
       x: cx + R * Math.cos(degToRad(deg)),
       y: cy + R * Math.sin(degToRad(deg)),
     });
-
-    const line = (p1, p2, color, width) => svgEl('line', {
+    const seg = (p1, p2, col, w) => svgEl('line', {
       x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
-      stroke: color || '#4262ff', 'stroke-width': width || '2',
+      stroke: col || '#4262ff', 'stroke-width': w || '2',
     });
-
-    const dot = (p, label, offX, offY) => {
-      svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: '4', fill: '#4262ff' }));
-      if (label) svg.appendChild(svgText(p.x + (offX || 0), p.y + (offY || 0), label, 13, 'middle', { fill: '#333', 'font-weight': '700' }));
+    const dot = (p, lbl, ox, oy) => {
+      svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: '5', fill: '#4262ff' }));
+      if (lbl) svg.appendChild(svgText(p.x + (ox||0), p.y + (oy||0), lbl, 14, 'middle',
+        { fill: '#1e293b', 'font-weight': '700' }));
     };
+    const odot = (p, lbl, ox, oy) => {  /* centre dot */
+      svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: '5', fill: '#e63946' }));
+      if (lbl) svg.appendChild(svgText(p.x + (ox||0), p.y + (oy||0), lbl, 14, 'middle',
+        { fill: '#1e293b', 'font-weight': '700' }));
+    };
+    /* right-angle marker at vertex V between rays to P1 and P2 */
+    const rightAngle = (V, P1, P2, sz) => {
+      const s2 = sz || 12;
+      const d1 = { x: P1.x - V.x, y: P1.y - V.y };
+      const d2 = { x: P2.x - V.x, y: P2.y - V.y };
+      const l1 = Math.sqrt(d1.x*d1.x + d1.y*d1.y);
+      const l2 = Math.sqrt(d2.x*d2.x + d2.y*d2.y);
+      const u1 = { x: d1.x/l1*s2, y: d1.y/l1*s2 };
+      const u2 = { x: d2.x/l2*s2, y: d2.y/l2*s2 };
+      svg.appendChild(svgEl('path', {
+        d: `M ${V.x+u1.x} ${V.y+u1.y} L ${V.x+u1.x+u2.x} ${V.y+u1.y+u2.y} L ${V.x+u2.x} ${V.y+u2.y}`,
+        fill: 'none', stroke: '#e63946', 'stroke-width': '1.8',
+      }));
+    };
+    const lbl = s.labels;
+
+    /* ── draw circle ── */
+    svg.appendChild(svgEl('circle', {
+      cx, cy, r: R, fill: '#f8faff', stroke: '#2b2d42', 'stroke-width': '2.5',
+    }));
 
     let title = '';
 
-    if (s.type === 'inscribed_angle') {
-      const A = pt(-140), B = pt(-40), C = pt(90);
+    /* ════════════════════════════════════════════
+       1. Angle at centre = 2 × angle at circumference
+       ════════════════════════════════════════════ */
+    if (s.type === 'centre_circumference') {
+      const A = pt(210), B = pt(330), C = pt(75);
       const O = { x: cx, y: cy };
-      svg.appendChild(line(A, C, '#4262ff'));
-      svg.appendChild(line(B, C, '#4262ff'));
-      svg.appendChild(line(A, O, '#e63946'));
-      svg.appendChild(line(B, O, '#e63946'));
-      dot(A, 'A', -14, 0);
-      dot(B, 'B', 14, 0);
-      dot(C, 'C', 0, 18);
-      svg.appendChild(svgText(cx, cy + 20, '2x', 14, 'middle', { fill: '#e63946', 'font-weight': '700' }));
-      svg.appendChild(svgText(C.x + 6, C.y - 10, 'x', 14, 'start', { fill: '#4262ff', 'font-weight': '700' }));
-      title = 'Angle at centre = 2 x angle at circumference';
+      /* chords from circumference point C */
+      svg.appendChild(seg(A, C, '#4262ff', '2'));
+      svg.appendChild(seg(B, C, '#4262ff', '2'));
+      /* radii from centre O */
+      svg.appendChild(seg(A, O, '#e63946', '2'));
+      svg.appendChild(seg(B, O, '#e63946', '2'));
+      /* angle arcs */
+      if (lbl) {
+        /* circumference angle at C — between CA and CB */
+        const aC = radToDeg(Math.atan2(A.y - C.y, A.x - C.x));
+        const bC = radToDeg(Math.atan2(B.y - C.y, B.x - B.y));
+        drawAngleArc(svg, C.x, C.y,
+          radToDeg(Math.atan2(A.y-C.y, A.x-C.x)),
+          radToDeg(Math.atan2(B.y-C.y, B.x-C.x)), 28, 'x', 11);
+        /* centre angle at O — between OA and OB */
+        drawAngleArc(svg, O.x, O.y,
+          radToDeg(Math.atan2(A.y-O.y, A.x-O.x)),
+          radToDeg(Math.atan2(B.y-O.y, B.x-O.x)), 32, '2x', 11);
+      }
+      dot(A, 'A', -18, 0);
+      dot(B, 'B',  18, 0);
+      dot(C, 'C',   0,-18);
+      odot(O, 'O', -16, 0);
+      title = 'Angle at centre = 2 × angle at circumference';
     }
 
-    if (s.type === 'tangent_radius') {
-      const P = pt(0);
-      svg.appendChild(line({ x: cx, y: cy }, P, '#e63946'));
-      /* tangent line at P (perpendicular to radius) */
-      const tangLen = 140;
-      const t1 = { x: P.x, y: P.y - tangLen };
-      const t2 = { x: P.x, y: P.y + tangLen };
-      svg.appendChild(line(t1, t2, '#4262ff'));
-      dot(P, 'P', 14, 0);
-      /* right angle square */
-      const sq = 12;
-      svg.appendChild(svgEl('path', {
-        d: `M ${P.x - sq} ${P.y - sq} L ${P.x - sq} ${P.y} L ${P.x} ${P.y}`,
-        fill: 'none', stroke: '#e63946', 'stroke-width': '1.5',
-      }));
-      svg.appendChild(svgText(cx - 10, cy + 5, 'O', 13, 'middle', { fill: '#333', 'font-weight': '700' }));
-      title = 'Tangent is perpendicular to radius at point of contact';
+    /* ════════════════════════════════════════════
+       2. Angles in the same segment are equal
+       ════════════════════════════════════════════ */
+    if (s.type === 'same_segment') {
+      const A = pt(200), B = pt(340);
+      const C = pt(70), D = pt(110);
+      /* chord AB */
+      svg.appendChild(seg(A, B, '#888', '1.5'));
+      /* two inscribed angles subtending AB */
+      svg.appendChild(seg(A, C, '#4262ff', '2'));
+      svg.appendChild(seg(B, C, '#4262ff', '2'));
+      svg.appendChild(seg(A, D, '#e63946', '2'));
+      svg.appendChild(seg(B, D, '#e63946', '2'));
+      if (lbl) {
+        drawAngleArc(svg, C.x, C.y,
+          radToDeg(Math.atan2(A.y-C.y, A.x-C.x)),
+          radToDeg(Math.atan2(B.y-C.y, B.x-C.x)), 28, 'x', 11);
+        drawAngleArc(svg, D.x, D.y,
+          radToDeg(Math.atan2(A.y-D.y, A.x-D.x)),
+          radToDeg(Math.atan2(B.y-D.y, B.x-D.x)), 28, 'x', 11);
+      }
+      dot(A, 'A', -18, 4);
+      dot(B, 'B',  18, 4);
+      dot(C, 'C',   0,-18);
+      dot(D, 'D',   0,-18);
+      title = 'Angles in the same segment are equal';
     }
 
-    if (s.type === 'angle_in_semicircle') {
-      const A = pt(180), B = pt(0), C = pt(-70);
+    /* ════════════════════════════════════════════
+       3. Angle in a semicircle = 90°
+       ════════════════════════════════════════════ */
+    if (s.type === 'semicircle') {
+      const A = pt(180), B = pt(0), C = pt(300);
       /* diameter */
-      svg.appendChild(line(A, B, '#adb5bd', '1.5'));
-      svg.appendChild(line(A, C, '#4262ff'));
-      svg.appendChild(line(B, C, '#4262ff'));
-      dot(A, 'A', -14, 0);
-      dot(B, 'B', 14, 0);
-      dot(C, 'C', 0, -14);
-      /* right angle at C */
-      const sq = 10;
-      const dx1 = (A.x - C.x), dy1 = (A.y - C.y);
-      const dx2 = (B.x - C.x), dy2 = (B.y - C.y);
-      const l1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
-      const l2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
-      const u1 = { x: dx1 / l1 * sq, y: dy1 / l1 * sq };
-      const u2 = { x: dx2 / l2 * sq, y: dy2 / l2 * sq };
-      svg.appendChild(svgEl('path', {
-        d: `M ${C.x + u1.x} ${C.y + u1.y} L ${C.x + u1.x + u2.x} ${C.y + u1.y + u2.y} L ${C.x + u2.x} ${C.y + u2.y}`,
-        fill: 'none', stroke: '#e63946', 'stroke-width': '1.5',
-      }));
+      svg.appendChild(seg(A, B, '#888', '2'));
+      /* centre dot on diameter */
+      svg.appendChild(svgEl('circle', { cx, cy, r:'4', fill:'#e63946' }));
+      svg.appendChild(svgText(cx, cy - 12, 'O', 13, 'middle',
+        { fill: '#e63946', 'font-weight': '700' }));
+      svg.appendChild(seg(A, C, '#4262ff', '2'));
+      svg.appendChild(seg(B, C, '#4262ff', '2'));
+      if (lbl) rightAngle(C, A, B);
+      dot(A, 'A', -18, 0);
+      dot(B, 'B',  18, 0);
+      dot(C, 'C',  10, 18);
       title = 'Angle in a semicircle = 90°';
     }
 
-    if (s.type === 'cyclic_quadrilateral') {
-      const A = pt(-120), B = pt(-30), C = pt(60), D = pt(160);
-      svg.appendChild(line(A, B, '#4262ff'));
-      svg.appendChild(line(B, C, '#4262ff'));
-      svg.appendChild(line(C, D, '#4262ff'));
-      svg.appendChild(line(D, A, '#4262ff'));
-      dot(A, 'A', -14, -6);
-      dot(B, 'B', 14, -6);
-      dot(C, 'C', 14, 12);
-      dot(D, 'D', -14, 12);
-      svg.appendChild(svgText(A.x + 18, A.y + 16, 'x', 13, 'middle', { fill: '#e63946', 'font-weight': '700' }));
-      svg.appendChild(svgText(C.x - 18, C.y - 10, '180-x', 11, 'middle', { fill: '#e63946', 'font-weight': '700' }));
+    /* ════════════════════════════════════════════
+       4. Cyclic quadrilateral
+       ════════════════════════════════════════════ */
+    if (s.type === 'cyclic_quad') {
+      const A = pt(220), B = pt(320), C = pt(40), D = pt(140);
+      svg.appendChild(seg(A, B, '#4262ff', '2'));
+      svg.appendChild(seg(B, C, '#4262ff', '2'));
+      svg.appendChild(seg(C, D, '#4262ff', '2'));
+      svg.appendChild(seg(D, A, '#4262ff', '2'));
+      if (lbl) {
+        /* angles at A and C are opposite */
+        drawAngleArc(svg, A.x, A.y,
+          radToDeg(Math.atan2(B.y-A.y, B.x-A.x)),
+          radToDeg(Math.atan2(D.y-A.y, D.x-A.x)), 28, 'α', 11);
+        drawAngleArc(svg, C.x, C.y,
+          radToDeg(Math.atan2(B.y-C.y, B.x-C.x)),
+          radToDeg(Math.atan2(D.y-C.y, D.x-C.x)), 28, 'β', 11);
+        svg.appendChild(svgText(cx, cy + R + 28, 'α + β = 180°', 13, 'middle',
+          { fill: '#e63946', 'font-weight': '700' }));
+      }
+      dot(A, 'A', -18,  4);
+      dot(B, 'B',   4,  18);
+      dot(C, 'C',  18, -4);
+      dot(D, 'D',  -4,-18);
       title = 'Opposite angles in a cyclic quadrilateral sum to 180°';
     }
 
-    if (s.type === 'tangent_chord') {
-      const P = pt(-30);
-      const Q = pt(160);
-      svg.appendChild(line(P, Q, '#4262ff'));
-      dot(P, 'P', 14, -8);
-      dot(Q, 'Q', -14, 10);
-      /* tangent at P */
-      const tAngle = degToRad(-30 + 90);
-      const tLen = 120;
-      const t1 = { x: P.x + tLen * Math.cos(tAngle), y: P.y + tLen * Math.sin(tAngle) };
-      const t2 = { x: P.x - tLen * Math.cos(tAngle), y: P.y - tLen * Math.sin(tAngle) };
-      svg.appendChild(line(t1, t2, '#e63946', '1.5'));
-      svg.appendChild(svgText(t2.x + 4, t2.y + 14, 'tangent', 10, 'start', { fill: '#e63946' }));
-      /* angle arc */
-      drawAngleArc(svg, P.x, P.y, radToDeg(Math.atan2(Q.y - P.y, Q.x - P.x)), radToDeg(tAngle), 25, 'x', 10);
-      title = 'Angle between tangent and chord = inscribed angle in alternate segment';
-    }
-
-    if (s.type === 'alternate_segment') {
+    /* ════════════════════════════════════════════
+       5. Tangent–radius = 90°
+       ════════════════════════════════════════════ */
+    if (s.type === 'tangent_radius') {
+      /* radius to the right, tangent vertical */
       const P = pt(0);
-      const A = pt(-100);
-      const B = pt(200);
-      svg.appendChild(line(P, A, '#4262ff'));
-      svg.appendChild(line(P, B, '#4262ff'));
-      svg.appendChild(line(A, B, '#4262ff', '1'));
-      dot(P, 'P', 14, 0);
-      dot(A, 'A', -10, -12);
-      dot(B, 'B', -10, 14);
-      /* tangent at P */
-      const tAngle = degToRad(90);
-      const tLen = 140;
-      const t1 = { x: P.x, y: P.y - tLen };
-      const t2 = { x: P.x, y: P.y + tLen };
-      svg.appendChild(line(t1, t2, '#e63946', '1.5'));
-      svg.appendChild(svgText(P.x + 14, P.y - 40, 'x', 13, 'start', { fill: '#e63946', 'font-weight': '700' }));
-      svg.appendChild(svgText(A.x + 20, A.y + 20, 'x', 13, 'middle', { fill: '#e63946', 'font-weight': '700' }));
-      title = 'Alternate segment theorem: angle between tangent and chord = angle in alternate segment';
+      const O = { x: cx, y: cy };
+      const tLen = 160;
+      /* tangent line (vertical at P) */
+      svg.appendChild(seg({ x: P.x, y: P.y - tLen }, { x: P.x, y: P.y + tLen }, '#4262ff', '2.5'));
+      /* radius */
+      svg.appendChild(seg(O, P, '#e63946', '2.5'));
+      /* right-angle marker: arms go left (towards O) and up (along tangent) */
+      if (lbl) rightAngle(P, O, { x: P.x, y: P.y - 50 });
+      odot(O, 'O', -16, 0);
+      dot(P, 'P', 20, 0);
+      /* "tangent" label */
+      svg.appendChild(svgText(P.x + 14, P.y - tLen + 14, 'tangent', 12, 'start',
+        { fill: '#4262ff', 'font-weight': '600' }));
+      title = 'The tangent to a circle is perpendicular to the radius';
     }
 
-    /* title */
-    svg.appendChild(svgText(W / 2, H - 14, title, 14, 'middle', { fill: '#444', 'font-weight': '600' }));
+    /* ════════════════════════════════════════════
+       6. Alternate segment theorem
+       ════════════════════════════════════════════ */
+    if (s.type === 'alt_segment') {
+      /* chord from P (bottom, ~pt 160°) to Q (top-right, ~pt 40°).
+         Tangent at P is perpendicular to radius OP. */
+      const P = pt(160), Q = pt(40), T = pt(290);
+      const O = { x: cx, y: cy };
+      /* tangent at P: perpendicular to OP */
+      const radAngle = degToRad(160);
+      const tDir = { x: -Math.sin(radAngle), y: Math.cos(radAngle) };
+      const tLen = 150;
+      const t1 = { x: P.x + tLen * tDir.x, y: P.y + tLen * tDir.y };
+      const t2 = { x: P.x - tLen * tDir.x, y: P.y - tLen * tDir.y };
+      svg.appendChild(seg(t1, t2, '#e63946', '2.5'));
+      /* chord PQ */
+      svg.appendChild(seg(P, Q, '#4262ff', '2'));
+      /* angle in alternate segment: T in the major arc */
+      svg.appendChild(seg(T, P, '#059669', '2'));
+      svg.appendChild(seg(T, Q, '#059669', '2'));
+      if (lbl) {
+        /* angle between tangent and chord at P */
+        drawAngleArc(svg, P.x, P.y,
+          radToDeg(Math.atan2(t2.y-P.y, t2.x-P.x)),
+          radToDeg(Math.atan2(Q.y-P.y,  Q.x-P.x)), 30, 'x', 11);
+        /* inscribed angle at T */
+        drawAngleArc(svg, T.x, T.y,
+          radToDeg(Math.atan2(P.y-T.y, P.x-T.x)),
+          radToDeg(Math.atan2(Q.y-T.y, Q.x-T.x)), 28, 'x', 11);
+      }
+      dot(P, 'P', -14, 14);
+      dot(Q, 'Q',  14, -8);
+      dot(T, 'T',  14,  0);
+      svg.appendChild(svgText(t1.x + 6, t1.y, 'tangent', 11, 'start',
+        { fill: '#e63946', 'font-weight': '600' }));
+      title = 'Tangent–chord angle = angle in alternate segment';
+    }
+
+    /* ════════════════════════════════════════════
+       7. Two tangents from an external point
+       ════════════════════════════════════════════ */
+    if (s.type === 'two_tangents') {
+      /* external point E to the right */
+      const E = { x: cx + R + 120, y: cy };
+      /* tangent contact points: angles where ET is tangent.
+         sin(α) = R / |OE|, so α = asin(R/|OE|) */
+      const OE = R + 120;
+      const alpha = Math.asin(R / OE); /* angle from horizontal at O */
+      /* contact points on circle (measured from the E-O direction = 0°) */
+      const T1 = { x: cx + R * Math.cos(Math.PI - alpha), y: cy - R * Math.sin(alpha) };
+      const T2 = { x: cx + R * Math.cos(Math.PI - alpha), y: cy + R * Math.sin(alpha) };
+      /* tangent lines */
+      svg.appendChild(seg(E, T1, '#4262ff', '2'));
+      svg.appendChild(seg(E, T2, '#4262ff', '2'));
+      /* radii to contact points */
+      svg.appendChild(seg({ x: cx, y: cy }, T1, '#e63946', '1.8'));
+      svg.appendChild(seg({ x: cx, y: cy }, T2, '#e63946', '1.8'));
+      /* right-angle markers */
+      if (lbl) {
+        rightAngle(T1, { x: cx, y: cy }, E);
+        rightAngle(T2, { x: cx, y: cy }, E);
+        /* equal-length tick marks */
+        const midET1 = { x: (E.x+T1.x)/2, y: (E.y+T1.y)/2 };
+        const midET2 = { x: (E.x+T2.x)/2, y: (E.y+T2.y)/2 };
+        [midET1, midET2].forEach(m => {
+          svg.appendChild(svgEl('circle', { cx: m.x, cy: m.y, r: '3', fill: '#4262ff' }));
+        });
+        svg.appendChild(svgText((E.x + T1.x)/2 + 8, (E.y + T1.y)/2 - 8, 'l', 13, 'middle',
+          { fill: '#4262ff', 'font-weight': '700' }));
+        svg.appendChild(svgText((E.x + T2.x)/2 + 8, (E.y + T2.y)/2 + 8, 'l', 13, 'middle',
+          { fill: '#4262ff', 'font-weight': '700' }));
+      }
+      odot({ x: cx, y: cy }, 'O', -16, 0);
+      dot(T1, 'T₁', -8, -16);
+      dot(T2, 'T₂', -8,  18);
+      svg.appendChild(svgEl('circle', { cx: E.x, cy: E.y, r: '5', fill: '#059669' }));
+      svg.appendChild(svgText(E.x + 14, E.y, 'E', 14, 'start',
+        { fill: '#1e293b', 'font-weight': '700' }));
+      title = 'Two tangents from an external point are equal in length';
+    }
+
+    /* ════════════════════════════════════════════
+       8. Perpendicular from centre bisects chord
+       ════════════════════════════════════════════ */
+    if (s.type === 'chord_bisect') {
+      const A = pt(220), B = pt(320);
+      const O = { x: cx, y: cy };
+      /* midpoint M of chord AB */
+      const M = { x: (A.x + B.x)/2, y: (A.y + B.y)/2 };
+      /* chord */
+      svg.appendChild(seg(A, B, '#4262ff', '2'));
+      /* perpendicular from O to chord */
+      svg.appendChild(seg(O, M, '#e63946', '2'));
+      /* right-angle marker at M */
+      if (lbl) rightAngle(M, O, A);
+      /* equal-half tick marks */
+      const mAB1 = { x: (A.x + M.x)/2, y: (A.y + M.y)/2 };
+      const mAB2 = { x: (M.x + B.x)/2, y: (M.y + B.y)/2 };
+      [mAB1, mAB2].forEach(p => {
+        const perp = { x: -(B.y-A.y), y: (B.x-A.x) };
+        const pl = Math.sqrt(perp.x*perp.x + perp.y*perp.y);
+        const t = 6 / pl;
+        svg.appendChild(svgEl('line', {
+          x1: p.x + perp.x*t, y1: p.y + perp.y*t,
+          x2: p.x - perp.x*t, y2: p.y - perp.y*t,
+          stroke: '#4262ff', 'stroke-width': '2',
+        }));
+      });
+      odot(O, 'O', -16, 0);
+      dot(A, 'A', -18, 4);
+      dot(B, 'B',  18, 4);
+      dot(M, 'M',  14, 14);
+      title = 'The perpendicular from the centre bisects the chord';
+    }
+
+    /* ── title bar ── */
+    if (s.showTitle) {
+      /* text background */
+      const tY = H - 30;
+      svg.appendChild(svgEl('rect', {
+        x: 20, y: tY - 16, width: W - 40, height: 26, rx: '6',
+        fill: '#1e293b', opacity: '0.07',
+      }));
+      svg.appendChild(svgText(W/2, tY, title, 13, 'middle',
+        { fill: '#1e293b', 'font-weight': '600' }));
+    }
 
     return svg;
   },
@@ -7269,18 +7441,15 @@ extraTemplates['lined-paper'] = {
     const lc  = _LC[s.lc]    || _LC.blue;
     const bgC = _BG[s.bg]    || '#ffffff';
     const svg = makeSVG(W, H);
+    const defs = svgEl('defs', {});
+    const pat = svgEl('pattern', { id:'lp-pat', x:0, y:0, width:W, height:sp, patternUnits:'userSpaceOnUse' });
+    pat.appendChild(svgEl('line', { x1:0, y1:sp, x2:W, y2:sp, stroke:lc.light, 'stroke-width':'1' }));
+    defs.appendChild(pat);
+    svg.appendChild(defs);
     svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:bgC }));
-    for (let y = sp; y < H; y += sp) {
-      svg.appendChild(svgEl('line', {
-        x1:0, y1:y, x2:W, y2:y,
-        stroke: lc.light, 'stroke-width':'1',
-      }));
-    }
+    svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:'url(#lp-pat)' }));
     if (s.margin) {
-      svg.appendChild(svgEl('line', {
-        x1:130, y1:0, x2:130, y2:H,
-        stroke:'#f28b82', 'stroke-width':'1.5',
-      }));
+      svg.appendChild(svgEl('line', { x1:130, y1:0, x2:130, y2:H, stroke:'#f28b82', 'stroke-width':'1.5' }));
     }
     return svg;
   },
@@ -7317,23 +7486,24 @@ extraTemplates['grid-paper'] = {
     const lc  = _LC[s.lc]    || _LC.blue;
     const bgC = _BG[s.bg]    || '#ffffff';
     const svg = makeSVG(W, H);
+    const defs = svgEl('defs', {});
+    /* light grid: sp×sp tile with right+bottom edges */
+    const pat = svgEl('pattern', { id:'gp-pat', x:0, y:0, width:sp, height:sp, patternUnits:'userSpaceOnUse' });
+    pat.appendChild(svgEl('line', { x1:sp, y1:0, x2:sp, y2:sp, stroke:lc.light, 'stroke-width':'0.6' }));
+    pat.appendChild(svgEl('line', { x1:0, y1:sp, x2:sp, y2:sp, stroke:lc.light, 'stroke-width':'0.6' }));
+    defs.appendChild(pat);
+    if (s.bold) {
+      /* bold overlay: 5sp×5sp tile with thick right+bottom edges */
+      const bp = 5 * sp;
+      const boldPat = svgEl('pattern', { id:'gp-bold', x:0, y:0, width:bp, height:bp, patternUnits:'userSpaceOnUse' });
+      boldPat.appendChild(svgEl('line', { x1:bp, y1:0, x2:bp, y2:bp, stroke:lc.bold, 'stroke-width':'1.4' }));
+      boldPat.appendChild(svgEl('line', { x1:0, y1:bp, x2:bp, y2:bp, stroke:lc.bold, 'stroke-width':'1.4' }));
+      defs.appendChild(boldPat);
+    }
+    svg.appendChild(defs);
     svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:bgC }));
-    for (let x = 0; x <= W; x += sp) {
-      const isBold = s.bold && Math.round(x / sp) % 5 === 0;
-      svg.appendChild(svgEl('line', {
-        x1:x, y1:0, x2:x, y2:H,
-        stroke: isBold ? lc.bold : lc.light,
-        'stroke-width': isBold ? '1.4' : '0.6',
-      }));
-    }
-    for (let y = 0; y <= H; y += sp) {
-      const isBold = s.bold && Math.round(y / sp) % 5 === 0;
-      svg.appendChild(svgEl('line', {
-        x1:0, y1:y, x2:W, y2:y,
-        stroke: isBold ? lc.bold : lc.light,
-        'stroke-width': isBold ? '1.4' : '0.6',
-      }));
-    }
+    svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:'url(#gp-pat)' }));
+    if (s.bold) svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:'url(#gp-bold)' }));
     return svg;
   },
 };
@@ -7368,12 +7538,13 @@ extraTemplates['dot-grid'] = {
     const bgC = _BG[s.bg]    || '#ffffff';
     const r   = {s:1.2, m:1.8, l:2.8}[s.ds] || 1.8;
     const svg = makeSVG(W, H);
+    const defs = svgEl('defs', {});
+    const pat = svgEl('pattern', { id:'dg-pat', x:0, y:0, width:sp, height:sp, patternUnits:'userSpaceOnUse' });
+    pat.appendChild(svgEl('circle', { cx:sp/2, cy:sp/2, r, fill:lc.bold }));
+    defs.appendChild(pat);
+    svg.appendChild(defs);
     svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:bgC }));
-    for (let x = sp / 2; x < W; x += sp) {
-      for (let y = sp / 2; y < H; y += sp) {
-        svg.appendChild(svgEl('circle', { cx:x, cy:y, r, fill: lc.bold }));
-      }
-    }
+    svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:'url(#dg-pat)' }));
     return svg;
   },
 };
@@ -7409,14 +7580,17 @@ extraTemplates['isometric-dot'] = {
     const r    = {s:1.2, m:1.8, l:2.8}[s.ds] || 1.8;
     const rowH = sp * Math.sqrt(3) / 2;
     const svg  = makeSVG(W, H);
+    /* Isometric tile: sp wide × 2*rowH tall.
+       Even row dot at (0,0), odd row dot at (sp/2, rowH).
+       Pattern repeat handles the rest. */
+    const defs = svgEl('defs', {});
+    const pat = svgEl('pattern', { id:'id-pat', x:0, y:0, width:sp, height:2*rowH, patternUnits:'userSpaceOnUse' });
+    pat.appendChild(svgEl('circle', { cx:0,     cy:0,    r, fill:lc.bold }));
+    pat.appendChild(svgEl('circle', { cx:sp/2,  cy:rowH, r, fill:lc.bold }));
+    defs.appendChild(pat);
+    svg.appendChild(defs);
     svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:bgC }));
-    let ri = 0;
-    for (let y = rowH / 2; y < H; y += rowH, ri++) {
-      const offX = ri % 2 === 1 ? sp / 2 : 0;
-      for (let x = offX + sp / 2; x < W; x += sp) {
-        svg.appendChild(svgEl('circle', { cx:x, cy:y, r, fill: lc.bold }));
-      }
-    }
+    svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:'url(#id-pat)' }));
     return svg;
   },
 };
@@ -7448,22 +7622,23 @@ extraTemplates['isometric-grid'] = {
     const lc    = _LC[s.lc]    || _LC.blue;
     const bgC   = _BG[s.bg]    || '#ffffff';
     const svg   = makeSVG(W, H);
-    svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:bgC }));
     const rowH  = sp * Math.sqrt(3) / 2;
-    const diagW = H / Math.sqrt(3);
     const stroke = lc.light, sw = '0.8';
-    /* Horizontal lines */
-    for (let y = 0; y <= H + rowH; y += rowH) {
-      svg.appendChild(svgEl('line', { x1:0, y1:y, x2:W, y2:y, stroke, 'stroke-width':sw }));
-    }
-    /* ↘ diagonals */
-    for (let x0 = -diagW - sp; x0 <= W + sp; x0 += sp) {
-      svg.appendChild(svgEl('line', { x1:x0, y1:0, x2:x0 + diagW, y2:H, stroke, 'stroke-width':sw }));
-    }
-    /* ↙ diagonals */
-    for (let x0 = 0; x0 <= W + diagW + sp; x0 += sp) {
-      svg.appendChild(svgEl('line', { x1:x0, y1:0, x2:x0 - diagW, y2:H, stroke, 'stroke-width':sw }));
-    }
+    /* Pattern tile: sp wide × rowH tall.
+       Contains one horizontal line segment and two diagonal segments
+       that together tile into a full isometric grid. */
+    const defs = svgEl('defs', {});
+    const pat = svgEl('pattern', { id:'ig2-pat', x:0, y:0, width:sp, height:rowH, patternUnits:'userSpaceOnUse' });
+    /* horizontal line at bottom of tile */
+    pat.appendChild(svgEl('line', { x1:0, y1:rowH, x2:sp, y2:rowH, stroke, 'stroke-width':sw }));
+    /* ↘ diagonal: from top-left (0,0) to bottom-right (sp/2, rowH) */
+    pat.appendChild(svgEl('line', { x1:0, y1:0, x2:sp/2, y2:rowH, stroke, 'stroke-width':sw }));
+    /* ↙ diagonal: from top-right (sp,0) to bottom-left (sp/2, rowH) */
+    pat.appendChild(svgEl('line', { x1:sp, y1:0, x2:sp/2, y2:rowH, stroke, 'stroke-width':sw }));
+    defs.appendChild(pat);
+    svg.appendChild(defs);
+    svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:bgC }));
+    svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:'url(#ig2-pat)' }));
     return svg;
   },
 };
