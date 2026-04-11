@@ -1069,164 +1069,425 @@ extraTemplates['circle-theorems'] = {
 };
 
 /* ================================================================
-   6. GEOBOARD (Circular Pin Board)
+   6. GEOBOARD (Circular & Square Pin Board)
    ================================================================ */
-extraTemplates['geoboard'] = {
-  name: 'Geoboard',
-  category: 'Geometry Tools',
-  renderConfig(c) {
-    c.appendChild(sectionLabel('Circular Geoboard'));
-    c.appendChild(row(
-      field('Angle between pins', select('gb-step', [
-        {v:'5',  l:'Every 5°  (72 pins)'},
-        {v:'10', l:'Every 10° (36 pins)'},
-        {v:'15', l:'Every 15° (24 pins)'},
-        {v:'20', l:'Every 20° (18 pins)'},
-        {v:'30', l:'Every 30° (12 pins)'},
-        {v:'45', l:'Every 45° (8 pins)'},
-      ], '10')),
-    ));
-    c.appendChild(row(
-      field('Angle labels', select('gb-labels', [
-        {v:'all',   l:'All pins'},
-        {v:'major', l:'0 / 90 / 180 / 270 only'},
-        {v:'none',  l:'No labels'},
-      ], 'all')),
-    ));
-    c.appendChild(row(
-      checkbox('gb-ring',   'Show outer circle',  true),
-      checkbox('gb-centre', 'Show centre dot', true),
-    ));
-    c.appendChild(sectionLabel('Chord (optional)'));
-    c.appendChild(row(
-      checkbox('gb-chord', 'Draw a chord', false),
-    ));
-    c.appendChild(row(
-      field('From angle°', numberInput('gb-c1', 0, 0, 359, 1)),
-      field('To angle°',   numberInput('gb-c2', 90, 0, 359, 1)),
-    ));
-    c.appendChild(row(
-      field('Chord colour', textInput('gb-ccol', '#e63946')),
-    ));
-    c.appendChild(row(
-      checkbox('gb-chord2', 'Draw a second chord', false),
-    ));
-    c.appendChild(row(
-      field('From angle°', numberInput('gb-d1', 180, 0, 359, 1)),
-      field('To angle°',   numberInput('gb-d2', 270, 0, 359, 1)),
-    ));
-    c.appendChild(row(
-      field('Chord 2 colour', textInput('gb-dcol', '#4262ff')),
-    ));
-  },
-  readConfig() {
-    return {
-      step:    parseInt(val('gb-step'))  || 10,
-      labels:  val('gb-labels')         || 'all',
-      ring:    val('gb-ring'),
-      centre:  val('gb-centre'),
-      chord:   val('gb-chord'),
-      c1:      parseFloat(val('gb-c1')) || 0,
-      c2:      parseFloat(val('gb-c2')) || 90,
-      ccol:    val('gb-ccol')           || '#e63946',
-      chord2:  val('gb-chord2'),
-      d1:      parseFloat(val('gb-d1')) || 180,
-      d2:      parseFloat(val('gb-d2')) || 270,
-      dcol:    val('gb-dcol')           || '#4262ff',
-    };
-  },
-  generateSVG(s) {
-    const W = 580, H = 580;
-    const svg = makeSVG(W, H);
-    const cx = W / 2, cy = H / 2;
-    const R  = 220;   /* pin circle radius */
-    const PIN_R = s.step <= 10 ? 3 : 5;
-    const LABEL_R = R + 22;
 
-    /* white background */
-    svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, fill:'#ffffff' }));
+/* ── Geoboard helpers ──────────────────────────────────────── */
 
-    /* outer ring */
-    if (s.ring) {
-      svg.appendChild(svgEl('circle', {
-        cx, cy, r: R,
-        fill: 'none', stroke: '#d0d5e0', 'stroke-width': '1.5',
+function gbParseAngles(str) {
+  if (!str || !str.trim()) return [];
+  return str.trim().split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+}
+
+function gbParseVerts(str) {
+  if (!str || !str.trim()) return [];
+  return str.trim().split(/\s+/).map(t => {
+    const parts = t.split(',');
+    if (parts.length < 2) return null;
+    const x = parseFloat(parts[0]), y = parseFloat(parts[1]);
+    return (isNaN(x) || isNaN(y)) ? null : { x, y };
+  }).filter(Boolean);
+}
+
+function gbShoelace(verts) {
+  let area = 0;
+  for (let i = 0; i < verts.length; i++) {
+    const j = (i + 1) % verts.length;
+    area += verts[i].x * verts[j].y - verts[j].x * verts[i].y;
+  }
+  return Math.abs(area) / 2;
+}
+
+/* ── Circular board ────────────────────────────────────────── */
+
+function gbCircular(s) {
+  const W = 600, H = 600;
+  const svg = makeSVG(W, H);
+  const cx = W / 2, cy = H / 2;
+  const R  = 235;
+  const PIN_R = s.step <= 10 ? 3 : (s.step <= 20 ? 4 : 5);
+  const LABEL_R = R + 26;
+
+  svg.appendChild(svgEl('rect', { x: '0', y: '0', width: W, height: H, fill: '#ffffff' }));
+
+  /* 0° = top (12 o'clock), clockwise */
+  const pinPt = deg => ({
+    x: cx + R * Math.sin(degToRad(deg)),
+    y: cy - R * Math.cos(degToRad(deg)),
+  });
+
+  if (s.ring) {
+    svg.appendChild(svgEl('circle', {
+      cx, cy, r: R,
+      fill: 'none', stroke: '#d0d5e0', 'stroke-width': '1.5',
+    }));
+  }
+
+  if (s.spokes) {
+    [0, 90, 180, 270].forEach(deg => {
+      const p = pinPt(deg);
+      svg.appendChild(svgEl('line', {
+        x1: cx, y1: cy, x2: p.x, y2: p.y,
+        stroke: '#e8eaee', 'stroke-width': '1',
+      }));
+    });
+  }
+
+  const bands = [
+    { angles: gbParseAngles(s.poly1), col: s.pcol1 },
+    { angles: gbParseAngles(s.poly2), col: s.pcol2 },
+    { angles: gbParseAngles(s.poly3), col: s.pcol3 },
+  ];
+
+  /* draw rubber bands BEFORE pins */
+  bands.forEach(({ angles, col }) => {
+    if (angles.length < 2) return;
+    const pts = angles.map(a => pinPt(a));
+    const ptsStr = pts.map(p => `${p.x},${p.y}`).join(' ');
+
+    if (angles.length >= 3) {
+      svg.appendChild(svgEl('polygon', {
+        points: ptsStr,
+        fill: col + '25',
+        stroke: col,
+        'stroke-width': '2.5',
+        'stroke-linejoin': 'round',
+      }));
+    } else {
+      svg.appendChild(svgEl('line', {
+        x1: pts[0].x, y1: pts[0].y, x2: pts[1].x, y2: pts[1].y,
+        stroke: col, 'stroke-width': '2.5', 'stroke-linecap': 'round',
+      }));
+
+      /* arc-angle label on chord midpoint */
+      if (s.arclabel) {
+        const diff = Math.abs(angles[1] - angles[0]);
+        const arc = Math.min(diff, 360 - diff);
+        const mx = (pts[0].x + pts[1].x) / 2;
+        const my = (pts[0].y + pts[1].y) / 2;
+        const toX = cx - mx, toY = cy - my;
+        const tm = Math.sqrt(toX * toX + toY * toY) || 1;
+        const ox = toX / tm * 16, oy = toY / tm * 16;
+        svg.appendChild(svgEl('rect', {
+          x: mx + ox - 18, y: my + oy - 9,
+          width: 36, height: 14,
+          fill: '#ffffff', rx: '3', opacity: '0.9',
+        }));
+        svg.appendChild(svgText(mx + ox, my + oy + 1, `${arc}°`, 11, 'middle', {
+          fill: col, 'font-weight': '700',
+        }));
+      }
+    }
+  });
+
+  /* highlight map: deg → [colours] */
+  const hlMap = new Map();
+  bands.forEach(({ angles, col }) => {
+    angles.forEach(a => {
+      const k = ((a % 360) + 360) % 360;
+      if (!hlMap.has(k)) hlMap.set(k, []);
+      hlMap.get(k).push(col);
+    });
+  });
+
+  const step = Math.max(1, Math.min(45, s.step));
+  for (let deg = 0; deg < 360; deg += step) {
+    const p = pinPt(deg);
+
+    const cols = hlMap.get(deg);
+    if (cols) {
+      cols.forEach((col, i) => {
+        svg.appendChild(svgEl('circle', {
+          cx: p.x, cy: p.y,
+          r: PIN_R + 3 + i * 3,
+          fill: 'none', stroke: col, 'stroke-width': '1.5',
+        }));
+      });
+    }
+
+    svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: PIN_R, fill: '#2b2d42' }));
+
+    const showLabel = s.labels === 'all' ||
+      (s.labels === 'major' && deg % 90 === 0);
+    if (showLabel) {
+      const lx = cx + LABEL_R * Math.sin(degToRad(deg));
+      const ly = cy - LABEL_R * Math.cos(degToRad(deg));
+      const isMajor = deg % 90 === 0;
+      svg.appendChild(svgText(lx, ly + 4, `${deg}°`, isMajor ? 12 : 10, 'middle', {
+        fill: isMajor ? '#2b2d42' : '#94a3b8',
+        'font-weight': isMajor ? '700' : '400',
+      }));
+    }
+  }
+
+  if (s.centre) {
+    svg.appendChild(svgEl('circle', { cx, cy, r: '4', fill: '#94a3b8' }));
+  }
+
+  return svg;
+}
+
+/* ── Square grid board ─────────────────────────────────────── */
+
+function gbSquare(s) {
+  const n    = Math.max(3, Math.min(10, s.size));
+  const PAD  = 65;
+  const GRID = 500;
+  const W    = GRID + 2 * PAD;
+  const H    = GRID + 2 * PAD;
+  const cell = GRID / (n - 1);
+  const svg  = makeSVG(W, H);
+
+  const pinPt = (col, row) => ({
+    x: PAD + col * cell,
+    y: PAD + row * cell,
+  });
+
+  /* grid lines */
+  if (s.gridlines) {
+    for (let i = 0; i < n; i++) {
+      const a = pinPt(0, i), b = pinPt(n - 1, i);
+      svg.appendChild(svgEl('line', { x1: a.x, y1: a.y, x2: b.x, y2: b.y, stroke: '#e0e4ea', 'stroke-width': '1' }));
+      const c = pinPt(i, 0), d = pinPt(i, n - 1);
+      svg.appendChild(svgEl('line', { x1: c.x, y1: c.y, x2: d.x, y2: d.y, stroke: '#e0e4ea', 'stroke-width': '1' }));
+    }
+  }
+
+  const bands = [
+    { verts: gbParseVerts(s.poly1), col: s.pcol1 },
+    { verts: gbParseVerts(s.poly2), col: s.pcol2 },
+    { verts: gbParseVerts(s.poly3), col: s.pcol3 },
+  ];
+
+  bands.forEach(({ verts, col }) => {
+    if (!verts.length) return;
+    const valid = verts.filter(v => v.x >= 0 && v.x <= n - 1 && v.y >= 0 && v.y <= n - 1);
+    if (valid.length < 2) return;
+
+    const svgPts = valid.map(v => pinPt(v.x, v.y));
+    const ptsStr = svgPts.map(p => `${p.x},${p.y}`).join(' ');
+    const isClosed = valid.length >= 3;
+
+    if (isClosed) {
+      svg.appendChild(svgEl('polygon', {
+        points: ptsStr,
+        fill: col + '25',
+        stroke: col,
+        'stroke-width': '2.5',
+        'stroke-linejoin': 'round',
+      }));
+    } else {
+      svg.appendChild(svgEl('line', {
+        x1: svgPts[0].x, y1: svgPts[0].y,
+        x2: svgPts[1].x, y2: svgPts[1].y,
+        stroke: col, 'stroke-width': '2.5', 'stroke-linecap': 'round',
       }));
     }
 
-    /* angle-to-cartesian: 0° = top (12 o'clock), clockwise */
-    const pinPt = (deg) => ({
-      x: cx + R * Math.sin(degToRad(deg)),
-      y: cy - R * Math.cos(degToRad(deg)),
-    });
-
-    /* chord helper */
-    const drawChord = (a1, a2, col) => {
-      const p1 = pinPt(a1), p2 = pinPt(a2);
-      svg.appendChild(svgEl('line', {
-        x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
-        stroke: col, 'stroke-width': '2.5', 'stroke-linecap': 'round',
-      }));
-    };
-
-    /* draw chords first (behind pins) */
-    if (s.chord)  drawChord(s.c1, s.c2, s.ccol);
-    if (s.chord2) drawChord(s.d1, s.d2, s.dcol);
-
-    /* pins + labels */
-    const step = Math.max(1, Math.min(45, s.step));
-    for (let deg = 0; deg < 360; deg += step) {
-      const p = pinPt(deg);
-
-      /* pin dot */
-      svg.appendChild(svgEl('circle', {
-        cx: p.x, cy: p.y, r: PIN_R,
-        fill: '#2b2d42',
-      }));
-
-      /* highlight chord endpoint pins */
-      if (s.chord  && (deg === s.c1 || deg === s.c2)) {
-        svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: PIN_R + 3, fill: 'none', stroke: s.ccol, 'stroke-width': '1.5' }));
-      }
-      if (s.chord2 && (deg === s.d1 || deg === s.d2)) {
-        svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: PIN_R + 3, fill: 'none', stroke: s.dcol, 'stroke-width': '1.5' }));
-      }
-
-      /* labels */
-      const showLabel =
-        s.labels === 'all' ||
-        (s.labels === 'major' && deg % 90 === 0);
-
-      if (showLabel) {
-        const lx = cx + LABEL_R * Math.sin(degToRad(deg));
-        const ly = cy - LABEL_R * Math.cos(degToRad(deg));
-        const isMajor = deg % 90 === 0;
-        svg.appendChild(svgText(lx, ly, `${deg}°`, isMajor ? 12 : 10, 'middle', {
-          fill: isMajor ? '#2b2d42' : '#94a3b8',
-          'font-weight': isMajor ? '700' : '400',
+    /* side-length labels */
+    if (s.lengths) {
+      const edgeCount = isClosed ? valid.length : valid.length - 1;
+      for (let i = 0; i < edgeCount; i++) {
+        const j = isClosed ? (i + 1) % valid.length : i + 1;
+        const a = valid[i], b = valid[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const isInt = Math.abs(dist - Math.round(dist)) < 0.001;
+        const label = isInt ? String(Math.round(dist)) : dist.toFixed(2);
+        const pa = svgPts[i], pb = svgPts[j];
+        const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2;
+        const emag = Math.sqrt((pb.x - pa.x) ** 2 + (pb.y - pa.y) ** 2) || 1;
+        const nx = -(pb.y - pa.y) / emag * 13;
+        const ny =  (pb.x - pa.x) / emag * 13;
+        svg.appendChild(svgEl('rect', {
+          x: mx + nx - 15, y: my + ny - 8,
+          width: 30, height: 14,
+          fill: '#ffffff', rx: '3', opacity: '0.9',
+        }));
+        svg.appendChild(svgText(mx + nx, my + ny + 4, label, 11, 'middle', {
+          fill: col, 'font-weight': '600',
         }));
       }
     }
 
-    /* centre dot */
-    if (s.centre) {
-      svg.appendChild(svgEl('circle', { cx, cy, r: '4', fill: '#94a3b8' }));
-    }
-
-    /* spoke lines from centre for major angles (subtle) */
-    if (s.labels === 'major' || s.labels === 'all') {
-      [0, 90, 180, 270].forEach(deg => {
-        if (deg % step === 0) {
-          const p = pinPt(deg);
-          svg.appendChild(svgEl('line', {
-            x1: cx, y1: cy, x2: p.x, y2: p.y,
-            stroke: '#e8eaee', 'stroke-width': '1',
-          }));
-        }
+    /* vertex-angle labels */
+    if (s.angles && isClosed) {
+      const centX = svgPts.reduce((a, p) => a + p.x, 0) / svgPts.length;
+      const centY = svgPts.reduce((a, p) => a + p.y, 0) / svgPts.length;
+      valid.forEach((curr, i) => {
+        const prev = valid[(i - 1 + valid.length) % valid.length];
+        const next = valid[(i + 1) % valid.length];
+        const v1x = prev.x - curr.x, v1y = prev.y - curr.y;
+        const v2x = next.x - curr.x, v2y = next.y - curr.y;
+        const dot = v1x * v2x + v1y * v2y;
+        const mag1 = Math.sqrt(v1x ** 2 + v1y ** 2);
+        const mag2 = Math.sqrt(v2x ** 2 + v2y ** 2);
+        const ang = Math.round(radToDeg(Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2))))));
+        const p = pinPt(curr.x, curr.y);
+        const toX = centX - p.x, toY = centY - p.y;
+        const tm = Math.sqrt(toX * toX + toY * toY) || 1;
+        const ox = toX / tm * 20, oy = toY / tm * 20;
+        svg.appendChild(svgEl('rect', {
+          x: p.x + ox - 15, y: p.y + oy - 8,
+          width: 30, height: 14,
+          fill: '#ffffff', rx: '3', opacity: '0.9',
+        }));
+        svg.appendChild(svgText(p.x + ox, p.y + oy + 4, `${ang}°`, 11, 'middle', {
+          fill: col, 'font-weight': '600',
+        }));
       });
     }
 
-    return svg;
+    /* area label at centroid */
+    if (s.area && isClosed) {
+      const area = gbShoelace(valid);
+      const aLabel = Number.isInteger(area) ? String(area) : area.toFixed(1);
+      const centX = svgPts.reduce((a, p) => a + p.x, 0) / svgPts.length;
+      const centY = svgPts.reduce((a, p) => a + p.y, 0) / svgPts.length;
+      svg.appendChild(svgEl('rect', {
+        x: centX - 40, y: centY - 10,
+        width: 80, height: 18,
+        fill: '#ffffffdd', rx: '4',
+      }));
+      svg.appendChild(svgText(centX, centY + 5, `A = ${aLabel} u²`, 13, 'middle', {
+        fill: col, 'font-weight': '700',
+      }));
+    }
+  });
+
+  /* pins + optional coordinate labels */
+  for (let row = 0; row < n; row++) {
+    for (let col = 0; col < n; col++) {
+      const p = pinPt(col, row);
+      bands.forEach(({ verts, col: c }) => {
+        if (verts.some(v => v.x === col && v.y === row)) {
+          svg.appendChild(svgEl('circle', {
+            cx: p.x, cy: p.y, r: '7',
+            fill: 'none', stroke: c, 'stroke-width': '1.5',
+          }));
+        }
+      });
+      svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: '4', fill: '#2b2d42' }));
+      if (s.coords) {
+        svg.appendChild(svgText(p.x, p.y + 17, `${col},${row}`, 8, 'middle', {
+          fill: '#94a3b8',
+        }));
+      }
+    }
+  }
+
+  return svg;
+}
+
+/* ── Template definition ───────────────────────────────────── */
+
+extraTemplates['geoboard'] = {
+  name: 'Geoboard',
+  category: 'Geometry Tools',
+  renderConfig(c) {
+    c.appendChild(sectionLabel('Board Type'));
+    c.appendChild(row(
+      field('Mode', select('gb-mode', [
+        { v: 'circular', l: 'Circular' },
+        { v: 'square',   l: 'Square grid' },
+      ], 'circular')),
+    ));
+
+    c.appendChild(sectionLabel('Circular Settings'));
+    c.appendChild(row(
+      field('Angle between pins', select('gb-step', [
+        { v: '5',  l: 'Every 5°  (72 pins)' },
+        { v: '10', l: 'Every 10° (36 pins)' },
+        { v: '15', l: 'Every 15° (24 pins)' },
+        { v: '20', l: 'Every 20° (18 pins)' },
+        { v: '30', l: 'Every 30° (12 pins)' },
+        { v: '45', l: 'Every 45° (8 pins)'  },
+      ], '10')),
+      field('Angle labels', select('gb-labels', [
+        { v: 'all',   l: 'All pins' },
+        { v: 'major', l: '0 / 90 / 180 / 270 only' },
+        { v: 'none',  l: 'No labels' },
+      ], 'major')),
+    ));
+    c.appendChild(row(
+      checkbox('gb-ring',     'Outer circle', true),
+      checkbox('gb-centre',   'Centre dot',   true),
+      checkbox('gb-spokes',   'Spokes',       false),
+      checkbox('gb-arclabel', 'Arc labels',   true),
+    ));
+
+    c.appendChild(sectionLabel('Square Grid Settings'));
+    c.appendChild(row(
+      field('Grid size', select('gb-size', [
+        { v: '4',  l: '4 × 4'   },
+        { v: '5',  l: '5 × 5'   },
+        { v: '6',  l: '6 × 6'   },
+        { v: '7',  l: '7 × 7'   },
+        { v: '8',  l: '8 × 8'   },
+        { v: '9',  l: '9 × 9'   },
+        { v: '10', l: '10 × 10' },
+      ], '5')),
+    ));
+    c.appendChild(row(
+      checkbox('gb-gridlines', 'Grid lines',     false),
+      checkbox('gb-coords',    'Show coords',    false),
+    ));
+    c.appendChild(row(
+      checkbox('gb-area',    'Area',          true),
+      checkbox('gb-lengths', 'Side lengths',  true),
+      checkbox('gb-angles',  'Vertex angles', false),
+    ));
+
+    c.appendChild(sectionLabel('Rubber Band 1'));
+    c.appendChild(row(
+      field('Angles / vertices',
+        textInput('gb-poly1', '', 'circ: "0 90 180"  sq: "0,0 3,0 2,3"')),
+    ));
+    c.appendChild(row(
+      field('Colour', colourSwatch('gb-pcol1', '#e63946')),
+    ));
+
+    c.appendChild(sectionLabel('Rubber Band 2'));
+    c.appendChild(row(
+      field('Angles / vertices', textInput('gb-poly2', '')),
+    ));
+    c.appendChild(row(
+      field('Colour', colourSwatch('gb-pcol2', '#4262ff')),
+    ));
+
+    c.appendChild(sectionLabel('Rubber Band 3'));
+    c.appendChild(row(
+      field('Angles / vertices', textInput('gb-poly3', '')),
+    ));
+    c.appendChild(row(
+      field('Colour', colourSwatch('gb-pcol3', '#2eb872')),
+    ));
+  },
+  readConfig() {
+    return {
+      mode:      val('gb-mode')           || 'circular',
+      step:      parseInt(val('gb-step')) || 10,
+      labels:    val('gb-labels')         || 'major',
+      ring:      val('gb-ring'),
+      centre:    val('gb-centre'),
+      spokes:    val('gb-spokes'),
+      arclabel:  val('gb-arclabel'),
+      size:      parseInt(val('gb-size')) || 5,
+      gridlines: val('gb-gridlines'),
+      coords:    val('gb-coords'),
+      area:      val('gb-area'),
+      lengths:   val('gb-lengths'),
+      angles:    val('gb-angles'),
+      poly1:     val('gb-poly1')          || '',
+      pcol1:     val('gb-pcol1')          || '#e63946',
+      poly2:     val('gb-poly2')          || '',
+      pcol2:     val('gb-pcol2')          || '#4262ff',
+      poly3:     val('gb-poly3')          || '',
+      pcol3:     val('gb-pcol3')          || '#2eb872',
+    };
+  },
+  generateSVG(s) {
+    return s.mode === 'square' ? gbSquare(s) : gbCircular(s);
   },
 };
 
