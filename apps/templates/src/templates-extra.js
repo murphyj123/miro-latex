@@ -3100,6 +3100,7 @@ extraTemplates['normal-distribution'] = {
     ));
 
     c.appendChild(sectionLabel('Shading'));
+    c.appendChild(row(checkbox('nd-interactive', 'Drag boundaries in preview (beta)', false)));
     c.appendChild(row(
       field('Shade region', select('nd-shade-mode', [
         { v: 'none', l: 'None' },
@@ -3187,6 +3188,7 @@ extraTemplates['normal-distribution'] = {
       showSigLabels: val('nd-siglabels'), showValLabels: val('nd-vallabels'),
       showPct: val('nd-pct'),
       shadeMode: mode, ba: val('nd-ba'), bb: val('nd-bb'),
+      interactive: val('nd-interactive'),
       inv, invP: val('nd-inv-p') || 0.95,
       invTail: val('nd-inv-tail') || 'left',
       invShowVal: val('nd-inv-showval'), invBlank: val('nd-inv-blank'),
@@ -3348,6 +3350,7 @@ extraTemplates['normal-distribution'] = {
 
   afterRender(svg, s) {
     // Only for regular shading modes with user-draggable boundaries
+    if (!s.interactive) return;
     const mode = s.shadeMode;
     if (!mode || mode === 'none' || mode === 'central' || s.inv) return;
     const needsB = mode === 'between' || mode === 'outer';
