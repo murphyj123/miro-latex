@@ -5890,16 +5890,64 @@ extraTemplates['cumulative-frequency'] = {
     { ub: 70, cf: 100 },
   ],
 
-  _buildClassRows(container, n) {
-    container.innerHTML = '';
-    const defs = this._defaultClasses;
-    for (let i = 0; i < n; i++) {
-      const d = defs[i] || { ub: (i + 1) * 10, cf: (i + 1) * 15 };
-      container.appendChild(row(
-        field(`Upper bound ${i + 1}`, numberInput(`cf-ub-${i}`, val(`cf-ub-${i}`) || d.ub, 0, 9999, 1)),
-        field('Cum. freq.', numberInput(`cf-cf-${i}`, val(`cf-cf-${i}`) || d.cf, 0, 9999, 1)),
-      ));
-    }
+  _addClassRow(container, ub, cf) {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'cfg-row cf-data-row';
+    rowDiv.style.cssText = 'display:flex;align-items:flex-end;gap:4px;margin-bottom:4px;';
+
+    const ubWrap = document.createElement('div');
+    ubWrap.className = 'cfg-field';
+    ubWrap.style.flex = '1';
+    const ubLabel = document.createElement('div');
+    ubLabel.className = 'cfg-field-label';
+    ubLabel.textContent = 'Upper bound';
+    const ubInput = document.createElement('input');
+    ubInput.type = 'number';
+    ubInput.className = 'cfg-input';
+    ubInput.setAttribute('data-cf-ub', '');
+    ubInput.value = ub;
+    ubInput.min = 0;
+    ubInput.step = 1;
+    ubWrap.appendChild(ubLabel);
+    ubWrap.appendChild(ubInput);
+
+    const cfWrap = document.createElement('div');
+    cfWrap.className = 'cfg-field';
+    cfWrap.style.flex = '1';
+    const cfLabel = document.createElement('div');
+    cfLabel.className = 'cfg-field-label';
+    cfLabel.textContent = 'Cum. freq.';
+    const cfInput = document.createElement('input');
+    cfInput.type = 'number';
+    cfInput.className = 'cfg-input';
+    cfInput.setAttribute('data-cf-cf', '');
+    cfInput.value = cf;
+    cfInput.min = 0;
+    cfInput.step = 1;
+    cfWrap.appendChild(cfLabel);
+    cfWrap.appendChild(cfInput);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = '×';
+    removeBtn.title = 'Remove row';
+    removeBtn.style.cssText = 'flex-shrink:0;width:24px;height:28px;border:1px solid #ddd;background:#fafafa;border-radius:4px;cursor:pointer;font-size:15px;line-height:1;padding:0;margin-bottom:1px;';
+    removeBtn.type = 'button';
+    removeBtn.onclick = () => {
+      const rows = container.querySelectorAll('.cf-data-row');
+      if (rows.length > 2) {
+        rowDiv.remove();
+        if (window._tplSchedulePreview) window._tplSchedulePreview();
+      }
+    };
+
+    rowDiv.appendChild(ubWrap);
+    rowDiv.appendChild(cfWrap);
+    rowDiv.appendChild(removeBtn);
+    container.appendChild(rowDiv);
+
+    [ubInput, cfInput].forEach(el =>
+      el.addEventListener('input', () => { if (window._tplSchedulePreview) window._tplSchedulePreview(); })
+    );
   },
 
   renderConfig(c) {
@@ -5909,47 +5957,41 @@ extraTemplates['cumulative-frequency'] = {
       field('X-axis label', textInput('cf-xlabel', 'Value')),
       field('Y-axis label', textInput('cf-ylabel', 'Cumulative frequency')),
     ));
-
-    const slider = numberInput('cf-classes', 7, 4, 10, 1);
-    slider.type = 'range';
-    slider.style.width = '100%';
-    const countLabel = document.createElement('span');
-    countLabel.textContent = ' 7 classes';
-    countLabel.style.fontSize = '11px';
-    countLabel.style.color = '#777';
-    const sliderRow = row(field('Number of classes', slider));
-    sliderRow.appendChild(countLabel);
-    c.appendChild(sliderRow);
-
     c.appendChild(row(checkbox('cf-quartiles', 'Show quartiles (Q1, Q2, Q3)', false)));
     c.appendChild(row(field('Custom percentile lines (e.g. 10,90)', textInput('cf-percentiles', '', 'e.g. 10,90'))));
 
     const classContainer = document.createElement('div');
     classContainer.id = 'cf-class-container';
     c.appendChild(classContainer);
-    this._buildClassRows(classContainer, 7);
+    this._defaultClasses.forEach(d => this._addClassRow(classContainer, d.ub, d.cf));
 
-    slider.addEventListener('input', () => {
-      const n = parseInt(slider.value, 10) || 7;
-      countLabel.textContent = ` ${n} classes`;
-      this._buildClassRows(classContainer, n);
-    });
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.textContent = '+ Add row';
+    addBtn.style.cssText = 'margin-top:4px;padding:4px 10px;font-size:12px;border:1px solid #ccc;background:#f5f5f5;border-radius:4px;cursor:pointer;';
+    addBtn.onclick = () => {
+      const rows = classContainer.querySelectorAll('.cf-data-row');
+      const lastRow = rows[rows.length - 1];
+      const lastUb = lastRow ? parseFloat(lastRow.querySelector('[data-cf-ub]').value) || 0 : 0;
+      const lastCf = lastRow ? parseFloat(lastRow.querySelector('[data-cf-cf]').value) || 0 : 0;
+      this._addClassRow(classContainer, lastUb + 10, lastCf);
+      if (window._tplSchedulePreview) window._tplSchedulePreview();
+    };
+    c.appendChild(addBtn);
   },
 
   readConfig() {
-    const n = Math.max(4, Math.min(10, Math.round(val('cf-classes') || 7)));
     const classes = [];
-    for (let i = 0; i < n; i++) {
-      classes.push({
-        ub: val(`cf-ub-${i}`) || (i + 1) * 10,
-        cf: val(`cf-cf-${i}`) || (i + 1) * 15,
-      });
-    }
+    document.querySelectorAll('#cf-class-container .cf-data-row').forEach(rowEl => {
+      const ub = parseFloat(rowEl.querySelector('[data-cf-ub]').value) || 0;
+      const cf = parseFloat(rowEl.querySelector('[data-cf-cf]').value) || 0;
+      classes.push({ ub, cf });
+    });
     return {
       title: val('cf-title') || '',
       xLabel: val('cf-xlabel') || 'Value',
       yLabel: val('cf-ylabel') || 'Cumulative frequency',
-      classes,
+      classes: classes.length ? classes : this._defaultClasses,
       showQuartiles: val('cf-quartiles'),
       customPercentiles: val('cf-percentiles') || '',
     };
