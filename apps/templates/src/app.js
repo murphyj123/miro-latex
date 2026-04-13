@@ -1787,7 +1787,9 @@ function updatePreview() {
     // Extra/interactive templates use readConfig() + generateSVG(settings)
     // Phase 1 templates use generateSVG() with no args (reads DOM directly)
     const settings = tpl.readConfig ? tpl.readConfig() : undefined;
-    previewArea.appendChild(tpl.generateSVG(settings));
+    const svg = tpl.generateSVG(settings);
+    previewArea.appendChild(svg);
+    tpl.afterRender?.(svg, settings);
   } catch (e) {
     const errSpan = document.createElement('span');
     errSpan.style.cssText = 'color:#c00;font-size:12px;';

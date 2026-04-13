@@ -3345,6 +3345,83 @@ extraTemplates['normal-distribution'] = {
 
     return svg;
   },
+
+  afterRender(svg, s) {
+    // Only for regular shading modes with user-draggable boundaries
+    const mode = s.shadeMode;
+    if (!mode || mode === 'none' || mode === 'central' || s.inv) return;
+    const needsB = mode === 'between' || mode === 'outer';
+
+    // Mirror the coordinate system from generateSVG
+    const W = 720, H = 430;
+    const pad = { l: 55, r: 45, t: 50, b: 72 };
+    const gw = W - pad.l - pad.r;
+    const axisY = H - pad.b;
+    const xMin = s.mean - 4 * s.sd;
+    const xMax = s.mean + 4 * s.sd;
+
+    const toSvgX  = (d) => pad.l + ((d - xMin) / (xMax - xMin)) * gw;
+    const toDataX = (px) => xMin + ((px - pad.l) / gw) * (xMax - xMin);
+    const clamp   = (px) => Math.max(pad.l, Math.min(pad.l + gw, px));
+
+    const COL = '#e67e22';
+    const HS  = 7;
+
+    function makeHandle(initSvgX) {
+      const line = svgEl('line', {
+        x1: initSvgX, y1: pad.t, x2: initSvgX, y2: axisY,
+        stroke: COL, 'stroke-width': '2', 'stroke-dasharray': '7,3',
+      });
+      const tri = svgEl('polygon', {
+        points: `${initSvgX - HS},${axisY} ${initSvgX + HS},${axisY} ${initSvgX},${axisY - HS * 1.8}`,
+        fill: COL,
+      });
+      // Wide invisible hit area so it's easy to grab
+      const hit = svgEl('rect', {
+        x: initSvgX - 10, y: pad.t, width: 20, height: axisY - pad.t,
+        fill: 'transparent', cursor: 'ew-resize',
+      });
+      svg.appendChild(line);
+      svg.appendChild(tri);
+      svg.appendChild(hit);
+
+      function move(svgX) {
+        line.setAttribute('x1', svgX); line.setAttribute('x2', svgX);
+        tri.setAttribute('points',
+          `${svgX - HS},${axisY} ${svgX + HS},${axisY} ${svgX},${axisY - HS * 1.8}`);
+        hit.setAttribute('x', svgX - 10);
+      }
+
+      return { move, hit };
+    }
+
+    function attachDrag(handle, inputId) {
+      handle.hit.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const onMove = (ev) => {
+          const rect = svg.getBoundingClientRect();
+          const svgX = clamp((ev.clientX - rect.left) * (W / rect.width));
+          handle.move(svgX);
+          const input = document.getElementById(inputId);
+          if (input) input.value = Math.round(toDataX(svgX) * 10) / 10;
+        };
+
+        const onUp = () => {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          if (window._tplSchedulePreview) window._tplSchedulePreview();
+        };
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    }
+
+    attachDrag(makeHandle(toSvgX(s.ba)), 'nd-ba');
+    if (needsB) attachDrag(makeHandle(toSvgX(s.bb)), 'nd-bb');
+  },
 };
 
 /* ================================================================
