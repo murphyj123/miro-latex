@@ -3077,9 +3077,30 @@ extraTemplates['normal-distribution'] = {
   category: 'Statistics Extra',
   renderConfig(c) {
     c.appendChild(sectionLabel('Normal Distribution'));
+    // Slider + number combo helper (local)
+    const _ndSlider = (lbl, sId, nId, def, min, max, step) => {
+      const w = document.createElement('div');
+      w.style.cssText = 'flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;';
+      const lb = document.createElement('div');
+      lb.style.cssText = 'font-size:11px;font-weight:600;color:#555;';
+      lb.textContent = lbl;
+      const inner = document.createElement('div');
+      inner.style.cssText = 'display:flex;align-items:center;gap:5px;';
+      const sl = document.createElement('input');
+      sl.type = 'range'; sl.id = sId; sl.min = min; sl.max = max; sl.step = step; sl.value = def;
+      sl.style.flex = '1';
+      const ni = document.createElement('input');
+      ni.type = 'number'; ni.id = nId; ni.min = min; ni.max = max; ni.step = step; ni.value = def;
+      ni.style.cssText = 'width:56px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;font-size:12px;';
+      sl.addEventListener('input', () => { ni.value = sl.value; if (window._tplSchedulePreview) window._tplSchedulePreview(); });
+      ni.addEventListener('input', () => { sl.value = ni.value; if (window._tplSchedulePreview) window._tplSchedulePreview(); });
+      inner.appendChild(sl); inner.appendChild(ni);
+      w.appendChild(lb); w.appendChild(inner);
+      return w;
+    };
     c.appendChild(row(
-      field('Mean (μ)', numberInput('nd-mean', 0, -1000, 1000, 1)),
-      field('Std Dev (σ)', numberInput('nd-sd', 1, 0.01, 500, 0.1)),
+      _ndSlider('Mean (μ)', 'nd-mean-sl', 'nd-mean', 0, -50, 50, 0.5),
+      _ndSlider('Std Dev (σ)', 'nd-sd-sl', 'nd-sd', 1, 0.1, 20, 0.1),
     ));
     c.appendChild(row(
       field('Title', textInput('nd-title', 'Normal Distribution')),
@@ -3100,7 +3121,6 @@ extraTemplates['normal-distribution'] = {
     ));
 
     c.appendChild(sectionLabel('Shading'));
-    c.appendChild(row(checkbox('nd-interactive', 'Drag boundaries in preview (beta)', false)));
     c.appendChild(row(
       field('Shade region', select('nd-shade-mode', [
         { v: 'none', l: 'None' },
@@ -3188,7 +3208,6 @@ extraTemplates['normal-distribution'] = {
       showSigLabels: val('nd-siglabels'), showValLabels: val('nd-vallabels'),
       showPct: val('nd-pct'),
       shadeMode: mode, ba: val('nd-ba'), bb: val('nd-bb'),
-      interactive: val('nd-interactive'),
       inv, invP: val('nd-inv-p') || 0.95,
       invTail: val('nd-inv-tail') || 'left',
       invShowVal: val('nd-inv-showval'), invBlank: val('nd-inv-blank'),
@@ -3349,13 +3368,6 @@ extraTemplates['normal-distribution'] = {
   },
 
   afterRender(svg, s) {
-    // Only for regular shading modes with user-draggable boundaries
-    if (!s.interactive) return;
-    const mode = s.shadeMode;
-    if (!mode || mode === 'none' || mode === 'central' || s.inv) return;
-    const needsB = mode === 'between' || mode === 'outer';
-
-    // Mirror the coordinate system from generateSVG
     const W = 720, H = 430;
     const pad = { l: 55, r: 45, t: 50, b: 72 };
     const gw = W - pad.l - pad.r;
@@ -3367,63 +3379,151 @@ extraTemplates['normal-distribution'] = {
     const toDataX = (px) => xMin + ((px - pad.l) / gw) * (xMax - xMin);
     const clamp   = (px) => Math.max(pad.l, Math.min(pad.l + gw, px));
 
-    const COL = '#e67e22';
-    const HS  = 7;
+    // Normal CDF for live p-value
+    const _erf = (x) => {
+      const t = 1 / (1 + 0.3275911 * Math.abs(x));
+      const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+      return x >= 0 ? y : -y;
+    };
+    const ncdf = (x) => 0.5 * (1 + _erf((x - s.mean) / (s.sd * Math.sqrt(2))));
+    const computeP = (a, b) => {
+      const m = s.shadeMode;
+      if (m === 'left')    return ncdf(+a);
+      if (m === 'right')   return 1 - ncdf(+a);
+      if (m === 'between') return ncdf(Math.max(+a, +b)) - ncdf(Math.min(+a, +b));
+      if (m === 'outer')   return 1 - (ncdf(Math.max(+a, +b)) - ncdf(Math.min(+a, +b)));
+      return null;
+    };
 
-    function makeHandle(initSvgX) {
+    const mode = s.shadeMode;
+    const hasBoundary = mode && mode !== 'none' && mode !== 'central' && !s.inv;
+    const needsB = mode === 'between' || mode === 'outer';
+
+    // ── Live p-value badge (top-right of SVG) ──
+    let probText = null;
+    if (hasBoundary) {
+      probText = svgEl('text', {
+        x: W - pad.r - 4, y: pad.t - 10,
+        'text-anchor': 'end', 'font-size': '13',
+        fill: '#4262ff', 'font-weight': '700', 'font-family': 'sans-serif',
+      });
+      const initP = computeP(s.ba, s.bb);
+      probText.textContent = initP !== null ? `p = ${initP.toFixed(4)}` : '';
+      svg.appendChild(probText);
+    }
+
+    // ── Generic handle factory ──
+    const HS = 7;
+    function makeHandle(initSvgX, col, triUp) {
       const line = svgEl('line', {
         x1: initSvgX, y1: pad.t, x2: initSvgX, y2: axisY,
-        stroke: COL, 'stroke-width': '2', 'stroke-dasharray': '7,3',
+        stroke: col, 'stroke-width': '2.5', 'stroke-dasharray': '7,3',
       });
-      const tri = svgEl('polygon', {
-        points: `${initSvgX - HS},${axisY} ${initSvgX + HS},${axisY} ${initSvgX},${axisY - HS * 1.8}`,
-        fill: COL,
-      });
-      // Wide invisible hit area so it's easy to grab
+      const triY = triUp ? pad.t + 10 : axisY;
+      const triPts = triUp
+        ? `${initSvgX - HS},${triY} ${initSvgX + HS},${triY} ${initSvgX},${triY + HS * 1.8}`
+        : `${initSvgX - HS},${triY} ${initSvgX + HS},${triY} ${initSvgX},${triY - HS * 1.8}`;
+      const tri = svgEl('polygon', { points: triPts, fill: col });
       const hit = svgEl('rect', {
         x: initSvgX - 10, y: pad.t, width: 20, height: axisY - pad.t,
         fill: 'transparent', cursor: 'ew-resize',
       });
-      svg.appendChild(line);
-      svg.appendChild(tri);
-      svg.appendChild(hit);
-
+      svg.appendChild(line); svg.appendChild(tri); svg.appendChild(hit);
       function move(svgX) {
         line.setAttribute('x1', svgX); line.setAttribute('x2', svgX);
-        tri.setAttribute('points',
-          `${svgX - HS},${axisY} ${svgX + HS},${axisY} ${svgX},${axisY - HS * 1.8}`);
+        const ty = triUp ? pad.t + 10 : axisY;
+        tri.setAttribute('points', triUp
+          ? `${svgX - HS},${ty} ${svgX + HS},${ty} ${svgX},${ty + HS * 1.8}`
+          : `${svgX - HS},${ty} ${svgX + HS},${ty} ${svgX},${ty - HS * 1.8}`);
         hit.setAttribute('x', svgX - 10);
       }
-
       return { move, hit };
     }
 
-    function attachDrag(handle, inputId) {
+    function attachDrag(handle, onMoveFn) {
       handle.hit.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const onMove = (ev) => {
+        e.preventDefault(); e.stopPropagation();
+        const mv = (ev) => {
           const rect = svg.getBoundingClientRect();
-          const svgX = clamp((ev.clientX - rect.left) * (W / rect.width));
-          handle.move(svgX);
-          const input = document.getElementById(inputId);
-          if (input) input.value = Math.round(toDataX(svgX) * 10) / 10;
+          onMoveFn(clamp((ev.clientX - rect.left) * (W / rect.width)));
         };
-
-        const onUp = () => {
-          document.removeEventListener('mousemove', onMove);
-          document.removeEventListener('mouseup', onUp);
+        const up = () => {
+          document.removeEventListener('mousemove', mv);
+          document.removeEventListener('mouseup', up);
           if (window._tplSchedulePreview) window._tplSchedulePreview();
         };
-
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp);
+        document.addEventListener('mousemove', mv);
+        document.addEventListener('mouseup', up);
       });
     }
 
-    attachDrag(makeHandle(toSvgX(s.ba)), 'nd-ba');
-    if (needsB) attachDrag(makeHandle(toSvgX(s.bb)), 'nd-bb');
+    // ── Boundary handles ──
+    if (hasBoundary) {
+      const ha = makeHandle(toSvgX(+s.ba), '#e67e22', false);
+      attachDrag(ha, (svgX) => {
+        ha.move(svgX);
+        const v = Math.round(toDataX(svgX) * 10) / 10;
+        const inp = document.getElementById('nd-ba');
+        if (inp) inp.value = v;
+        if (probText) {
+          const bv = document.getElementById('nd-bb')?.value ?? s.bb;
+          const p = computeP(v, bv);
+          probText.textContent = p !== null ? `p = ${p.toFixed(4)}` : '';
+        }
+      });
+      if (needsB) {
+        const hb = makeHandle(toSvgX(+s.bb), '#e67e22', false);
+        attachDrag(hb, (svgX) => {
+          hb.move(svgX);
+          const v = Math.round(toDataX(svgX) * 10) / 10;
+          const inp = document.getElementById('nd-bb');
+          if (inp) inp.value = v;
+          if (probText) {
+            const av = document.getElementById('nd-ba')?.value ?? s.ba;
+            const p = computeP(av, v);
+            probText.textContent = p !== null ? `p = ${p.toFixed(4)}` : '';
+          }
+        });
+      }
+    }
+
+    // ── Mean drag handle (red, bottom triangle) ──
+    if (!s.inv) {
+      const hm = makeHandle(toSvgX(s.mean), '#e63946', false);
+      attachDrag(hm, (svgX) => {
+        hm.move(svgX);
+        const v = Math.round(toDataX(svgX) * 10) / 10;
+        const inp = document.getElementById('nd-mean');
+        if (inp) inp.value = v;
+        const sl = document.getElementById('nd-mean-sl');
+        if (sl) sl.value = v;
+      });
+    }
+
+    // ── SD drag handle (green, top triangle at +1σ) ──
+    if (!s.inv) {
+      const sdSvgX = toSvgX(s.mean + s.sd);
+      const hsd = makeHandle(sdSvgX, '#27ae60', true);
+      // Add σ label next to handle
+      const sdLbl = svgEl('text', {
+        x: sdSvgX + 12, y: pad.t + 24,
+        'font-size': '11', fill: '#27ae60', 'font-weight': '700', 'font-family': 'sans-serif',
+      });
+      sdLbl.textContent = 'σ';
+      svg.appendChild(sdLbl);
+
+      attachDrag(hsd, (svgX) => {
+        const meanSvgX = toSvgX(+(document.getElementById('nd-mean')?.value ?? s.mean));
+        const constrained = Math.max(meanSvgX + 8, svgX);
+        hsd.move(constrained);
+        sdLbl.setAttribute('x', constrained + 12);
+        const newSd = Math.max(0.1, Math.round((toDataX(constrained) - toDataX(meanSvgX)) * 10) / 10);
+        const inp = document.getElementById('nd-sd');
+        if (inp) inp.value = newSd;
+        const sl = document.getElementById('nd-sd-sl');
+        if (sl) sl.value = newSd;
+      });
+    }
   },
 };
 
