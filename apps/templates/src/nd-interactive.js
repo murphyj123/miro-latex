@@ -129,16 +129,8 @@ function makeHandle(col, triUp) {
   return { place, show, hit };
 }
 
-const hMean = makeHandle('#e63946', false);   // red,   bottom triangle
-const hSD   = makeHandle('#27ae60', true);    // green, top triangle
 const hA    = makeHandle('#e67e22', false);   // orange, bottom
 const hB    = makeHandle('#e67e22', false);   // orange, bottom
-
-// σ label next to green handle
-const sdLabelTxt = el('text', { 'font-family': 'Inter,Arial,sans-serif', 'font-size': '11',
-  fill: '#27ae60', 'font-weight': '700', 'dominant-baseline': 'central' });
-sdLabelTxt.textContent = 'σ';
-layerHandles.appendChild(sdLabelTxt);
 
 // ── Render: update all SVG attributes in-place ────────────────────────────────
 function render() {
@@ -220,13 +212,7 @@ function render() {
   pvalTxt.setAttribute('y', pad.t - 12);
   document.getElementById('nd-pval').textContent = pStr;
 
-  // Handles
-  hMean.place(toSvgX(S.mean));
-  const sdX = toSvgX(S.mean + S.sd);
-  hSD.place(sdX);
-  sdLabelTxt.setAttribute('x', sdX + 12);
-  sdLabelTxt.setAttribute('y', pad.t + 22);
-
+  // Boundary handles
   const hasBoundary = mode !== 'none' && mode !== 'central';
   const needsB = mode === 'between' || mode === 'outer';
   hA.show(hasBoundary); if (hasBoundary) hA.place(toSvgX(a));
@@ -265,21 +251,32 @@ function drag(handle, onMove) {
   });
 }
 
-// Mean drag — shift entire curve
-drag(hMean, (svgX) => {
-  S.mean = +(toDataX(svgX).toFixed(2));
-  document.getElementById('nd-mean-num').value = S.mean;
-  document.getElementById('nd-mean-sl').value  = S.mean;
-  render();
-});
-
-// SD drag — handle always stays right of mean
-drag(hSD, (svgX) => {
-  const dist = toDataX(svgX) - S.mean;
-  S.sd = Math.max(0.1, +(Math.abs(dist).toFixed(2)));
-  document.getElementById('nd-sd-num').value = S.sd;
-  document.getElementById('nd-sd-sl').value  = S.sd;
-  render();
+// Mean pan — drag anywhere on the graph background to shift the curve
+// S.sd is constant during this drag so the scale (8*S.sd/GW) is fixed — no feedback loop
+svg.style.cursor = 'grab';
+svg.addEventListener('mousedown', (e) => {
+  if (e.target !== svg && !e.target.closest('#nd-svg > g:not([data-handles])')) return;
+  // Ignore clicks on the handles layer
+  if (layerHandles.contains(e.target)) return;
+  svg.style.cursor = 'grabbing';
+  const startX = svgClientX(e);
+  const meanStart = S.mean;
+  const scale = (xMax() - xMin()) / GW;  // data units per pixel — constant for this drag
+  const mv = (ev) => {
+    const dx = svgClientX(ev) - startX;
+    S.mean = +(meanStart + dx * scale).toFixed(2);
+    document.getElementById('nd-mean-num').value = S.mean;
+    document.getElementById('nd-mean-sl').value  = S.mean;
+    render();
+  };
+  const up = () => {
+    svg.style.cursor = 'grab';
+    document.removeEventListener('mousemove', mv);
+    document.removeEventListener('mouseup', up);
+  };
+  document.addEventListener('mousemove', mv);
+  document.addEventListener('mouseup', up);
+  e.preventDefault();
 });
 
 // Boundary a
