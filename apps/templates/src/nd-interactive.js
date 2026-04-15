@@ -232,9 +232,19 @@ function render() {
   hA.show(hasBoundary); if (hasBoundary) hA.place(toSvgX(a));
   hB.show(needsB);      if (needsB)      hB.place(toSvgX(b));
 
-  // Show/hide ba/bb inputs
+  // Show/hide ba/bb inputs + keep sliders in sync with current data range
   document.getElementById('nd-ba-field').style.display = hasBoundary ? '' : 'none';
   document.getElementById('nd-bb-field').style.display = needsB ? '' : 'none';
+  if (hasBoundary) {
+    const slA = document.getElementById('nd-ba-sl');
+    slA.min = mn.toFixed(2); slA.max = mx.toFixed(2); slA.value = S.ba;
+    document.getElementById('nd-ba-num').value = S.ba;
+  }
+  if (needsB) {
+    const slB = document.getElementById('nd-bb-sl');
+    slB.min = mn.toFixed(2); slB.max = mx.toFixed(2); slB.value = S.bb;
+    document.getElementById('nd-bb-num').value = S.bb;
+  }
 }
 
 // ── Drag machinery ────────────────────────────────────────────────────────────
@@ -276,6 +286,7 @@ drag(hSD, (svgX) => {
 drag(hA, (svgX) => {
   S.ba = +(toDataX(svgX).toFixed(2));
   document.getElementById('nd-ba-num').value = S.ba;
+  document.getElementById('nd-ba-sl').value  = S.ba;
   render();
 });
 
@@ -283,6 +294,7 @@ drag(hA, (svgX) => {
 drag(hB, (svgX) => {
   S.bb = +(toDataX(svgX).toFixed(2));
   document.getElementById('nd-bb-num').value = S.bb;
+  document.getElementById('nd-bb-sl').value  = S.bb;
   render();
 });
 
@@ -295,8 +307,10 @@ document.getElementById('nd-mean-sl').addEventListener('input', () => { document
 document.getElementById('nd-sd-num').addEventListener('input', () => { document.getElementById('nd-sd-sl').value = document.getElementById('nd-sd-num').value; syncSD(); });
 document.getElementById('nd-sd-sl').addEventListener('input', () => { document.getElementById('nd-sd-num').value = document.getElementById('nd-sd-sl').value; syncSD(); });
 
-document.getElementById('nd-ba-num').addEventListener('input', e => { S.ba = +e.target.value || 0; render(); });
-document.getElementById('nd-bb-num').addEventListener('input', e => { S.bb = +e.target.value || 0; render(); });
+document.getElementById('nd-ba-num').addEventListener('input', e => { S.ba = +e.target.value || 0; document.getElementById('nd-ba-sl').value = S.ba; render(); });
+document.getElementById('nd-ba-sl').addEventListener('input', e => { S.ba = +e.target.value; document.getElementById('nd-ba-num').value = S.ba; render(); });
+document.getElementById('nd-bb-num').addEventListener('input', e => { S.bb = +e.target.value || 0; document.getElementById('nd-bb-sl').value = S.bb; render(); });
+document.getElementById('nd-bb-sl').addEventListener('input', e => { S.bb = +e.target.value; document.getElementById('nd-bb-num').value = S.bb; render(); });
 document.getElementById('nd-title-inp').addEventListener('input', e => { S.title = e.target.value; render(); });
 
 document.getElementById('nd-shade-sel').addEventListener('change', e => { S.shadeMode = e.target.value; render(); });
@@ -304,6 +318,21 @@ document.getElementById('nd-sdlines').addEventListener('change',   e => { S.show
 document.getElementById('nd-siglabels').addEventListener('change', e => { S.showSigLabels = e.target.checked; render(); });
 document.getElementById('nd-vallabels').addEventListener('change', e => { S.showValLabels = e.target.checked; render(); });
 document.getElementById('nd-pct').addEventListener('change',       e => { S.showPct       = e.target.checked; render(); });
+
+// ── Blank preset ─────────────────────────────────────────────────────────────
+document.getElementById('nd-blank-btn').addEventListener('click', () => {
+  S.shadeMode = 'none';
+  S.showSDLines = false;
+  S.showSigLabels = false;
+  S.showValLabels = false;
+  S.showPct = false;
+  document.getElementById('nd-shade-sel').value = 'none';
+  document.getElementById('nd-sdlines').checked = false;
+  document.getElementById('nd-siglabels').checked = false;
+  document.getElementById('nd-vallabels').checked = false;
+  document.getElementById('nd-pct').checked = false;
+  render();
+});
 
 // ── Place on board ────────────────────────────────────────────────────────────
 document.getElementById('nd-place-btn').addEventListener('click', async () => {
