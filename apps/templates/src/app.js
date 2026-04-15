@@ -62,7 +62,7 @@ const CATS = {};
 ['cube','cuboid','cylinder','cone','sphere','triangular-prism','square-pyramid'
 ].forEach(id => CATS[id] = '3d-shapes');
 ['venn-diagram','carroll-diagram','tree-diagram','box-whisker','probability-scale',
- 'stem-leaf','normal-distribution','tally-chart','frequency-table',
+ 'stem-leaf','tally-chart','frequency-table',
  'pie-chart-data','scatter-plot','histogram','cumulative-frequency',
  'chi-squared','t-distribution','binomial','contingency-table'
 ].forEach(id => CATS[id] = 'statistics');
@@ -240,7 +240,7 @@ const TEMPLATE_ORDER = [
   'cube','cuboid','cylinder','cone','sphere','triangular-prism','square-pyramid',
   // statistics
   'venn-diagram','carroll-diagram','tree-diagram','box-whisker','probability-scale',
-  'stem-leaf','normal-distribution','tally-chart','frequency-table',
+  'stem-leaf','tally-chart','frequency-table',
   'pie-chart-data','scatter-plot','histogram','cumulative-frequency',
   'chi-squared','t-distribution','binomial','contingency-table',
   // advanced
@@ -1799,6 +1799,12 @@ function updatePreview() {
 }
 
 function selectTemplate(name) {
+  // Normal distribution has its own full-screen interactive — redirect there
+  if (name === 'normal-distribution') {
+    window.location.href = '/templates/nd-interactive.html';
+    return;
+  }
+
   activeTemplate = name;
 
   // Update editor title
