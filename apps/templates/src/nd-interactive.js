@@ -239,8 +239,10 @@ function render() {
 
 // ── Drag machinery ────────────────────────────────────────────────────────────
 function svgClientX(ev) {
-  const rect = svg.getBoundingClientRect();
-  return clampX((ev.clientX - rect.left) * (VW / rect.width));
+  const pt = svg.createSVGPoint();
+  pt.x = ev.clientX; pt.y = ev.clientY;
+  const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+  return clampX(svgP.x);
 }
 
 function drag(handle, onMove) {
@@ -332,6 +334,11 @@ document.getElementById('nd-place-btn').addEventListener('click', async () => {
     await miro.board.notifications.showError('Failed to place — see console');
     btn.disabled = false;
   }
+});
+
+// ── Back button ───────────────────────────────────────────────────────────────
+document.getElementById('nd-back-btn').addEventListener('click', () => {
+  window.location.href = '/templates/app.html';
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────

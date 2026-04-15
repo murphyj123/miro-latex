@@ -3081,7 +3081,7 @@ extraTemplates['normal-distribution'] = {
     openBtn.textContent = 'Open Interactive ↗';
     openBtn.style.cssText = 'width:100%;margin-bottom:8px;padding:7px;background:#4262ff;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;';
     openBtn.addEventListener('click', () => {
-      miro.board.ui.openModal({ url: '/templates/nd-interactive.html', width: 860, height: 540 });
+      window.location.href = '/templates/nd-interactive.html';
     });
     c.appendChild(openBtn);
 
