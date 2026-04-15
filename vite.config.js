@@ -20,6 +20,7 @@ export default defineConfig({
         'templates-index': resolve(import.meta.dirname, root, 'templates/index.html'),
         'templates-app': resolve(import.meta.dirname, root, 'templates/app.html'),
         'templates-panel': resolve(import.meta.dirname, root, 'templates/panel.html'),
+        'templates-nd-interactive': resolve(import.meta.dirname, root, 'templates/nd-interactive.html'),
         'bansho-index': resolve(import.meta.dirname, root, 'bansho/index.html'),
         'bansho-panel': resolve(import.meta.dirname, root, 'bansho/panel.html'),
         'bansho-app':   resolve(import.meta.dirname, root, 'bansho/app.html'),

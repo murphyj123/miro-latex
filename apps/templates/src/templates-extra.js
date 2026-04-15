@@ -3076,7 +3076,16 @@ extraTemplates['normal-distribution'] = {
   name: 'Normal Distribution',
   category: 'Statistics Extra',
   renderConfig(c) {
-    c.appendChild(sectionLabel('Normal Distribution'));
+    // Open interactive modal button
+    const openBtn = document.createElement('button');
+    openBtn.textContent = 'Open Interactive ↗';
+    openBtn.style.cssText = 'width:100%;margin-bottom:8px;padding:7px;background:#4262ff;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;';
+    openBtn.addEventListener('click', () => {
+      miro.board.ui.openModal({ url: '/templates/nd-interactive.html', width: 860, height: 540 });
+    });
+    c.appendChild(openBtn);
+
+    c.appendChild(sectionLabel('Normal Distribution (static)'));
     // Slider + number combo helper (local)
     const _ndSlider = (lbl, sId, nId, def, min, max, step) => {
       const w = document.createElement('div');

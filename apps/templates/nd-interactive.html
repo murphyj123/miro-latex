@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, Arial, sans-serif;
+      display: flex; flex-direction: column;
+      height: 100vh; overflow: hidden;
+      background: #fff; color: #222;
+    }
+    #topbar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 12px; border-bottom: 1px solid #e0e0e0;
+      flex-shrink: 0; background: #fafafa;
+    }
+    #nd-title-inp {
+      flex: 1; font-size: 14px; font-weight: 600;
+      border: none; outline: none; background: transparent; color: #222;
+    }
+    #nd-pval {
+      font-size: 14px; font-weight: 700; color: #4262ff;
+      min-width: 110px; text-align: right;
+    }
+    .btn {
+      padding: 6px 14px; border-radius: 6px; border: none;
+      cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap;
+    }
+    .btn-primary { background: #4262ff; color: #fff; }
+    .btn-primary:hover { background: #2d4fd6; }
+    .btn-primary:disabled { background: #b0b8ff; cursor: default; }
+
+    #graph { flex: 1; position: relative; overflow: hidden; background: #fff; }
+    #nd-svg { width: 100%; height: 100%; display: block; cursor: default; }
+
+    #bottombar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 7px 12px; border-top: 1px solid #e0e0e0;
+      flex-shrink: 0; background: #fafafa;
+    }
+    .field { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+    .field label { color: #555; font-weight: 600; white-space: nowrap; }
+    .num {
+      width: 54px; padding: 3px 5px;
+      border: 1px solid #ccc; border-radius: 3px; font-size: 12px;
+    }
+    .sl { width: 72px; }
+    .sel {
+      font-size: 12px; padding: 4px 6px;
+      border: 1px solid #ccc; border-radius: 4px;
+    }
+    .chk-lbl {
+      font-size: 12px; color: #444;
+      display: flex; align-items: center; gap: 4px; cursor: pointer;
+      white-space: nowrap;
+    }
+    .sep { width: 1px; height: 20px; background: #ddd; flex-shrink: 0; }
+    #nd-hint {
+      font-size: 11px; color: #999; margin-left: auto;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="topbar">
+    <input id="nd-title-inp" type="text" value="Normal Distribution" placeholder="Title" />
+    <span id="nd-pval"></span>
+    <button class="btn btn-primary" id="nd-place-btn">Place on board</button>
+  </div>
+
+  <div id="graph">
+    <svg id="nd-svg" viewBox="0 0 720 430" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+
+  <div id="bottombar">
+    <div class="field">
+      <label>Shade</label>
+      <select class="sel" id="nd-shade-sel">
+        <option value="none">None</option>
+        <option value="left">Left tail  P(X &lt; a)</option>
+        <option value="right">Right tail  P(X &gt; a)</option>
+        <option value="between">Between  P(a &lt; X &lt; b)</option>
+        <option value="outer">Outer tails</option>
+        <option value="central">Central  μ ± kσ</option>
+      </select>
+    </div>
+    <div class="sep"></div>
+    <div class="field">
+      <label>μ</label>
+      <input class="num" type="number" id="nd-mean-num" value="0" step="0.5" />
+      <input type="range" class="sl" id="nd-mean-sl" min="-20" max="20" step="0.5" value="0" />
+    </div>
+    <div class="field">
+      <label>σ</label>
+      <input class="num" type="number" id="nd-sd-num" value="1" step="0.1" min="0.1" />
+      <input type="range" class="sl" id="nd-sd-sl" min="0.1" max="10" step="0.1" value="1" />
+    </div>
+    <div class="sep"></div>
+    <div class="field" id="nd-ba-field">
+      <label>a</label>
+      <input class="num" type="number" id="nd-ba-num" value="-1" step="0.1" />
+    </div>
+    <div class="field" id="nd-bb-field" style="display:none">
+      <label>b</label>
+      <input class="num" type="number" id="nd-bb-num" value="1" step="0.1" />
+    </div>
+    <div class="sep"></div>
+    <label class="chk-lbl"><input type="checkbox" id="nd-sdlines" checked /> σ lines</label>
+    <label class="chk-lbl"><input type="checkbox" id="nd-siglabels" checked /> σ labels</label>
+    <label class="chk-lbl"><input type="checkbox" id="nd-vallabels" /> values</label>
+    <label class="chk-lbl"><input type="checkbox" id="nd-pct" /> %</label>
+    <span id="nd-hint">Drag red=μ · green=σ · orange=boundary</span>
+  </div>
+
+  <script type="module" src="/templates/src/nd-interactive.js"></script>
+</body>
+</html>
