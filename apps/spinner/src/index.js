@@ -13,7 +13,7 @@ async function init() {
         if (cfg._spinner && cfg.names?.length) {
           localStorage.setItem(
             'spinner-load',
-            JSON.stringify({ names: cfg.names, removeWinner: cfg.removeWinner ?? false })
+            JSON.stringify({ names: cfg.names, removeWinner: cfg.removeWinner ?? false, autoSpin: true })
           );
         }
       } catch (_) { /* ignore bad JSON */ }

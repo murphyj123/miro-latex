@@ -194,3 +194,12 @@ if (loadPreset && loadPreset.names?.length) {
 
 syncOptions();
 renderNames();
+
+// Auto-open modal if loaded from a board image
+if (loadPreset?.autoSpin) {
+  miro.board.ui.openModal({
+    url: 'spinner/modal.html',
+    width: 720,
+    height: 520,
+  });
+}
