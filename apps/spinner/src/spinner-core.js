@@ -31,8 +31,10 @@ function defaultState() {
     diceColor: '#1e293b',
     lastDice: null,
     // Coin
+    coinCount: 1,
     coinColor: '#f59e0b',
     coinSound: true,
+    diceShowTotal: true,
   };
 }
 

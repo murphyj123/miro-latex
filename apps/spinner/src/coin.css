@@ -8,7 +8,7 @@
   --primary: #14b8a6;
   --radius: 8px;
   --font: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --coin-size: 140px;
+  --coin-size: 120px;
   --coin-color: #f59e0b;
   --coin-color-dark: #d97706;
 }
@@ -31,14 +31,32 @@ html, body {
   justify-content: center;
   height: 100vh;
   padding: 24px;
-  gap: 24px;
+  gap: 20px;
 }
 
-/* ── 3D Coin Stage ────────────────────────────────────── */
+/* ── Coin Area (holds 1-6 coins) ──────────────────────── */
+.coin-area {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  perspective: 800px;
+}
+
+/* Scale coins down when there are many */
+.coin-area.coins-1 { --coin-size: 140px; }
+.coin-area.coins-2 { --coin-size: 120px; }
+.coin-area.coins-3 { --coin-size: 100px; }
+.coin-area.coins-4 { --coin-size: 90px; gap: 18px; }
+.coin-area.coins-5 { --coin-size: 80px; gap: 16px; }
+.coin-area.coins-6 { --coin-size: 76px; gap: 14px; }
+
+/* ── 3D Coin ──────────────────────────────────────────── */
 .coin-stage {
-  perspective: 600px;
   width: var(--coin-size);
   height: var(--coin-size);
+  perspective: 600px;
 }
 
 .coin {
@@ -66,7 +84,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 48px;
+  font-size: calc(var(--coin-size) * 0.34);
   font-weight: 800;
   color: #fff;
   text-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -78,34 +96,21 @@ html, body {
 }
 
 .coin-heads {
-  background: linear-gradient(145deg, var(--coin-color), var(--coin-color-dark));
   transform: rotateY(0deg) translateZ(4px);
 }
 
 .coin-tails {
-  background: linear-gradient(145deg, var(--coin-color-dark), var(--coin-color));
   transform: rotateY(180deg) translateZ(4px);
-}
-
-/* Coin edge (pseudo-element on the stage) */
-.coin::after {
-  content: '';
-  position: absolute;
-  width: var(--coin-size);
-  height: var(--coin-size);
-  border-radius: 50%;
-  background: var(--coin-color-dark);
-  transform: translateZ(0px);
-  box-shadow: inset 0 0 8px rgba(0,0,0,0.3);
 }
 
 /* ── Result Text ──────────────────────────────────────── */
 .coin-result {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
   color: var(--text);
   letter-spacing: -0.02em;
   animation: result-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  text-align: center;
 }
 
 .coin-result.hidden { display: none; }
@@ -115,7 +120,14 @@ html, body {
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* ── Flip Button ──────────────────────────────────────── */
+/* ── Controls ─────────────────────────────────────────── */
+.coin-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
 .btn-flip-main {
   display: flex;
   align-items: center;
@@ -139,4 +151,30 @@ html, body {
   background: linear-gradient(135deg, #0d5c56, #0d9488);
   box-shadow: 0 4px 14px rgba(20,184,166,0.38);
   transform: translateY(-1px);
+}
+
+/* ── Modal Color Swatches ─────────────────────────────── */
+.modal-swatches {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.modal-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+  padding: 0;
+}
+
+.modal-swatch:hover {
+  transform: scale(1.2);
+}
+
+.modal-swatch.active {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--text);
 }

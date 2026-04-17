@@ -5,6 +5,9 @@ const diceArea = document.getElementById('dice-area');
 const btnRoll = document.getElementById('btn-roll');
 const diceTotalEl = document.getElementById('dice-total');
 const totalValueEl = document.getElementById('total-value');
+const colorSwatchesEl = document.getElementById('dice-color-swatches');
+
+const DICE_COLORS = ['#1e293b', '#ef4444', '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b'];
 
 // ── D6 pip patterns (3x3 grid, 1=pip, 0=empty) ─────────
 const PIP_PATTERNS = {
@@ -16,15 +19,13 @@ const PIP_PATTERNS = {
   6: [1,0,1, 1,0,1, 1,0,1],
 };
 
-// ── Rotation targets to show each face ──────────────────
-// These map a face value to the rotation needed to bring it to front
 const FACE_ROTATIONS = {
-  1: [0, 0],       // front
-  2: [0, -90],     // right
-  3: [-90, 0],     // top
-  4: [90, 0],      // bottom
-  5: [0, 90],      // left
-  6: [0, 180],     // back
+  1: [0, 0],
+  2: [0, -90],
+  3: [-90, 0],
+  4: [90, 0],
+  5: [0, 90],
+  6: [0, 180],
 };
 
 // ── Audio ────────────────────────────────────────────────
@@ -77,12 +78,30 @@ function playLandSound() {
   } catch (_) {}
 }
 
-// ── State ────────────────────────────────────────────────
+// ── State helpers ────────────────────────────────────────
 let rolling = false;
 
 function getDiceCount() { return getState().diceCount || 1; }
 function getDiceSides() { return getState().diceSides || 6; }
 function getDiceColor() { return getState().diceColor || '#1e293b'; }
+function getShowTotal() { return getState().diceShowTotal !== false; }
+
+// ── Color swatches (in-modal) ────────────────────────────
+function renderSwatches() {
+  colorSwatchesEl.innerHTML = '';
+  const current = getDiceColor();
+  DICE_COLORS.forEach((c) => {
+    const btn = document.createElement('button');
+    btn.className = 'modal-swatch' + (c === current ? ' active' : '');
+    btn.style.background = c;
+    btn.addEventListener('click', () => {
+      setState({ diceColor: c });
+      renderSwatches();
+      renderPlaceholder();
+    });
+    colorSwatchesEl.appendChild(btn);
+  });
+}
 
 // ── Build a single 3D die ────────────────────────────────
 function buildD6Face(value) {
@@ -118,7 +137,6 @@ function createDie(sides, color) {
   scene.appendChild(cube);
 
   if (sides === 6) {
-    // Build all 6 faces with pips
     for (let f = 1; f <= 6; f++) {
       const face = document.createElement('div');
       face.className = `die-face die-face--${f}`;
@@ -127,7 +145,6 @@ function createDie(sides, color) {
       cube.appendChild(face);
     }
   } else {
-    // For non-D6, use 6 random faces (we rotate to show the result)
     for (let f = 1; f <= 6; f++) {
       const face = document.createElement('div');
       face.className = `die-face die-face--${f}`;
@@ -141,7 +158,6 @@ function createDie(sides, color) {
   return scene;
 }
 
-// ── Set die rotation to show a value ─────────────────────
 function showFace(scene, value, sides, landed) {
   const cube = scene.querySelector('.die-cube');
 
@@ -149,7 +165,6 @@ function showFace(scene, value, sides, landed) {
     const [rx, ry] = FACE_ROTATIONS[value];
     cube.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
   } else {
-    // For non-D6: put the result number on face 1 (front) and rotate to face 1
     const frontFace = cube.querySelector('.die-face--1');
     frontFace.innerHTML = '';
     frontFace.appendChild(buildNumericFace(value, sides));
@@ -163,6 +178,15 @@ function showFace(scene, value, sides, landed) {
 }
 
 // ── Render ────────────────────────────────────────────────
+function updateTotal(values) {
+  if (values.length > 1 && getShowTotal()) {
+    totalValueEl.textContent = values.reduce((a, b) => a + b, 0);
+    diceTotalEl.classList.remove('hidden');
+  } else {
+    diceTotalEl.classList.add('hidden');
+  }
+}
+
 function renderDice(values, sides, color) {
   diceArea.innerHTML = '';
   const scenes = [];
@@ -172,14 +196,7 @@ function renderDice(values, sides, color) {
     diceArea.appendChild(scene);
     scenes.push(scene);
   });
-
-  if (values.length > 1) {
-    totalValueEl.textContent = values.reduce((a, b) => a + b, 0);
-    diceTotalEl.classList.remove('hidden');
-  } else {
-    diceTotalEl.classList.add('hidden');
-  }
-
+  updateTotal(values);
   return scenes;
 }
 
@@ -193,7 +210,7 @@ function renderPlaceholder() {
   diceTotalEl.classList.add('hidden');
 }
 
-// ── Roll animation (CSS 3D tumble) ───────────────────────
+// ── Roll animation ───────────────────────────────────────
 function roll() {
   if (rolling) return;
   rolling = true;
@@ -205,7 +222,6 @@ function roll() {
   const color = getDiceColor();
   const finalValues = Array.from({ length: count }, () => Math.ceil(Math.random() * sides));
 
-  // Create fresh dice
   diceArea.innerHTML = '';
   const scenes = [];
   for (let i = 0; i < count; i++) {
@@ -214,7 +230,6 @@ function roll() {
     scenes.push(scene);
   }
 
-  // Tumble animation — spin cubes with RAF, decelerating
   const duration = 1400;
   const startTime = performance.now();
   let soundTimer = 0;
@@ -224,11 +239,8 @@ function roll() {
   function animate(now) {
     const elapsed = now - startTime;
     const t = Math.min(elapsed / duration, 1);
-
-    // Eased progress (easeOutCubic)
     const ease = 1 - Math.pow(1 - t, 3);
 
-    // Total rotation scales: multiple full spins early, slows down
     const totalSpinX = 720 + Math.random() * 360;
     const totalSpinY = 720 + Math.random() * 360;
 
@@ -236,7 +248,6 @@ function roll() {
       const cube = scene.querySelector('.die-cube');
       cube.classList.add('rolling');
 
-      // Each die gets slightly different rotation speed for variety
       const offsetX = (i * 47 + 23) % 360;
       const offsetY = (i * 71 + 41) % 360;
       const rx = offsetX + totalSpinX * ease;
@@ -245,7 +256,6 @@ function roll() {
       cube.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
     });
 
-    // Play rattle sounds periodically
     if (elapsed - soundTimer > 120 && t < 0.8) {
       soundTimer = elapsed;
       playRollSound();
@@ -254,17 +264,11 @@ function roll() {
     if (t < 1) {
       requestAnimationFrame(animate);
     } else {
-      // Land on final values
       scenes.forEach((scene, i) => {
         showFace(scene, finalValues[i], sides, true);
       });
 
-      if (count > 1) {
-        totalValueEl.textContent = finalValues.reduce((a, b) => a + b, 0);
-        diceTotalEl.classList.remove('hidden');
-      } else {
-        diceTotalEl.classList.add('hidden');
-      }
+      updateTotal(finalValues);
 
       playLandSound();
       rolling = false;
@@ -279,4 +283,5 @@ function roll() {
 btnRoll.addEventListener('click', roll);
 
 // ── Init ─────────────────────────────────────────────────
+renderSwatches();
 renderPlaceholder();

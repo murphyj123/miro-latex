@@ -196,3 +196,29 @@ html, body {
   box-shadow: 0 4px 14px rgba(20,184,166,0.38);
   transform: translateY(-1px);
 }
+
+/* ── Modal Color Swatches ─────────────────────────────── */
+.modal-swatches {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.modal-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+  padding: 0;
+}
+
+.modal-swatch:hover {
+  transform: scale(1.2);
+}
+
+.modal-swatch.active {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--text);
+}

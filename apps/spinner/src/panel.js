@@ -39,11 +39,15 @@ const diceCountLabel = document.getElementById('dice-count-label');
 const diceMinus = document.getElementById('dice-minus');
 const dicePlus = document.getElementById('dice-plus');
 const diceSidesSelect = document.getElementById('dice-sides');
+const diceShowTotalCb = document.getElementById('dice-show-total');
 const diceSoundCb = document.getElementById('dice-sound');
 const diceColorsEl = document.getElementById('dice-colors');
 
 // Coin
 const btnFlip = document.getElementById('btn-flip');
+const coinCountLabel = document.getElementById('coin-count-label');
+const coinMinus = document.getElementById('coin-minus');
+const coinPlus = document.getElementById('coin-plus');
 const coinSoundCb = document.getElementById('coin-sound');
 const coinColorsEl = document.getElementById('coin-colors');
 
@@ -370,6 +374,7 @@ function syncDiceOptions() {
   const state = getState();
   diceCountLabel.textContent = state.diceCount || 1;
   diceSidesSelect.value = state.diceSides || 6;
+  diceShowTotalCb.checked = state.diceShowTotal !== false;
   diceSoundCb.checked = state.diceSound !== false;
   renderColorSwatches(diceColorsEl, DICE_COLORS, 'diceColor');
 }
@@ -377,6 +382,7 @@ function syncDiceOptions() {
 diceMinus.addEventListener('click', () => { setState({ diceCount: Math.max(1, (getState().diceCount || 1) - 1) }); syncDiceOptions(); });
 dicePlus.addEventListener('click', () => { setState({ diceCount: Math.min(6, (getState().diceCount || 1) + 1) }); syncDiceOptions(); });
 diceSidesSelect.addEventListener('change', () => setState({ diceSides: parseInt(diceSidesSelect.value) }));
+diceShowTotalCb.addEventListener('change', () => setState({ diceShowTotal: diceShowTotalCb.checked }));
 diceSoundCb.addEventListener('change', () => setState({ diceSound: diceSoundCb.checked }));
 
 btnRoll.addEventListener('click', async () => {
@@ -389,14 +395,20 @@ btnRoll.addEventListener('click', async () => {
 
 function syncCoinOptions() {
   const state = getState();
+  coinCountLabel.textContent = state.coinCount || 1;
   coinSoundCb.checked = state.coinSound !== false;
   renderColorSwatches(coinColorsEl, COIN_COLORS, 'coinColor');
 }
 
+coinMinus.addEventListener('click', () => { setState({ coinCount: Math.max(1, (getState().coinCount || 1) - 1) }); syncCoinOptions(); });
+coinPlus.addEventListener('click', () => { setState({ coinCount: Math.min(6, (getState().coinCount || 1) + 1) }); syncCoinOptions(); });
 coinSoundCb.addEventListener('change', () => setState({ coinSound: coinSoundCb.checked }));
 
 btnFlip.addEventListener('click', async () => {
-  await miro.board.ui.openModal({ url: 'spinner/coin.html', width: 420, height: 400 });
+  const count = getState().coinCount || 1;
+  const w = count > 2 ? 560 : 420;
+  const h = count > 3 ? 480 : 400;
+  await miro.board.ui.openModal({ url: 'spinner/coin.html', width: w, height: h });
 });
 
 // ══════════════════════════════════════════════════════════

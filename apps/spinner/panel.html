@@ -147,6 +147,10 @@
             <div class="color-swatches" id="dice-colors"></div>
           </div>
           <div class="option-row">
+            <span class="option-label">Show total</span>
+            <label class="toggle"><input type="checkbox" id="dice-show-total" checked /><span class="toggle-slider"></span></label>
+          </div>
+          <div class="option-row">
             <span class="option-label">Sound</span>
             <label class="toggle"><input type="checkbox" id="dice-sound" checked /><span class="toggle-slider"></span></label>
           </div>
@@ -160,6 +164,14 @@
           <div class="coin-disc">?</div>
         </div>
         <div class="dice-config">
+          <div class="option-row">
+            <span class="option-label">Coins</span>
+            <div class="stepper">
+              <button class="stepper-btn" id="coin-minus">-</button>
+              <span class="stepper-value" id="coin-count-label">1</span>
+              <button class="stepper-btn" id="coin-plus">+</button>
+            </div>
+          </div>
           <div class="option-row">
             <span class="option-label">Colour</span>
             <div class="color-swatches" id="coin-colors"></div>

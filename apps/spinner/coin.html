@@ -9,21 +9,19 @@
   <body>
 
     <div class="coin-layout">
-      <div class="coin-stage" id="coin-stage">
-        <div class="coin" id="coin">
-          <div class="coin-face coin-heads">H</div>
-          <div class="coin-face coin-tails">T</div>
-        </div>
-      </div>
+      <div class="coin-area" id="coin-area"></div>
 
       <div class="coin-result hidden" id="coin-result">
         <span id="result-text">Heads</span>
       </div>
 
-      <button class="btn-flip-main" id="btn-flip">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><text x="12" y="13" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="700" fill="currentColor" stroke="none">H</text></svg>
-        Flip
-      </button>
+      <div class="coin-controls">
+        <button class="btn-flip-main" id="btn-flip">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><text x="12" y="13" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="700" fill="currentColor" stroke="none">H</text></svg>
+          Flip
+        </button>
+        <div class="modal-swatches" id="coin-color-swatches"></div>
+      </div>
     </div>
 
     <script type="module" src="/spinner/src/coin.js"></script>
