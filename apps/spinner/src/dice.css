@@ -222,3 +222,29 @@ html, body {
   border-color: var(--text);
   box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--text);
 }
+
+/* ── Place on Board Button ────────────────────────────── */
+.btn-place {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: var(--font);
+  box-shadow: 0 2px 6px rgba(20,184,166,0.25);
+}
+
+.btn-place:hover {
+  background: linear-gradient(135deg, #0d5c56, #0d9488);
+  transform: translateY(-1px);
+}
+
+.btn-place.hidden { display: none; }

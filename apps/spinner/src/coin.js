@@ -1,4 +1,4 @@
-import { getState, setState } from './spinner-core.js';
+import { getState, setState, escapeXml } from './spinner-core.js';
 
 // ── DOM refs ─────────────────────────────────────────────
 const coinArea = document.getElementById('coin-area');
@@ -73,6 +73,7 @@ function playLandSound() {
 
 // ── State helpers ────────────────────────────────────────
 let flipping = false;
+let lastResults = null;
 
 function getCoinCount() { return getState().coinCount || 1; }
 function getCoinColor() { return getState().coinColor || '#f59e0b'; }
@@ -197,11 +198,54 @@ function flip() {
 
       playLandSound();
       flipping = false;
+      lastResults = results;
+      btnPlace.classList.remove('hidden');
     }
   }
 
   requestAnimationFrame(animate);
 }
+
+// ── Place on Board ───────────────────────────────────────
+const btnPlace = document.getElementById('btn-place');
+
+btnPlace.addEventListener('click', async () => {
+  if (!lastResults) return;
+
+  const color = getCoinColor();
+  const dark = COLOR_DARKS[color] || color;
+  const count = lastResults.length;
+  const coinR = 30, pad = 16, gap = 12;
+  const w = pad * 2 + count * coinR * 2 + (count - 1) * gap;
+  const h = count > 1 ? 110 : 90;
+
+  let svg = '';
+  lastResults.forEach((isHeads, i) => {
+    const cx = pad + coinR + i * (coinR * 2 + gap);
+    const cy = pad + coinR;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${coinR}" fill="${isHeads ? color : dark}"/>`;
+    svg += `<text x="${cx}" y="${cy + 1}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="22" font-weight="800" font-family="Inter,sans-serif">${isHeads ? 'H' : 'T'}</text>`;
+  });
+
+  if (count > 1) {
+    const headsCount = lastResults.filter(Boolean).length;
+    const tailsCount = count - headsCount;
+    const parts = [];
+    if (headsCount) parts.push(`${headsCount}H`);
+    if (tailsCount) parts.push(`${tailsCount}T`);
+    svg += `<text x="${w/2}" y="${pad + coinR * 2 + 20}" text-anchor="middle" fill="${color}" font-size="14" font-weight="700" font-family="Inter,sans-serif">${parts.join(' / ')}</text>`;
+  }
+
+  const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${svg}</svg>`;
+  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+  const vp = await miro.board.viewport.get();
+  await miro.board.createImage({
+    url: dataUrl,
+    x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
+    width: Math.max(w, 100),
+    title: JSON.stringify({ _spinnerCoin: true, results: lastResults, color }),
+  });
+});
 
 // ── Events ───────────────────────────────────────────────
 btnFlip.addEventListener('click', flip);

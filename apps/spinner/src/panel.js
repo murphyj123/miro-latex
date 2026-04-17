@@ -434,13 +434,28 @@ if (loadPreset?.names?.length) {
   setNames(loadPreset.names);
   if (loadPreset.removeWinner != null) setState({ removeWinner: loadPreset.removeWinner });
 }
+if (loadPreset?.diceColor) setState({ diceColor: loadPreset.diceColor });
+if (loadPreset?.coinColor) setState({ coinColor: loadPreset.coinColor });
 
 syncSpinnerOptions();
 renderNames();
 renderTeams();
 renderClassList();
-setMode(getState().mode || 'spinner');
+setMode(loadPreset?.mode || getState().mode || 'spinner');
 
 if (loadPreset?.autoSpin) {
   miro.board.ui.openModal({ url: 'spinner/modal.html', width: 720, height: 520 });
+}
+if (loadPreset?.autoOpen === 'groups') {
+  generateGroups();
+  miro.board.ui.openModal({ url: 'spinner/groups.html', width: 740, height: 520 });
+}
+if (loadPreset?.autoOpen === 'dice') {
+  miro.board.ui.openModal({ url: 'spinner/dice.html', width: 560, height: 420 });
+}
+if (loadPreset?.autoOpen === 'coin') {
+  const count = getState().coinCount || 1;
+  const w = count > 2 ? 560 : 420;
+  const h = count > 3 ? 480 : 400;
+  miro.board.ui.openModal({ url: 'spinner/coin.html', width: w, height: h });
 }

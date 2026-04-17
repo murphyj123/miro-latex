@@ -69,6 +69,28 @@ html, body {
   border-color: #99f6e4;
 }
 
+.btn-place {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: var(--font);
+  box-shadow: 0 2px 6px rgba(20,184,166,0.25);
+}
+
+.btn-place:hover {
+  background: linear-gradient(135deg, #0d5c56, #0d9488);
+  transform: translateY(-1px);
+}
+
 /* ── Grid ──────────────────────────────────────────────── */
 .groups-grid {
   flex: 1;
@@ -114,6 +136,15 @@ html, body {
 
 .group-member:last-child {
   border-bottom: none;
+}
+
+.group-member.animate-in {
+  animation: member-fly-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes member-fly-in {
+  0% { opacity: 0; transform: translateY(-20px) scale(0.8); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .group-count {

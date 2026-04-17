@@ -1,4 +1,4 @@
-import { getState, setState } from './spinner-core.js';
+import { getState, setState, escapeXml } from './spinner-core.js';
 
 // ── DOM refs ─────────────────────────────────────────────
 const diceArea = document.getElementById('dice-area');
@@ -273,10 +273,51 @@ function roll() {
       playLandSound();
       rolling = false;
       setState({ lastDice: finalValues });
+      showPlaceButton();
     }
   }
 
   requestAnimationFrame(animate);
+}
+
+// ── Place on Board ───────────────────────────────────────
+const btnPlace = document.getElementById('btn-place');
+
+btnPlace.addEventListener('click', async () => {
+  const state = getState();
+  const values = state.lastDice;
+  if (!values?.length) return;
+
+  const color = getDiceColor();
+  const total = values.reduce((a, b) => a + b, 0);
+  const dieW = 60, pad = 16, gap = 12;
+  const w = pad * 2 + values.length * dieW + (values.length - 1) * gap;
+  const h = values.length > 1 && getShowTotal() ? 120 : 90;
+
+  let svg = '';
+  values.forEach((v, i) => {
+    const x = pad + i * (dieW + gap);
+    svg += `<rect x="${x}" y="${pad}" width="${dieW}" height="${dieW}" rx="12" fill="${color}"/>`;
+    svg += `<text x="${x + dieW/2}" y="${pad + dieW/2 + 1}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="24" font-weight="800" font-family="Inter,sans-serif">${v}</text>`;
+  });
+
+  if (values.length > 1 && getShowTotal()) {
+    svg += `<text x="${w/2}" y="${pad + dieW + 24}" text-anchor="middle" fill="#14b8a6" font-size="18" font-weight="800" font-family="Inter,sans-serif">Total: ${total}</text>`;
+  }
+
+  const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${svg}</svg>`;
+  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+  const vp = await miro.board.viewport.get();
+  await miro.board.createImage({
+    url: dataUrl,
+    x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
+    width: Math.max(w, 120),
+    title: JSON.stringify({ _spinnerDice: true, values, color }),
+  });
+});
+
+function showPlaceButton() {
+  btnPlace.classList.remove('hidden');
 }
 
 // ── Events ───────────────────────────────────────────────

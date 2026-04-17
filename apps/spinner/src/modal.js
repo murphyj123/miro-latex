@@ -1,4 +1,4 @@
-import { getState, setState, setNames, removeNameAtIndex, getColor, PALETTE } from './spinner-core.js';
+import { getState, setState, getColor, escapeXml, PALETTE } from './spinner-core.js';
 
 // ── DOM refs ─────────────────────────────────────────────
 const canvas = document.getElementById('wheel-canvas');
@@ -75,6 +75,10 @@ function fanfare() {
 let angle = 0; // current rotation in radians
 let spinning = false;
 let rafId = null;
+
+// Session-local names — removing a winner only affects this session, not the saved class
+let sessionNames = [...(getState().names || [])];
+const winnerHistory = []; // Track order of winners
 
 // ── Draw wheel ───────────────────────────────────────────
 function drawWheel(names, rotation) {
@@ -191,7 +195,7 @@ function animateConfetti() {
 // ── Spin animation ───────────────────────────────────────
 function spin() {
   const state = getState();
-  const names = state.names || [];
+  const names = sessionNames;
   if (names.length < 2 || spinning) return;
 
   // Resume audio on gesture
@@ -255,17 +259,19 @@ function spin() {
       winnerName.textContent = winner;
       winnerName.style.color = getColor(winnerIdx);
       winnerDisplay.classList.remove('hidden');
+      btnPlaceWinner.classList.remove('hidden');
       setState({ lastWinner: winner });
 
       fanfare();
       spawnConfetti();
+      winnerHistory.push(winner);
 
-      // Remove winner if option is set
+      // Remove winner from session only (not from saved class)
       if (state.removeWinner) {
         setTimeout(() => {
-          removeNameAtIndex(winnerIdx);
+          sessionNames.splice(winnerIdx, 1);
           renderChips();
-          drawWheel(getState().names || [], angle);
+          drawWheel(sessionNames, angle);
         }, 2000);
       }
     }
@@ -276,8 +282,7 @@ function spin() {
 
 // ── Render name chips ────────────────────────────────────
 function renderChips() {
-  const state = getState();
-  const names = state.names || [];
+  const names = sessionNames;
   namesLabel.textContent = `Names (${names.length})`;
 
   nameChips.innerHTML = '';
@@ -299,6 +304,36 @@ function syncOptions() {
   spinSoundCb.checked = state.spinSound !== false;
 }
 
+// ── Place winner on board ────────────────────────────────
+const btnPlaceWinner = document.getElementById('btn-place-winner');
+
+btnPlaceWinner.addEventListener('click', async () => {
+  const state = getState();
+  const winner = state.lastWinner;
+  if (!winner) return;
+
+  // Find the winner's color
+  const names = state.names || [];
+  const idx = names.indexOf(winner);
+  const color = idx >= 0 ? getColor(idx) : '#14b8a6';
+
+  const w = 220, h = 80, r = 12;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
+    <rect width="${w}" height="${h}" rx="${r}" fill="${color}"/>
+    <text x="${w/2}" y="28" text-anchor="middle" fill="#fff" font-size="11" font-weight="600" font-family="Inter,sans-serif" opacity="0.8">WINNER</text>
+    <text x="${w/2}" y="54" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" font-family="Inter,sans-serif">${escapeXml(winner)}</text>
+  </svg>`;
+
+  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  const vp = await miro.board.viewport.get();
+  await miro.board.createImage({
+    url: dataUrl,
+    x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
+    width: 220,
+    title: JSON.stringify({ _spinnerWinner: true, winner, color }),
+  });
+});
+
 // ── Events ───────────────────────────────────────────────
 btnSpin.addEventListener('click', spin);
 btnRespin.addEventListener('click', spin);
@@ -312,10 +347,12 @@ spinSoundCb.addEventListener('change', () => {
 });
 
 window.addEventListener('storage', () => {
+  // If names change externally, update session names
+  sessionNames = [...(getState().names || [])];
   renderChips();
   syncOptions();
   if (!spinning) {
-    drawWheel(getState().names || [], angle);
+    drawWheel(sessionNames, angle);
   }
 });
 
@@ -327,4 +364,4 @@ window.addEventListener('pagehide', () => {
 // ── Init ─────────────────────────────────────────────────
 syncOptions();
 renderChips();
-drawWheel(getState().names || [], angle);
+drawWheel(sessionNames, angle);
