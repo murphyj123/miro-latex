@@ -8,10 +8,11 @@
   --text-light: #94a3b8;
   --border: #e2e8f0;
   --primary: #14b8a6;
-  --primary-dark: #0f766e;
   --radius: 8px;
   --font: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --transition: 0.2s ease;
+  --die-size: 90px;
+  --die-color: #1e293b;
+  --die-text: #fff;
 }
 
 html, body {
@@ -32,7 +33,7 @@ html, body {
   justify-content: center;
   height: 100vh;
   padding: 24px;
-  gap: 20px;
+  gap: 24px;
 }
 
 /* ── Dice Area ─────────────────────────────────────────── */
@@ -41,82 +42,93 @@ html, body {
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 20px;
+  gap: 28px;
   min-height: 140px;
+  perspective: 800px;
 }
 
-/* ── Die ───────────────────────────────────────────────── */
-.die {
-  width: 100px;
-  height: 100px;
-  background: #fff;
-  border-radius: 16px;
-  border: 2px solid var(--border);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06);
+/* ── 3D Cube Container ────────────────────────────────── */
+.die-scene {
+  width: var(--die-size);
+  height: var(--die-size);
+  perspective: 500px;
+}
+
+.die-scene.placeholder { opacity: 0.3; }
+
+.die-cube {
+  width: 100%;
+  height: 100%;
   position: relative;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transform-style: preserve-3d;
+  transition: transform 0.1s;
 }
 
-.die.placeholder {
-  opacity: 0.35;
+.die-cube.rolling {
+  transition: none;
 }
 
-.die.landed {
-  animation: die-land 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+.die-cube.landed {
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.die.tumbling {
-  animation: die-tumble 0.08s ease;
+/* ── Cube Faces ───────────────────────────────────────── */
+.die-face {
+  position: absolute;
+  width: var(--die-size);
+  height: var(--die-size);
+  border-radius: 14px;
+  background: var(--die-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.12);
 }
 
-@keyframes die-land {
-  0% { transform: scale(0.8) rotate(-8deg); }
-  60% { transform: scale(1.08) rotate(2deg); }
-  100% { transform: scale(1) rotate(0deg); }
-}
+/* D6 face transforms — front=1, back=6, right=2, left=5, top=3, bottom=4 */
+.die-face--1 { transform: rotateY(  0deg) translateZ(calc(var(--die-size) / 2)); }
+.die-face--2 { transform: rotateY( 90deg) translateZ(calc(var(--die-size) / 2)); }
+.die-face--3 { transform: rotateX( 90deg) translateZ(calc(var(--die-size) / 2)); }
+.die-face--4 { transform: rotateX(-90deg) translateZ(calc(var(--die-size) / 2)); }
+.die-face--5 { transform: rotateY(-90deg) translateZ(calc(var(--die-size) / 2)); }
+.die-face--6 { transform: rotateY(180deg) translateZ(calc(var(--die-size) / 2)); }
 
-@keyframes die-tumble {
-  0% { transform: rotate(0deg) scale(0.95); }
-  50% { transform: rotate(12deg) scale(1.02); }
-  100% { transform: rotate(-5deg) scale(0.98); }
-}
-
-/* ── D6 Pips ───────────────────────────────────────────── */
-.die-d6 {
-  /* pips positioned absolutely */
+/* ── D6 Pips ──────────────────────────────────────────── */
+.pip-grid {
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  width: 60%;
+  height: 60%;
+  place-items: center;
 }
 
 .pip {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  background: var(--text);
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  transform: translate(-50%, -50%);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* ── Numeric Die (D4, D8, D10, D12, D20) ──────────────── */
-.die-numeric {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-}
+.pip.empty { background: transparent; box-shadow: none; }
 
+/* ── Numeric Face (non-D6) ────────────────────────────── */
 .die-number {
-  font-size: 36px;
+  font-size: 34px;
   font-weight: 800;
+  color: var(--die-text);
   line-height: 1;
-  color: var(--text);
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-.die-sides-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-light);
+.die-label {
+  position: absolute;
+  bottom: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -126,7 +138,6 @@ html, body {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  animation: total-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .dice-total.hidden { display: none; }
@@ -145,6 +156,7 @@ html, body {
   color: var(--primary);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
+  animation: total-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes total-pop {
@@ -183,84 +195,4 @@ html, body {
   background: linear-gradient(135deg, #0d5c56, #0d9488);
   box-shadow: 0 4px 14px rgba(20,184,166,0.38);
   transform: translateY(-1px);
-}
-
-.controls-row {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-}
-
-.control-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.control-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-/* ── Stepper ───────────────────────────────────────────── */
-.stepper {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: #fff;
-}
-
-.stepper-btn {
-  width: 30px;
-  height: 30px;
-  border: none;
-  background: #fff;
-  color: var(--text);
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.1s;
-  font-family: var(--font);
-}
-
-.stepper-btn:hover {
-  background: rgba(20,184,166,0.08);
-  color: var(--primary);
-}
-
-.stepper-value {
-  width: 28px;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-  line-height: 30px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ── Sides Select ──────────────────────────────────────── */
-.sides-select {
-  padding: 6px 10px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  background: #fff;
-  outline: none;
-  cursor: pointer;
-  font-family: var(--font);
-}
-
-.sides-select:focus {
-  border-color: var(--primary);
 }

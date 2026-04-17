@@ -5,19 +5,26 @@ const diceArea = document.getElementById('dice-area');
 const btnRoll = document.getElementById('btn-roll');
 const diceTotalEl = document.getElementById('dice-total');
 const totalValueEl = document.getElementById('total-value');
-const diceCountLabel = document.getElementById('dice-count-label');
-const btnMinus = document.getElementById('dice-minus');
-const btnPlus = document.getElementById('dice-plus');
-const diceSidesSelect = document.getElementById('dice-sides');
 
-// ── D6 pip layouts (positions as % of die face) ─────────
-const PIP_LAYOUTS = {
-  1: [[50, 50]],
-  2: [[28, 28], [72, 72]],
-  3: [[28, 28], [50, 50], [72, 72]],
-  4: [[28, 28], [72, 28], [28, 72], [72, 72]],
-  5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
-  6: [[28, 28], [72, 28], [28, 50], [72, 50], [28, 72], [72, 72]],
+// ── D6 pip patterns (3x3 grid, 1=pip, 0=empty) ─────────
+const PIP_PATTERNS = {
+  1: [0,0,0, 0,1,0, 0,0,0],
+  2: [0,0,1, 0,0,0, 1,0,0],
+  3: [0,0,1, 0,1,0, 1,0,0],
+  4: [1,0,1, 0,0,0, 1,0,1],
+  5: [1,0,1, 0,1,0, 1,0,1],
+  6: [1,0,1, 1,0,1, 1,0,1],
+};
+
+// ── Rotation targets to show each face ──────────────────
+// These map a face value to the rotation needed to bring it to front
+const FACE_ROTATIONS = {
+  1: [0, 0],       // front
+  2: [0, -90],     // right
+  3: [-90, 0],     // top
+  4: [90, 0],      // bottom
+  5: [0, 90],      // left
+  6: [0, 180],     // back
 };
 
 // ── Audio ────────────────────────────────────────────────
@@ -29,11 +36,9 @@ function getAudioCtx() {
 }
 
 function playRollSound() {
-  const state = getState();
-  if (!state.diceSound) return;
+  if (!getState().diceSound) return;
   try {
     const ctx = getAudioCtx();
-    // Short noise burst for dice rattle
     const bufferSize = ctx.sampleRate * 0.08;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -56,8 +61,7 @@ function playRollSound() {
 }
 
 function playLandSound() {
-  const state = getState();
-  if (!state.diceSound) return;
+  if (!getState().diceSound) return;
   try {
     const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
@@ -76,71 +80,120 @@ function playLandSound() {
 // ── State ────────────────────────────────────────────────
 let rolling = false;
 
-function getDiceCount() {
-  return getState().diceCount || 1;
+function getDiceCount() { return getState().diceCount || 1; }
+function getDiceSides() { return getState().diceSides || 6; }
+function getDiceColor() { return getState().diceColor || '#1e293b'; }
+
+// ── Build a single 3D die ────────────────────────────────
+function buildD6Face(value) {
+  const grid = document.createElement('div');
+  grid.className = 'pip-grid';
+  const pattern = PIP_PATTERNS[value];
+  for (let i = 0; i < 9; i++) {
+    const pip = document.createElement('span');
+    pip.className = pattern[i] ? 'pip' : 'pip empty';
+    grid.appendChild(pip);
+  }
+  return grid;
 }
 
-function getDiceSides() {
-  return getState().diceSides || 6;
+function buildNumericFace(value, sides) {
+  const frag = document.createDocumentFragment();
+  const num = document.createElement('span');
+  num.className = 'die-number';
+  num.textContent = value;
+  const label = document.createElement('span');
+  label.className = 'die-label';
+  label.textContent = `D${sides}`;
+  frag.append(num, label);
+  return frag;
 }
 
-// ── Render dice ──────────────────────────────────────────
-function createDieElement(value, sides) {
-  const die = document.createElement('div');
-  die.className = 'die';
+function createDie(sides, color) {
+  const scene = document.createElement('div');
+  scene.className = 'die-scene';
+
+  const cube = document.createElement('div');
+  cube.className = 'die-cube';
+  scene.appendChild(cube);
 
   if (sides === 6) {
-    // Render pips
-    die.classList.add('die-d6');
-    const pips = PIP_LAYOUTS[value] || [];
-    pips.forEach(([x, y]) => {
-      const pip = document.createElement('span');
-      pip.className = 'pip';
-      pip.style.left = x + '%';
-      pip.style.top = y + '%';
-      die.appendChild(pip);
-    });
+    // Build all 6 faces with pips
+    for (let f = 1; f <= 6; f++) {
+      const face = document.createElement('div');
+      face.className = `die-face die-face--${f}`;
+      face.style.background = color;
+      face.appendChild(buildD6Face(f));
+      cube.appendChild(face);
+    }
   } else {
-    // Render number for non-d6
-    die.classList.add('die-numeric');
-    const num = document.createElement('span');
-    num.className = 'die-number';
-    num.textContent = value;
-    const label = document.createElement('span');
-    label.className = 'die-sides-label';
-    label.textContent = `D${sides}`;
-    die.append(num, label);
+    // For non-D6, use 6 random faces (we rotate to show the result)
+    for (let f = 1; f <= 6; f++) {
+      const face = document.createElement('div');
+      face.className = `die-face die-face--${f}`;
+      face.style.background = color;
+      const val = Math.ceil(Math.random() * sides);
+      face.appendChild(buildNumericFace(val, sides));
+      cube.appendChild(face);
+    }
   }
 
-  return die;
+  return scene;
 }
 
-function renderDice(values, sides) {
+// ── Set die rotation to show a value ─────────────────────
+function showFace(scene, value, sides, landed) {
+  const cube = scene.querySelector('.die-cube');
+
+  if (sides === 6) {
+    const [rx, ry] = FACE_ROTATIONS[value];
+    cube.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+  } else {
+    // For non-D6: put the result number on face 1 (front) and rotate to face 1
+    const frontFace = cube.querySelector('.die-face--1');
+    frontFace.innerHTML = '';
+    frontFace.appendChild(buildNumericFace(value, sides));
+    cube.style.transform = `rotateX(0deg) rotateY(0deg)`;
+  }
+
+  if (landed) {
+    cube.classList.remove('rolling');
+    cube.classList.add('landed');
+  }
+}
+
+// ── Render ────────────────────────────────────────────────
+function renderDice(values, sides, color) {
   diceArea.innerHTML = '';
+  const scenes = [];
   values.forEach((v) => {
-    diceArea.appendChild(createDieElement(v, sides));
+    const scene = createDie(sides, color);
+    showFace(scene, v, sides, false);
+    diceArea.appendChild(scene);
+    scenes.push(scene);
   });
 
   if (values.length > 1) {
-    const total = values.reduce((a, b) => a + b, 0);
-    totalValueEl.textContent = total;
+    totalValueEl.textContent = values.reduce((a, b) => a + b, 0);
     diceTotalEl.classList.remove('hidden');
   } else {
     diceTotalEl.classList.add('hidden');
   }
+
+  return scenes;
 }
 
 function renderPlaceholder() {
   const count = getDiceCount();
   const sides = getDiceSides();
+  const color = getDiceColor();
   const values = Array.from({ length: count }, () => Math.ceil(Math.random() * sides));
-  renderDice(values, sides);
-  // Dim them to indicate not yet rolled
-  diceArea.querySelectorAll('.die').forEach((d) => d.classList.add('placeholder'));
+  const scenes = renderDice(values, sides, color);
+  scenes.forEach((s) => s.classList.add('placeholder'));
   diceTotalEl.classList.add('hidden');
 }
 
-// ── Roll animation ───────────────────────────────────────
+// ── Roll animation (CSS 3D tumble) ───────────────────────
 function roll() {
   if (rolling) return;
   rolling = true;
@@ -149,11 +202,22 @@ function roll() {
 
   const count = getDiceCount();
   const sides = getDiceSides();
+  const color = getDiceColor();
   const finalValues = Array.from({ length: count }, () => Math.ceil(Math.random() * sides));
 
-  const duration = 1200;
+  // Create fresh dice
+  diceArea.innerHTML = '';
+  const scenes = [];
+  for (let i = 0; i < count; i++) {
+    const scene = createDie(sides, color);
+    diceArea.appendChild(scene);
+    scenes.push(scene);
+  }
+
+  // Tumble animation — spin cubes with RAF, decelerating
+  const duration = 1400;
   const startTime = performance.now();
-  let lastSwap = 0;
+  let soundTimer = 0;
 
   playRollSound();
 
@@ -161,35 +225,49 @@ function roll() {
     const elapsed = now - startTime;
     const t = Math.min(elapsed / duration, 1);
 
-    // Swap interval increases as it slows down (easeOutCubic)
-    const interval = 50 + 200 * t * t;
+    // Eased progress (easeOutCubic)
+    const ease = 1 - Math.pow(1 - t, 3);
 
-    if (elapsed - lastSwap > interval) {
-      lastSwap = elapsed;
-      const tempValues = Array.from({ length: count }, () => Math.ceil(Math.random() * sides));
-      renderDice(tempValues, sides);
+    // Total rotation scales: multiple full spins early, slows down
+    const totalSpinX = 720 + Math.random() * 360;
+    const totalSpinY = 720 + Math.random() * 360;
 
-      // Add tumble animation class
-      diceArea.querySelectorAll('.die').forEach((d) => {
-        d.classList.add('tumbling');
-      });
+    scenes.forEach((scene, i) => {
+      const cube = scene.querySelector('.die-cube');
+      cube.classList.add('rolling');
 
-      if (t < 0.85) playRollSound();
+      // Each die gets slightly different rotation speed for variety
+      const offsetX = (i * 47 + 23) % 360;
+      const offsetY = (i * 71 + 41) % 360;
+      const rx = offsetX + totalSpinX * ease;
+      const ry = offsetY + totalSpinY * ease;
+
+      cube.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+    });
+
+    // Play rattle sounds periodically
+    if (elapsed - soundTimer > 120 && t < 0.8) {
+      soundTimer = elapsed;
+      playRollSound();
     }
 
     if (t < 1) {
       requestAnimationFrame(animate);
     } else {
-      // Final result
-      renderDice(finalValues, sides);
-      rolling = false;
-      playLandSound();
-
-      // Pop animation on final dice
-      diceArea.querySelectorAll('.die').forEach((d) => {
-        d.classList.add('landed');
+      // Land on final values
+      scenes.forEach((scene, i) => {
+        showFace(scene, finalValues[i], sides, true);
       });
 
+      if (count > 1) {
+        totalValueEl.textContent = finalValues.reduce((a, b) => a + b, 0);
+        diceTotalEl.classList.remove('hidden');
+      } else {
+        diceTotalEl.classList.add('hidden');
+      }
+
+      playLandSound();
+      rolling = false;
       setState({ lastDice: finalValues });
     }
   }
@@ -197,40 +275,8 @@ function roll() {
   requestAnimationFrame(animate);
 }
 
-// ── Controls ─────────────────────────────────────────────
-function syncControls() {
-  const count = getDiceCount();
-  const sides = getDiceSides();
-  diceCountLabel.textContent = count;
-  diceSidesSelect.value = sides;
-}
-
+// ── Events ───────────────────────────────────────────────
 btnRoll.addEventListener('click', roll);
 
-btnMinus.addEventListener('click', () => {
-  const count = Math.max(1, getDiceCount() - 1);
-  setState({ diceCount: count });
-  syncControls();
-  renderPlaceholder();
-});
-
-btnPlus.addEventListener('click', () => {
-  const count = Math.min(6, getDiceCount() + 1);
-  setState({ diceCount: count });
-  syncControls();
-  renderPlaceholder();
-});
-
-diceSidesSelect.addEventListener('change', () => {
-  setState({ diceSides: parseInt(diceSidesSelect.value) });
-  syncControls();
-  renderPlaceholder();
-});
-
-window.addEventListener('storage', () => {
-  syncControls();
-});
-
 // ── Init ─────────────────────────────────────────────────
-syncControls();
 renderPlaceholder();

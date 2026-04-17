@@ -28,7 +28,11 @@ function defaultState() {
     diceCount: 1,
     diceSides: 6,
     diceSound: true,
+    diceColor: '#1e293b',
     lastDice: null,
+    // Coin
+    coinColor: '#f59e0b',
+    coinSound: true,
   };
 }
 

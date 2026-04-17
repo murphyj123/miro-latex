@@ -6,7 +6,11 @@ import {
 } from './spinner-core.js';
 import { getSafeJSON } from '../../shared/storage-utils.js';
 
-// ── DOM refs (shared) ────────────────────────────────────
+const DICE_COLORS = ['#1e293b', '#ef4444', '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b'];
+const COIN_COLORS = ['#f59e0b', '#94a3b8', '#ef4444', '#3b82f6', '#10b981', '#8b5cf6'];
+
+// ── DOM refs ─────────────────────────────────────────────
+const namesSection = document.getElementById('names-section');
 const nameInput = document.getElementById('name-input');
 const btnAdd = document.getElementById('btn-add');
 const csvPaste = document.getElementById('csv-paste');
@@ -36,6 +40,12 @@ const diceMinus = document.getElementById('dice-minus');
 const dicePlus = document.getElementById('dice-plus');
 const diceSidesSelect = document.getElementById('dice-sides');
 const diceSoundCb = document.getElementById('dice-sound');
+const diceColorsEl = document.getElementById('dice-colors');
+
+// Coin
+const btnFlip = document.getElementById('btn-flip');
+const coinSoundCb = document.getElementById('coin-sound');
+const coinColorsEl = document.getElementById('coin-colors');
 
 // Saved classes
 const classSelect = document.getElementById('class-select');
@@ -46,6 +56,32 @@ const saveDialog = document.getElementById('save-dialog');
 const saveClassNameInput = document.getElementById('save-class-name');
 const saveOk = document.getElementById('save-ok');
 const saveCancel = document.getElementById('save-cancel');
+
+// ══════════════════════════════════════════════════════════
+// MODE TABS (at the top — controls everything)
+// ══════════════════════════════════════════════════════════
+
+const MODES_WITH_NAMES = ['spinner', 'groups'];
+
+function setMode(mode) {
+  setState({ mode });
+  modeTabs.forEach((t) => t.classList.toggle('active', t.dataset.mode === mode));
+  document.getElementById('mode-spinner').classList.toggle('hidden', mode !== 'spinner');
+  document.getElementById('mode-groups').classList.toggle('hidden', mode !== 'groups');
+  document.getElementById('mode-dice').classList.toggle('hidden', mode !== 'dice');
+  document.getElementById('mode-coin').classList.toggle('hidden', mode !== 'coin');
+
+  // Show names section only for spinner/groups
+  namesSection.classList.toggle('hidden', !MODES_WITH_NAMES.includes(mode));
+
+  if (mode === 'groups') renderTeams();
+  if (mode === 'dice') syncDiceOptions();
+  if (mode === 'coin') syncCoinOptions();
+}
+
+modeTabs.forEach((tab) => {
+  tab.addEventListener('click', () => setMode(tab.dataset.mode));
+});
 
 // ══════════════════════════════════════════════════════════
 // SHARED: Name management
@@ -147,7 +183,6 @@ classSelect.addEventListener('change', () => {
 btnSaveClass.addEventListener('click', () => {
   const names = getState().names || [];
   if (names.length === 0) return;
-  // Pre-fill with current selection if any
   saveClassNameInput.value = classSelect.value || '';
   saveDialog.classList.remove('hidden');
   saveClassNameInput.focus();
@@ -162,10 +197,7 @@ saveOk.addEventListener('click', () => {
   classSelect.value = name;
 });
 
-saveCancel.addEventListener('click', () => {
-  saveDialog.classList.add('hidden');
-});
-
+saveCancel.addEventListener('click', () => saveDialog.classList.add('hidden'));
 saveClassNameInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') saveOk.click();
   if (e.key === 'Escape') saveCancel.click();
@@ -184,24 +216,6 @@ btnNew.addEventListener('click', () => {
   classSelect.value = '';
   renderNames();
   renderTeams();
-});
-
-// ══════════════════════════════════════════════════════════
-// MODE TABS
-// ══════════════════════════════════════════════════════════
-
-function setMode(mode) {
-  setState({ mode });
-  modeTabs.forEach((t) => t.classList.toggle('active', t.dataset.mode === mode));
-  document.getElementById('mode-spinner').classList.toggle('hidden', mode !== 'spinner');
-  document.getElementById('mode-groups').classList.toggle('hidden', mode !== 'groups');
-  document.getElementById('mode-dice').classList.toggle('hidden', mode !== 'dice');
-  if (mode === 'groups') renderTeams();
-  if (mode === 'dice') syncDiceOptions();
-}
-
-modeTabs.forEach((tab) => {
-  tab.addEventListener('click', () => setMode(tab.dataset.mode));
 });
 
 // ══════════════════════════════════════════════════════════
@@ -225,22 +239,19 @@ btnPlaceSpinner.addEventListener('click', async () => {
   const state = getState();
   const names = state.names || [];
   if (names.length < 2) return;
-
   const svg = generateWheelSVG(names);
   const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
   const vp = await miro.board.viewport.get();
   await miro.board.createImage({
     url: dataUrl,
-    x: vp.x + vp.width / 2,
-    y: vp.y + vp.height / 2,
+    x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
     width: 400,
     title: JSON.stringify({ _spinner: true, names, removeWinner: state.removeWinner }),
   });
 });
 
 function generateWheelSVG(names) {
-  const size = 400, cx = 200, cy = 200, r = 190;
-  const n = names.length;
+  const size = 400, cx = 200, cy = 200, r = 190, n = names.length;
   const sliceAngle = (2 * Math.PI) / n;
   let paths = '';
   for (let i = 0; i < n; i++) {
@@ -248,13 +259,10 @@ function generateWheelSVG(names) {
     const a2 = (i + 1) * sliceAngle - Math.PI / 2;
     const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
     const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
-    const large = sliceAngle > Math.PI ? 1 : 0;
-    paths += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z" fill="${getColor(i)}"/>`;
-    const midAngle = a1 + sliceAngle / 2;
-    const tx = cx + r * 0.65 * Math.cos(midAngle), ty = cy + r * 0.65 * Math.sin(midAngle);
-    const deg = (midAngle * 180) / Math.PI;
+    paths += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${sliceAngle > Math.PI ? 1 : 0},1 ${x2},${y2} Z" fill="${getColor(i)}"/>`;
+    const mid = a1 + sliceAngle / 2, tx = cx + r * .65 * Math.cos(mid), ty = cy + r * .65 * Math.sin(mid);
     const label = names[i].length > 12 ? names[i].slice(0, 11) + '\u2026' : names[i];
-    paths += `<text x="${tx}" y="${ty}" transform="rotate(${deg},${tx},${ty})" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="12" font-weight="600" font-family="Inter,sans-serif">${escapeXml(label)}</text>`;
+    paths += `<text x="${tx}" y="${ty}" transform="rotate(${mid * 180 / Math.PI},${tx},${ty})" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="12" font-weight="600" font-family="Inter,sans-serif">${escapeXml(label)}</text>`;
   }
   paths += `<circle cx="${cx}" cy="${cy}" r="22" fill="#1e293b"/><circle cx="${cx}" cy="${cy}" r="18" fill="#fff"/><circle cx="${cx}" cy="${cy}" r="4" fill="#1e293b"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${paths}</svg>`;
@@ -269,27 +277,21 @@ function renderTeams() {
   const count = getTeamCount();
   const teams = buildTeams(count);
   setState({ teams });
-
   teamList.innerHTML = '';
   teams.forEach((team, i) => {
     const row = document.createElement('div');
     row.className = 'team-row';
-
-    // Color swatch — cycles palette on click
     const swatch = document.createElement('button');
     swatch.className = 'team-swatch';
     swatch.style.background = team.color;
     swatch.title = 'Change colour';
     swatch.addEventListener('click', () => {
-      const palIdx = PALETTE.indexOf(team.color);
-      const next = PALETTE[(palIdx + 1) % PALETTE.length];
+      const idx = PALETTE.indexOf(team.color);
       const updatedTeams = [...getState().teams];
-      updatedTeams[i] = { ...updatedTeams[i], color: next };
+      updatedTeams[i] = { ...updatedTeams[i], color: PALETTE[(idx + 1) % PALETTE.length] };
       setState({ teams: updatedTeams });
       renderTeams();
     });
-
-    // Editable team name
     const input = document.createElement('input');
     input.className = 'team-name-input';
     input.value = team.name;
@@ -298,21 +300,13 @@ function renderTeams() {
       updatedTeams[i] = { ...updatedTeams[i], name: input.value.trim() || `Group ${i + 1}` };
       setState({ teams: updatedTeams });
     });
-
     row.append(swatch, input);
     teamList.appendChild(row);
   });
 }
 
-groupModeSelect.addEventListener('change', () => {
-  setState({ groupMode: groupModeSelect.value });
-  renderTeams();
-});
-
-groupCountInput.addEventListener('change', () => {
-  setState({ groupCount: Math.max(2, parseInt(groupCountInput.value) || 2) });
-  renderTeams();
-});
+groupModeSelect.addEventListener('change', () => { setState({ groupMode: groupModeSelect.value }); renderTeams(); });
+groupCountInput.addEventListener('change', () => { setState({ groupCount: Math.max(2, parseInt(groupCountInput.value) || 2) }); renderTeams(); });
 
 btnGenerate.addEventListener('click', async () => {
   generateGroups();
@@ -324,14 +318,11 @@ btnPlaceGroups.addEventListener('click', async () => {
   const groups = state.lastGroups;
   const teams = state.teams || [];
   if (!groups?.length) return;
-
   const svg = generateGroupsSVG(groups, teams);
   const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
   const vp = await miro.board.viewport.get();
   await miro.board.createImage({
-    url: dataUrl,
-    x: vp.x + vp.width / 2,
-    y: vp.y + vp.height / 2,
+    url: dataUrl, x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
     width: Math.min(groups.length * 200, 800),
     title: JSON.stringify({ _spinnerGroups: true, names: state.names, teams }),
   });
@@ -342,25 +333,17 @@ function generateGroupsSVG(groups, teams) {
   const maxMembers = Math.max(...groups.map((g) => g.length));
   const h = pad * 2 + headerH + maxMembers * rowH + 8;
   const w = pad + groups.length * (colW + pad);
-
   let svg = '';
   groups.forEach((members, i) => {
-    const x = pad + i * (colW + pad);
-    const color = teams[i]?.color || getColor(i);
-    const name = teams[i]?.name || `Group ${i + 1}`;
-    // Card background
+    const x = pad + i * (colW + pad), color = teams[i]?.color || getColor(i), name = teams[i]?.name || `Group ${i + 1}`;
     svg += `<rect x="${x}" y="${pad}" width="${colW}" height="${h - pad * 2}" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>`;
-    // Header
     svg += `<rect x="${x}" y="${pad}" width="${colW}" height="${headerH}" rx="8" fill="${color}"/>`;
     svg += `<rect x="${x}" y="${pad + 20}" width="${colW}" height="${headerH - 20}" fill="${color}"/>`;
     svg += `<text x="${x + colW / 2}" y="${pad + headerH / 2 + 1}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="13" font-weight="700" font-family="Inter,sans-serif">${escapeXml(name)}</text>`;
-    // Members
     members.forEach((member, j) => {
-      const my = pad + headerH + 12 + j * rowH;
-      svg += `<text x="${x + 14}" y="${my}" dominant-baseline="hanging" fill="#1e293b" font-size="12" font-weight="500" font-family="Inter,sans-serif">${escapeXml(member)}</text>`;
+      svg += `<text x="${x + 14}" y="${pad + headerH + 12 + j * rowH}" dominant-baseline="hanging" fill="#1e293b" font-size="12" font-weight="500" font-family="Inter,sans-serif">${escapeXml(member)}</text>`;
     });
   });
-
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${svg}</svg>`;
 }
 
@@ -368,35 +351,52 @@ function generateGroupsSVG(groups, teams) {
 // DICE MODE
 // ══════════════════════════════════════════════════════════
 
+function renderColorSwatches(container, colors, stateKey) {
+  container.innerHTML = '';
+  const current = getState()[stateKey] || colors[0];
+  colors.forEach((c) => {
+    const btn = document.createElement('button');
+    btn.className = 'color-swatch' + (c === current ? ' active' : '');
+    btn.style.background = c;
+    btn.addEventListener('click', () => {
+      setState({ [stateKey]: c });
+      renderColorSwatches(container, colors, stateKey);
+    });
+    container.appendChild(btn);
+  });
+}
+
 function syncDiceOptions() {
   const state = getState();
   diceCountLabel.textContent = state.diceCount || 1;
   diceSidesSelect.value = state.diceSides || 6;
   diceSoundCb.checked = state.diceSound !== false;
+  renderColorSwatches(diceColorsEl, DICE_COLORS, 'diceColor');
 }
 
-diceMinus.addEventListener('click', () => {
-  const count = Math.max(1, (getState().diceCount || 1) - 1);
-  setState({ diceCount: count });
-  syncDiceOptions();
-});
-
-dicePlus.addEventListener('click', () => {
-  const count = Math.min(6, (getState().diceCount || 1) + 1);
-  setState({ diceCount: count });
-  syncDiceOptions();
-});
-
-diceSidesSelect.addEventListener('change', () => {
-  setState({ diceSides: parseInt(diceSidesSelect.value) });
-});
-
-diceSoundCb.addEventListener('change', () => {
-  setState({ diceSound: diceSoundCb.checked });
-});
+diceMinus.addEventListener('click', () => { setState({ diceCount: Math.max(1, (getState().diceCount || 1) - 1) }); syncDiceOptions(); });
+dicePlus.addEventListener('click', () => { setState({ diceCount: Math.min(6, (getState().diceCount || 1) + 1) }); syncDiceOptions(); });
+diceSidesSelect.addEventListener('change', () => setState({ diceSides: parseInt(diceSidesSelect.value) }));
+diceSoundCb.addEventListener('change', () => setState({ diceSound: diceSoundCb.checked }));
 
 btnRoll.addEventListener('click', async () => {
   await miro.board.ui.openModal({ url: 'spinner/dice.html', width: 560, height: 420 });
+});
+
+// ══════════════════════════════════════════════════════════
+// COIN MODE
+// ══════════════════════════════════════════════════════════
+
+function syncCoinOptions() {
+  const state = getState();
+  coinSoundCb.checked = state.coinSound !== false;
+  renderColorSwatches(coinColorsEl, COIN_COLORS, 'coinColor');
+}
+
+coinSoundCb.addEventListener('change', () => setState({ coinSound: coinSoundCb.checked }));
+
+btnFlip.addEventListener('click', async () => {
+  await miro.board.ui.openModal({ url: 'spinner/coin.html', width: 420, height: 400 });
 });
 
 // ══════════════════════════════════════════════════════════
@@ -407,6 +407,8 @@ window.addEventListener('storage', () => {
   renderNames();
   renderTeams();
   syncSpinnerOptions();
+  syncDiceOptions();
+  syncCoinOptions();
   renderClassList();
 });
 
@@ -427,7 +429,6 @@ renderTeams();
 renderClassList();
 setMode(getState().mode || 'spinner');
 
-// Auto-open modal if loaded from a board image
 if (loadPreset?.autoSpin) {
   miro.board.ui.openModal({ url: 'spinner/modal.html', width: 720, height: 520 });
 }
