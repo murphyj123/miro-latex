@@ -6,6 +6,7 @@ const btnRoll = document.getElementById('btn-roll');
 const diceTotalEl = document.getElementById('dice-total');
 const totalValueEl = document.getElementById('total-value');
 const colorSwatchesEl = document.getElementById('dice-color-swatches');
+const btnPlace = document.getElementById('btn-place');
 
 const DICE_COLORS = ['#1e293b', '#ef4444', '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b'];
 
@@ -80,22 +81,38 @@ function playLandSound() {
 
 // ── State helpers ────────────────────────────────────────
 let rolling = false;
+let selectedDie = 0; // Which die the color swatches apply to
 
 function getDiceCount() { return getState().diceCount || 1; }
 function getDiceSides() { return getState().diceSides || 6; }
-function getDiceColor() { return getState().diceColor || '#1e293b'; }
 function getShowTotal() { return getState().diceShowTotal !== false; }
+
+// Per-die colors — stored as array, falls back to single diceColor
+function getDiceColors() {
+  const state = getState();
+  const count = getDiceCount();
+  const colors = state.diceColors || [];
+  const fallback = state.diceColor || '#1e293b';
+  return Array.from({ length: count }, (_, i) => colors[i] || fallback);
+}
+
+function setDieColor(index, color) {
+  const colors = getDiceColors();
+  colors[index] = color;
+  setState({ diceColors: colors });
+}
 
 // ── Color swatches (in-modal) ────────────────────────────
 function renderSwatches() {
   colorSwatchesEl.innerHTML = '';
-  const current = getDiceColor();
+  const colors = getDiceColors();
+  const current = colors[selectedDie] || '#1e293b';
   DICE_COLORS.forEach((c) => {
     const btn = document.createElement('button');
     btn.className = 'modal-swatch' + (c === current ? ' active' : '');
     btn.style.background = c;
     btn.addEventListener('click', () => {
-      setState({ diceColor: c });
+      setDieColor(selectedDie, c);
       renderSwatches();
       renderPlaceholder();
     });
@@ -187,25 +204,43 @@ function updateTotal(values) {
   }
 }
 
-function renderDice(values, sides, color) {
+function renderDice(values, sides, colors) {
   diceArea.innerHTML = '';
   const scenes = [];
-  values.forEach((v) => {
+  values.forEach((v, i) => {
+    const color = colors[i] || colors[0] || '#1e293b';
     const scene = createDie(sides, color);
     showFace(scene, v, sides, false);
+
+    // Click to select this die for color change
+    scene.addEventListener('click', () => {
+      if (rolling) return;
+      selectedDie = i;
+      highlightSelected();
+      renderSwatches();
+    });
+
     diceArea.appendChild(scene);
     scenes.push(scene);
   });
   updateTotal(values);
+  highlightSelected();
   return scenes;
+}
+
+function highlightSelected() {
+  const scenes = diceArea.querySelectorAll('.die-scene');
+  scenes.forEach((s, i) => {
+    s.classList.toggle('selected', i === selectedDie && scenes.length > 1);
+  });
 }
 
 function renderPlaceholder() {
   const count = getDiceCount();
   const sides = getDiceSides();
-  const color = getDiceColor();
+  const colors = getDiceColors();
   const values = Array.from({ length: count }, () => Math.ceil(Math.random() * sides));
-  const scenes = renderDice(values, sides, color);
+  const scenes = renderDice(values, sides, colors);
   scenes.forEach((s) => s.classList.add('placeholder'));
   diceTotalEl.classList.add('hidden');
 }
@@ -219,13 +254,13 @@ function roll() {
 
   const count = getDiceCount();
   const sides = getDiceSides();
-  const color = getDiceColor();
+  const colors = getDiceColors();
   const finalValues = Array.from({ length: count }, () => Math.ceil(Math.random() * sides));
 
   diceArea.innerHTML = '';
   const scenes = [];
   for (let i = 0; i < count; i++) {
-    const scene = createDie(sides, color);
+    const scene = createDie(sides, colors[i]);
     diceArea.appendChild(scene);
     scenes.push(scene);
   }
@@ -273,7 +308,18 @@ function roll() {
       playLandSound();
       rolling = false;
       setState({ lastDice: finalValues });
-      showPlaceButton();
+      btnPlace.classList.remove('hidden');
+
+      // Re-attach click handlers for color selection
+      scenes.forEach((scene, i) => {
+        scene.addEventListener('click', () => {
+          if (rolling) return;
+          selectedDie = i;
+          highlightSelected();
+          renderSwatches();
+        });
+      });
+      highlightSelected();
     }
   }
 
@@ -281,14 +327,12 @@ function roll() {
 }
 
 // ── Place on Board ───────────────────────────────────────
-const btnPlace = document.getElementById('btn-place');
-
 btnPlace.addEventListener('click', async () => {
   const state = getState();
   const values = state.lastDice;
   if (!values?.length) return;
 
-  const color = getDiceColor();
+  const colors = getDiceColors();
   const total = values.reduce((a, b) => a + b, 0);
   const dieW = 60, pad = 16, gap = 12;
   const w = pad * 2 + values.length * dieW + (values.length - 1) * gap;
@@ -297,7 +341,7 @@ btnPlace.addEventListener('click', async () => {
   let svg = '';
   values.forEach((v, i) => {
     const x = pad + i * (dieW + gap);
-    svg += `<rect x="${x}" y="${pad}" width="${dieW}" height="${dieW}" rx="12" fill="${color}"/>`;
+    svg += `<rect x="${x}" y="${pad}" width="${dieW}" height="${dieW}" rx="12" fill="${colors[i]}"/>`;
     svg += `<text x="${x + dieW/2}" y="${pad + dieW/2 + 1}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="24" font-weight="800" font-family="Inter,sans-serif">${v}</text>`;
   });
 
@@ -312,13 +356,9 @@ btnPlace.addEventListener('click', async () => {
     url: dataUrl,
     x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
     width: Math.max(w, 120),
-    title: JSON.stringify({ _spinnerDice: true, values, color }),
+    title: JSON.stringify({ _spinnerDice: true, values, colors }),
   });
 });
-
-function showPlaceButton() {
-  btnPlace.classList.remove('hidden');
-}
 
 // ── Events ───────────────────────────────────────────────
 btnRoll.addEventListener('click', roll);

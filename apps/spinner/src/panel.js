@@ -91,15 +91,25 @@ modeTabs.forEach((tab) => {
 // SHARED: Name management
 // ══════════════════════════════════════════════════════════
 
+const emptyState = document.getElementById('empty-state');
+
 function renderNames() {
   const state = getState();
   const names = state.names || [];
-  namesLabel.textContent = `Names (${names.length})`;
+  const hasNames = names.length > 0;
   const hasEnough = names.length >= 2;
+
+  namesLabel.textContent = `Names (${names.length})`;
   btnSpin.disabled = !hasEnough;
   btnPlaceSpinner.disabled = !hasEnough;
   btnGenerate.disabled = !hasEnough;
   btnPlaceGroups.disabled = !hasEnough || !state.lastGroups;
+
+  // Show/hide empty state vs name list
+  emptyState.classList.toggle('hidden', hasNames);
+  namesLabel.classList.toggle('hidden', !hasNames);
+  nameList.classList.toggle('hidden', !hasNames);
+  btnClear.classList.toggle('hidden', !hasNames);
 
   nameList.innerHTML = '';
   names.forEach((name, i) => {
@@ -431,8 +441,12 @@ window.addEventListener('storage', () => {
 const loadPreset = getSafeJSON('spinner-load', null);
 localStorage.removeItem('spinner-load');
 if (loadPreset?.names?.length) {
+  // Loading from a board image — use those names
   setNames(loadPreset.names);
   if (loadPreset.removeWinner != null) setState({ removeWinner: loadPreset.removeWinner });
+} else if (!loadPreset) {
+  // Fresh open — start with empty names so teacher selects a class
+  setNames([]);
 }
 if (loadPreset?.diceColor) setState({ diceColor: loadPreset.diceColor });
 if (loadPreset?.coinColor) setState({ coinColor: loadPreset.coinColor });

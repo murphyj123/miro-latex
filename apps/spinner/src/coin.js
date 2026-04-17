@@ -6,6 +6,8 @@ const btnFlip = document.getElementById('btn-flip');
 const coinResult = document.getElementById('coin-result');
 const resultText = document.getElementById('result-text');
 const colorSwatchesEl = document.getElementById('coin-color-swatches');
+const btnPlace = document.getElementById('btn-place');
+const labelSelect = document.getElementById('label-select');
 
 const COIN_COLORS = ['#f59e0b', '#94a3b8', '#ef4444', '#3b82f6', '#10b981', '#8b5cf6'];
 
@@ -74,20 +76,41 @@ function playLandSound() {
 // ── State helpers ────────────────────────────────────────
 let flipping = false;
 let lastResults = null;
+let selectedCoin = 0;
 
 function getCoinCount() { return getState().coinCount || 1; }
-function getCoinColor() { return getState().coinColor || '#f59e0b'; }
+
+function getCoinColors() {
+  const state = getState();
+  const count = getCoinCount();
+  const colors = state.coinColors || [];
+  const fallback = state.coinColor || '#f59e0b';
+  return Array.from({ length: count }, (_, i) => colors[i] || fallback);
+}
+
+function setCoinColor(index, color) {
+  const colors = getCoinColors();
+  colors[index] = color;
+  setState({ coinColors: colors });
+}
+
+function getLabels() {
+  const val = labelSelect.value;
+  const parts = val.split('/');
+  return { side1: parts[0], side2: parts[1] || parts[0] };
+}
 
 // ── Color swatches (in-modal) ────────────────────────────
 function renderSwatches() {
   colorSwatchesEl.innerHTML = '';
-  const current = getCoinColor();
+  const colors = getCoinColors();
+  const current = colors[selectedCoin] || '#f59e0b';
   COIN_COLORS.forEach((c) => {
     const btn = document.createElement('button');
     btn.className = 'modal-swatch' + (c === current ? ' active' : '');
     btn.style.background = c;
     btn.addEventListener('click', () => {
-      setState({ coinColor: c });
+      setCoinColor(selectedCoin, c);
       renderSwatches();
       renderCoins();
     });
@@ -96,7 +119,7 @@ function renderSwatches() {
 }
 
 // ── Build a single 3D coin ───────────────────────────────
-function createCoin(color) {
+function createCoin(color, labels) {
   const dark = COLOR_DARKS[color] || color;
 
   const stage = document.createElement('div');
@@ -108,12 +131,12 @@ function createCoin(color) {
   const heads = document.createElement('div');
   heads.className = 'coin-face coin-heads';
   heads.style.background = `linear-gradient(145deg, ${color}, ${dark})`;
-  heads.textContent = 'H';
+  heads.textContent = labels.side1;
 
   const tails = document.createElement('div');
   tails.className = 'coin-face coin-tails';
   tails.style.background = `linear-gradient(145deg, ${dark}, ${color})`;
-  tails.textContent = 'T';
+  tails.textContent = labels.side2;
 
   coin.append(heads, tails);
   stage.appendChild(coin);
@@ -123,13 +146,28 @@ function createCoin(color) {
 // ── Render coins ─────────────────────────────────────────
 function renderCoins() {
   const count = getCoinCount();
-  const color = getCoinColor();
+  const colors = getCoinColors();
+  const labels = getLabels();
   coinArea.innerHTML = '';
-  // Set size class
   coinArea.className = 'coin-area coins-' + Math.min(count, 6);
   for (let i = 0; i < count; i++) {
-    coinArea.appendChild(createCoin(color));
+    const stage = createCoin(colors[i], labels);
+    stage.addEventListener('click', () => {
+      if (flipping) return;
+      selectedCoin = i;
+      highlightSelected();
+      renderSwatches();
+    });
+    coinArea.appendChild(stage);
   }
+  highlightSelected();
+}
+
+function highlightSelected() {
+  const stages = coinArea.querySelectorAll('.coin-stage');
+  stages.forEach((s, i) => {
+    s.classList.toggle('selected', i === selectedCoin && stages.length > 1);
+  });
 }
 
 // ── Flip animation ───────────────────────────────────────
@@ -163,7 +201,7 @@ function flip() {
     const ease = 1 - Math.pow(1 - t, 3);
 
     coins.forEach((c, i) => {
-      const fullSpins = 5 + (i % 3); // Slightly different speeds
+      const fullSpins = 5 + (i % 3);
       const targetY = fullSpins * 360 + (results[i] ? 0 : 180);
       const tiltX = (12 + i * 5) * Math.sin(t * Math.PI);
       const currentY = targetY * ease;
@@ -183,15 +221,16 @@ function flip() {
         c.style.transform = `rotateX(0deg) rotateY(${results[i] ? 0 : 180}deg)`;
       });
 
-      const headsCount = results.filter(Boolean).length;
-      const tailsCount = count - headsCount;
+      const labels = getLabels();
+      const side1Count = results.filter(Boolean).length;
+      const side2Count = count - side1Count;
 
       if (count === 1) {
-        resultText.textContent = results[0] ? 'Heads!' : 'Tails!';
+        resultText.textContent = results[0] ? `${labels.side1}!` : `${labels.side2}!`;
       } else {
         const parts = [];
-        if (headsCount) parts.push(`${headsCount} Heads`);
-        if (tailsCount) parts.push(`${tailsCount} Tails`);
+        if (side1Count) parts.push(`${side1Count} ${labels.side1}`);
+        if (side2Count) parts.push(`${side2Count} ${labels.side2}`);
         resultText.textContent = parts.join(', ');
       }
       coinResult.classList.remove('hidden');
@@ -200,6 +239,17 @@ function flip() {
       flipping = false;
       lastResults = results;
       btnPlace.classList.remove('hidden');
+
+      // Re-attach click handlers
+      stages.forEach((s, i) => {
+        s.addEventListener('click', () => {
+          if (flipping) return;
+          selectedCoin = i;
+          highlightSelected();
+          renderSwatches();
+        });
+      });
+      highlightSelected();
     }
   }
 
@@ -207,33 +257,35 @@ function flip() {
 }
 
 // ── Place on Board ───────────────────────────────────────
-const btnPlace = document.getElementById('btn-place');
-
 btnPlace.addEventListener('click', async () => {
   if (!lastResults) return;
 
-  const color = getCoinColor();
-  const dark = COLOR_DARKS[color] || color;
+  const colors = getCoinColors();
+  const labels = getLabels();
   const count = lastResults.length;
   const coinR = 30, pad = 16, gap = 12;
   const w = pad * 2 + count * coinR * 2 + (count - 1) * gap;
   const h = count > 1 ? 110 : 90;
 
   let svg = '';
-  lastResults.forEach((isHeads, i) => {
+  lastResults.forEach((isSide1, i) => {
+    const color = colors[i];
+    const dark = COLOR_DARKS[color] || color;
     const cx = pad + coinR + i * (coinR * 2 + gap);
     const cy = pad + coinR;
-    svg += `<circle cx="${cx}" cy="${cy}" r="${coinR}" fill="${isHeads ? color : dark}"/>`;
-    svg += `<text x="${cx}" y="${cy + 1}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="22" font-weight="800" font-family="Inter,sans-serif">${isHeads ? 'H' : 'T'}</text>`;
+    const label = isSide1 ? labels.side1 : labels.side2;
+    const fontSize = label.length > 3 ? 12 : label.length > 1 ? 16 : 22;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${coinR}" fill="${isSide1 ? color : dark}"/>`;
+    svg += `<text x="${cx}" y="${cy + 1}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="${fontSize}" font-weight="800" font-family="Inter,sans-serif">${escapeXml(label)}</text>`;
   });
 
   if (count > 1) {
-    const headsCount = lastResults.filter(Boolean).length;
-    const tailsCount = count - headsCount;
+    const s1Count = lastResults.filter(Boolean).length;
+    const s2Count = count - s1Count;
     const parts = [];
-    if (headsCount) parts.push(`${headsCount}H`);
-    if (tailsCount) parts.push(`${tailsCount}T`);
-    svg += `<text x="${w/2}" y="${pad + coinR * 2 + 20}" text-anchor="middle" fill="${color}" font-size="14" font-weight="700" font-family="Inter,sans-serif">${parts.join(' / ')}</text>`;
+    if (s1Count) parts.push(`${s1Count} ${labels.side1}`);
+    if (s2Count) parts.push(`${s2Count} ${labels.side2}`);
+    svg += `<text x="${w/2}" y="${pad + coinR * 2 + 20}" text-anchor="middle" fill="${colors[0]}" font-size="13" font-weight="700" font-family="Inter,sans-serif">${escapeXml(parts.join(' / '))}</text>`;
   }
 
   const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${svg}</svg>`;
@@ -243,12 +295,13 @@ btnPlace.addEventListener('click', async () => {
     url: dataUrl,
     x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
     width: Math.max(w, 100),
-    title: JSON.stringify({ _spinnerCoin: true, results: lastResults, color }),
+    title: JSON.stringify({ _spinnerCoin: true, results: lastResults, colors, labels: labelSelect.value }),
   });
 });
 
 // ── Events ───────────────────────────────────────────────
 btnFlip.addEventListener('click', flip);
+labelSelect.addEventListener('change', renderCoins);
 
 // ── Init ─────────────────────────────────────────────────
 renderSwatches();

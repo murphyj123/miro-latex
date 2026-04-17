@@ -17,9 +17,25 @@
 
       <div class="coin-controls">
         <button class="btn-flip-main" id="btn-flip">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><text x="12" y="13" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="700" fill="currentColor" stroke="none">H</text></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>
           Flip
         </button>
+
+        <div class="controls-row">
+          <div class="control-group">
+            <span class="control-label">Labels</span>
+            <select class="label-select" id="label-select">
+              <option value="H/T">H / T</option>
+              <option value="Yes/No">Yes / No</option>
+              <option value="Accept/Decline">Accept / Decline</option>
+              <option value="Left/Right">Left / Right</option>
+              <option value="True/False">True / False</option>
+              <option value="Odd/Even">Odd / Even</option>
+              <option value="Go/Stay">Go / Stay</option>
+            </select>
+          </div>
+        </div>
+
         <div class="modal-swatches" id="coin-color-swatches"></div>
         <button class="btn-place hidden" id="btn-place">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/></svg>

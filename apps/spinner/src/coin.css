@@ -57,6 +57,13 @@ html, body {
   width: var(--coin-size);
   height: var(--coin-size);
   perspective: 600px;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.coin-stage.selected {
+  outline: 3px solid var(--primary);
+  outline-offset: 4px;
 }
 
 .coin {
@@ -84,7 +91,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(var(--coin-size) * 0.34);
+  font-size: calc(var(--coin-size) * 0.22);
   font-weight: 800;
   color: #fff;
   text-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -121,6 +128,41 @@ html, body {
 }
 
 /* ── Controls ─────────────────────────────────────────── */
+.controls-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.label-select {
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius);
+  color: var(--text);
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+  font-family: var(--font);
+}
+
+.label-select:focus {
+  border-color: var(--primary);
+}
+
 .coin-controls {
   display: flex;
   flex-direction: column;

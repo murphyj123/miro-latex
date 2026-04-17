@@ -56,6 +56,14 @@ html, body {
 
 .die-scene.placeholder { opacity: 0.3; }
 
+.die-scene.selected {
+  outline: 3px solid var(--primary);
+  outline-offset: 4px;
+  border-radius: 16px;
+}
+
+.die-scene { cursor: pointer; }
+
 .die-cube {
   width: 100%;
   height: 100%;
