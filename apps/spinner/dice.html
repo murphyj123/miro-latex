@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/spinner/src/dice.css" />
+    <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+  </head>
+  <body>
+
+    <div class="dice-layout">
+      <div class="dice-area" id="dice-area"></div>
+
+      <div class="dice-total hidden" id="dice-total">
+        <span class="total-label">Total</span>
+        <span class="total-value" id="total-value">0</span>
+      </div>
+
+      <div class="dice-controls">
+        <button class="btn-roll-main" id="btn-roll">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="16" cy="16" r="1.5" fill="currentColor"/></svg>
+          Roll
+        </button>
+
+        <div class="controls-row">
+          <div class="control-group">
+            <span class="control-label">Dice</span>
+            <div class="stepper">
+              <button class="stepper-btn" id="dice-minus">-</button>
+              <span class="stepper-value" id="dice-count-label">1</span>
+              <button class="stepper-btn" id="dice-plus">+</button>
+            </div>
+          </div>
+          <div class="control-group">
+            <span class="control-label">Sides</span>
+            <select id="dice-sides" class="sides-select">
+              <option value="6" selected>D6</option>
+              <option value="4">D4</option>
+              <option value="8">D8</option>
+              <option value="10">D10</option>
+              <option value="12">D12</option>
+              <option value="20">D20</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/spinner/src/dice.js"></script>
+  </body>
+</html>

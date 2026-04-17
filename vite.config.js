@@ -32,6 +32,7 @@ export default defineConfig({
         'spinner-panel': resolve(import.meta.dirname, root, 'spinner/panel.html'),
         'spinner-modal': resolve(import.meta.dirname, root, 'spinner/modal.html'),
         'spinner-groups': resolve(import.meta.dirname, root, 'spinner/groups.html'),
+        'spinner-dice': resolve(import.meta.dirname, root, 'spinner/dice.html'),
       },
     },
   },

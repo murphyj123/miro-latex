@@ -29,8 +29,17 @@ const teamList = document.getElementById('team-list');
 const btnGenerate = document.getElementById('btn-generate');
 const btnPlaceGroups = document.getElementById('btn-place-groups');
 
+// Dice
+const btnRoll = document.getElementById('btn-roll');
+const diceCountLabel = document.getElementById('dice-count-label');
+const diceMinus = document.getElementById('dice-minus');
+const dicePlus = document.getElementById('dice-plus');
+const diceSidesSelect = document.getElementById('dice-sides');
+const diceSoundCb = document.getElementById('dice-sound');
+
 // Saved classes
 const classSelect = document.getElementById('class-select');
+const btnNew = document.getElementById('btn-new');
 const btnSaveClass = document.getElementById('btn-save-class');
 const btnDeleteClass = document.getElementById('btn-delete-class');
 const saveDialog = document.getElementById('save-dialog');
@@ -170,6 +179,13 @@ btnDeleteClass.addEventListener('click', () => {
   renderClassList();
 });
 
+btnNew.addEventListener('click', () => {
+  setNames([]);
+  classSelect.value = '';
+  renderNames();
+  renderTeams();
+});
+
 // ══════════════════════════════════════════════════════════
 // MODE TABS
 // ══════════════════════════════════════════════════════════
@@ -179,7 +195,9 @@ function setMode(mode) {
   modeTabs.forEach((t) => t.classList.toggle('active', t.dataset.mode === mode));
   document.getElementById('mode-spinner').classList.toggle('hidden', mode !== 'spinner');
   document.getElementById('mode-groups').classList.toggle('hidden', mode !== 'groups');
+  document.getElementById('mode-dice').classList.toggle('hidden', mode !== 'dice');
   if (mode === 'groups') renderTeams();
+  if (mode === 'dice') syncDiceOptions();
 }
 
 modeTabs.forEach((tab) => {
@@ -345,6 +363,41 @@ function generateGroupsSVG(groups, teams) {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${svg}</svg>`;
 }
+
+// ══════════════════════════════════════════════════════════
+// DICE MODE
+// ══════════════════════════════════════════════════════════
+
+function syncDiceOptions() {
+  const state = getState();
+  diceCountLabel.textContent = state.diceCount || 1;
+  diceSidesSelect.value = state.diceSides || 6;
+  diceSoundCb.checked = state.diceSound !== false;
+}
+
+diceMinus.addEventListener('click', () => {
+  const count = Math.max(1, (getState().diceCount || 1) - 1);
+  setState({ diceCount: count });
+  syncDiceOptions();
+});
+
+dicePlus.addEventListener('click', () => {
+  const count = Math.min(6, (getState().diceCount || 1) + 1);
+  setState({ diceCount: count });
+  syncDiceOptions();
+});
+
+diceSidesSelect.addEventListener('change', () => {
+  setState({ diceSides: parseInt(diceSidesSelect.value) });
+});
+
+diceSoundCb.addEventListener('change', () => {
+  setState({ diceSound: diceSoundCb.checked });
+});
+
+btnRoll.addEventListener('click', async () => {
+  await miro.board.ui.openModal({ url: 'spinner/dice.html', width: 560, height: 420 });
+});
 
 // ══════════════════════════════════════════════════════════
 // STORAGE SYNC

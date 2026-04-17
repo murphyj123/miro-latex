@@ -24,6 +24,11 @@ function defaultState() {
     groupMode: 'count',     // 'count' (N groups) | 'size' (groups of N)
     teams: [],              // [{ name, color }] — auto-generated if empty
     lastGroups: null,       // generated groups result
+    // Dice
+    diceCount: 1,
+    diceSides: 6,
+    diceSound: true,
+    lastDice: null,
   };
 }
 
