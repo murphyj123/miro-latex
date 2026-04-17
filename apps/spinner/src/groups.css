@@ -1,0 +1,129 @@
+/* ── Reset & Base ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f8fafc;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --radius: 10px;
+  --font: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ── Layout ────────────────────────────────────────────── */
+.groups-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 20px 24px;
+}
+
+.groups-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.groups-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.groups-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-shuffle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: var(--font);
+}
+
+.btn-shuffle:hover {
+  background: rgba(20,184,166,0.08);
+  color: #14b8a6;
+  border-color: #99f6e4;
+}
+
+/* ── Grid ──────────────────────────────────────────────── */
+.groups-grid {
+  flex: 1;
+  display: grid;
+  gap: 14px;
+  overflow-y: auto;
+  align-content: start;
+}
+
+/* ── Card ──────────────────────────────────────────────── */
+.group-card {
+  background: #fff;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.group-card-header {
+  padding: 10px 14px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.group-card-body {
+  padding: 10px 14px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.group-member {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.group-member:last-child {
+  border-bottom: none;
+}
+
+.group-count {
+  padding: 6px 14px 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }

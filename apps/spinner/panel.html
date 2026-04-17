@@ -14,12 +14,28 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20"/><circle cx="12" cy="12" r="2" fill="#fff"/></svg>
       </div>
       <div class="panel-header-text">
-        <h1>Random Spinner</h1>
-        <p>Spin to pick a name at random</p>
+        <h1>Classroom Randomiser</h1>
+        <p>Spinner, groups &amp; random picks</p>
       </div>
     </div>
 
     <div class="panel-body">
+
+      <!-- Saved Classes -->
+      <div class="input-section">
+        <div class="section-label">Saved Classes</div>
+        <div class="class-row">
+          <select id="class-select" class="class-select">
+            <option value="">— Select a class —</option>
+          </select>
+          <button class="icon-btn icon-btn-save" id="btn-save-class" title="Save current list">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 5v8a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1h6l3 3z"/><path d="M10 2v3H7"/><path d="M5 10h6M5 12h4"/></svg>
+          </button>
+          <button class="icon-btn icon-btn-delete" id="btn-delete-class" title="Delete saved class">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h10l-1 9H4L3 5zM6 5V3h4v2"/><line x1="2" y1="5" x2="14" y2="5"/></svg>
+          </button>
+        </div>
+      </div>
 
       <!-- Name Input -->
       <div class="input-section">
@@ -35,7 +51,7 @@
       <!-- CSV Paste -->
       <div class="input-section">
         <div class="section-label">Paste Names (CSV / one per line)</div>
-        <textarea id="csv-paste" class="csv-paste" rows="4" placeholder="Alice, Bob, Charlie&#10;or one name per line..."></textarea>
+        <textarea id="csv-paste" class="csv-paste" rows="3" placeholder="Alice, Bob, Charlie&#10;or one name per line..."></textarea>
         <button class="btn-import" id="btn-import">Import Names</button>
       </div>
 
@@ -47,50 +63,96 @@
 
       <hr class="divider" />
 
-      <!-- Options -->
-      <div class="options">
-        <div class="option-row">
-          <span class="option-label">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h8M8 4v8"/><circle cx="8" cy="8" r="6.5"/></svg>
-            Remove winner after spin
-          </span>
-          <label class="toggle">
-            <input type="checkbox" id="remove-winner" />
-            <span class="toggle-slider"></span>
-          </label>
+      <!-- Mode Tabs -->
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="spinner">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2"/></svg>
+          Spinner
+        </button>
+        <button class="mode-tab" data-mode="groups">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Groups
+        </button>
+      </div>
+
+      <!-- ── Spinner Options ──────────────────────────── -->
+      <div class="mode-panel" id="mode-spinner">
+        <div class="options">
+          <div class="option-row">
+            <span class="option-label">Remove winner after spin</span>
+            <label class="toggle">
+              <input type="checkbox" id="remove-winner" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="option-row">
+            <span class="option-label">Spin sound</span>
+            <label class="toggle">
+              <input type="checkbox" id="spin-sound" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
         </div>
-        <div class="option-row">
-          <span class="option-label">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v5l3 3"/><circle cx="8" cy="8" r="6.5"/></svg>
-            Spin sound
-          </span>
-          <label class="toggle">
-            <input type="checkbox" id="spin-sound" checked />
-            <span class="toggle-slider"></span>
-          </label>
+
+        <button class="btn-action btn-action-primary" id="btn-spin" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2"/></svg>
+          Open Spinner
+        </button>
+
+        <button class="btn-action btn-action-secondary" id="btn-place-spinner" disabled>
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M8 5v6M5 8h6"/></svg>
+          Place Wheel on Board
+        </button>
+      </div>
+
+      <!-- ── Groups Options ───────────────────────────── -->
+      <div class="mode-panel hidden" id="mode-groups">
+        <div class="group-config">
+          <div class="group-mode-row">
+            <select id="group-mode" class="group-mode-select">
+              <option value="count">Number of groups</option>
+              <option value="size">Group size</option>
+            </select>
+            <input type="number" id="group-count" class="group-count-input" min="2" max="20" value="3" />
+          </div>
         </div>
+
+        <!-- Team List -->
+        <div class="section-label">Teams</div>
+        <div class="team-list" id="team-list"></div>
+
+        <button class="btn-action btn-action-primary" id="btn-generate" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Generate Groups
+        </button>
+
+        <button class="btn-action btn-action-secondary" id="btn-place-groups" disabled>
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M8 5v6M5 8h6"/></svg>
+          Place Groups on Board
+        </button>
       </div>
 
       <hr class="divider" />
 
-      <!-- Action Buttons -->
-      <button class="btn-spin" id="btn-spin" disabled>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2"/></svg>
-        Open Spinner
-      </button>
-
-      <button class="btn-place" id="btn-place" disabled>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M8 5v6M5 8h6"/></svg>
-        Place on Board
-      </button>
-
-      <button class="btn-clear" id="btn-clear">Clear All</button>
+      <button class="btn-clear" id="btn-clear">Clear All Names</button>
 
       <!-- Branding -->
       <div class="branding-footer">
         <a href="#" id="branding-link">Made by jmaths.xyz</a>
       </div>
 
+    </div>
+
+    <!-- Save Class Dialog -->
+    <div class="dialog-overlay hidden" id="save-dialog">
+      <div class="dialog">
+        <div class="dialog-title">Save Class List</div>
+        <input type="text" class="dialog-input" id="save-class-name" placeholder="e.g. 10B Maths" />
+        <div class="dialog-actions">
+          <button class="dialog-btn dialog-btn-cancel" id="save-cancel">Cancel</button>
+          <button class="dialog-btn dialog-btn-ok" id="save-ok">Save</button>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="/spinner/src/panel.js"></script>

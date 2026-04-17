@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/spinner/src/groups.css" />
+    <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+  </head>
+  <body>
+
+    <div class="groups-layout">
+      <div class="groups-header">
+        <h1 class="groups-title">Random Groups</h1>
+        <div class="groups-actions">
+          <button class="btn-shuffle" id="btn-shuffle">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2v5h5"/><path d="M3.05 10A6 6 0 1 0 4 4.27L2 7"/></svg>
+            Shuffle
+          </button>
+        </div>
+      </div>
+      <div class="groups-grid" id="groups-grid"></div>
+    </div>
+
+    <script type="module" src="/spinner/src/groups.js"></script>
+  </body>
+</html>
