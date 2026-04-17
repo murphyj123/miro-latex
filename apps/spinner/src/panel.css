@@ -1,0 +1,429 @@
+/* ── Reset & Base ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary: #14b8a6;
+  --primary-dark: #0f766e;
+  --primary-hover: #0d9488;
+  --primary-light: #99f6e4;
+  --primary-bg: rgba(20,184,166,0.08);
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+  --bg: #ffffff;
+  --bg-subtle: #f8fafc;
+  --bg-muted: #f1f5f9;
+  --danger: #ef4444;
+  --radius: 8px;
+  --gradient: linear-gradient(135deg, #0f766e, #14b8a6);
+  --font: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --transition: 0.2s ease;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg-subtle);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+body {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+/* ── Header ────────────────────────────────────────────── */
+.panel-header {
+  background: var(--gradient);
+  color: #fff;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.panel-header-icon {
+  width: 34px;
+  height: 34px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.panel-header-text h1 {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.panel-header-text p {
+  font-size: 11px;
+  opacity: 0.75;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+/* ── Panel Body ────────────────────────────────────────── */
+.panel-body {
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+/* ── Section Label ─────────────────────────────────────── */
+.section-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
+}
+
+/* ── Input Section ─────────────────────────────────────── */
+.input-section {
+  margin-bottom: 8px;
+}
+
+.add-row {
+  display: flex;
+  gap: 6px;
+}
+
+.name-input {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  outline: none;
+  font-family: var(--font);
+  transition: border-color 0.12s;
+}
+
+.name-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(20,184,166,0.12);
+}
+
+.name-input::placeholder {
+  color: var(--text-light);
+}
+
+.btn-add {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--gradient);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+
+.btn-add:hover {
+  background: linear-gradient(135deg, #0d5c56, #0d9488);
+  transform: translateY(-1px);
+}
+
+/* ── CSV Paste ─────────────────────────────────────────── */
+.csv-paste {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  outline: none;
+  font-family: var(--font);
+  resize: vertical;
+  min-height: 60px;
+  transition: border-color 0.12s;
+  margin-bottom: 6px;
+}
+
+.csv-paste:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(20,184,166,0.12);
+}
+
+.csv-paste::placeholder {
+  color: var(--text-light);
+}
+
+.btn-import {
+  width: 100%;
+  padding: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  background: var(--primary-bg);
+  color: var(--primary);
+  cursor: pointer;
+  font-family: var(--font);
+  transition: all 0.12s;
+}
+
+.btn-import:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ── Divider ───────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 10px 0;
+}
+
+/* ── Name List ─────────────────────────────────────────── */
+.name-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 4px;
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+
+.name-row:hover {
+  background: var(--bg-muted);
+}
+
+.name-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.name-label {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name-delete {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.12s;
+}
+
+.name-delete:hover {
+  background: #fef2f2;
+  color: var(--danger);
+}
+
+/* ── Options ───────────────────────────────────────────── */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.option-label {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: all var(--transition);
+}
+
+.toggle input:checked + .toggle-slider {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.toggle input:checked + .toggle-slider::before {
+  transform: translateX(16px);
+  background: #fff;
+}
+
+/* ── Action Buttons ────────────────────────────────────── */
+.btn-spin {
+  width: 100%;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--gradient);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(20,184,166,0.28);
+  letter-spacing: 0.02em;
+  font-family: var(--font);
+  margin-bottom: 6px;
+}
+
+.btn-spin:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0d5c56, #0d9488);
+  box-shadow: 0 4px 14px rgba(20,184,166,0.38);
+  transform: translateY(-1px);
+}
+
+.btn-spin:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-place {
+  width: 100%;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: var(--font);
+  margin-bottom: 6px;
+}
+
+.btn-place:hover:not(:disabled) {
+  background: var(--primary-bg);
+  color: var(--primary);
+  border-color: var(--primary-light);
+}
+
+.btn-place:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-clear {
+  width: 100%;
+  padding: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  font-family: var(--font);
+  transition: color 0.12s;
+}
+
+.btn-clear:hover {
+  color: var(--danger);
+}
+
+/* ── Branding ──────────────────────────────────────────── */
+.branding-footer {
+  text-align: center;
+  padding: 10px 0 6px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+.branding-footer a {
+  font-size: 10.5px;
+  color: var(--text-light);
+  text-decoration: none;
+  font-family: var(--font);
+  letter-spacing: 0.01em;
+  transition: color 0.12s;
+}
+
+.branding-footer a:hover { color: var(--primary); }
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/spinner/src/modal.css" />
+    <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+  </head>
+  <body>
+
+    <div class="spinner-layout">
+
+      <!-- Wheel -->
+      <div class="wheel-area">
+        <div class="wheel-container" id="wheel-container">
+          <canvas id="wheel-canvas" width="420" height="420"></canvas>
+          <div class="wheel-pointer">
+            <svg width="28" height="36" viewBox="0 0 28 36"><polygon points="14,36 0,0 28,0" fill="#1e293b"/><polygon points="14,32 3,2 25,2" fill="#ef4444"/></svg>
+          </div>
+          <button class="wheel-center-btn" id="btn-spin">SPIN</button>
+        </div>
+
+        <!-- Winner Display -->
+        <div class="winner-display hidden" id="winner-display">
+          <div class="winner-label">Winner</div>
+          <div class="winner-name" id="winner-name"></div>
+        </div>
+      </div>
+
+      <!-- Side Controls -->
+      <div class="side-controls">
+        <div class="names-header">
+          <span class="section-label" id="names-label">Names (0)</span>
+        </div>
+        <div class="name-chips" id="name-chips"></div>
+
+        <div class="side-options">
+          <div class="option-row">
+            <span class="option-label">Remove winner</span>
+            <label class="toggle">
+              <input type="checkbox" id="remove-winner" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="option-row">
+            <span class="option-label">Sound</span>
+            <label class="toggle">
+              <input type="checkbox" id="spin-sound" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <button class="btn-respin" id="btn-respin">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2v5h5"/><path d="M3.05 10A6 6 0 1 0 4 4.27L2 7"/></svg>
+          Spin Again
+        </button>
+      </div>
+
+    </div>
+
+    <script type="module" src="/spinner/src/modal.js"></script>
+  </body>
+</html>
