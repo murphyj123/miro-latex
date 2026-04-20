@@ -866,6 +866,14 @@ body {
 
 .branding-footer a:hover { color: var(--primary); }
 
+/* ── Frame Settings ───────────────────────────────────────── */
+.frame-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 /* ── Task List (Assign mode) ─────────────────────────────── */
 .task-list {
   display: flex;

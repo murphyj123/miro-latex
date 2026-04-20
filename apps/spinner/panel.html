@@ -127,6 +127,22 @@
         </div>
         <div class="section-label">Teams</div>
         <div class="team-list" id="team-list"></div>
+        <hr class="divider" />
+        <div class="section-label">Frame Settings</div>
+        <div class="frame-settings" id="frame-settings-groups">
+          <div class="option-row">
+            <span class="option-label">Size</span>
+            <select id="frame-size-groups" class="config-select frame-size-select">
+              <option value="small">Small</option>
+              <option value="medium" selected>Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </div>
+          <div class="option-row">
+            <span class="option-label">Colour</span>
+            <div class="color-swatches" id="frame-colors-groups"></div>
+          </div>
+        </div>
         <button class="btn-action btn-action-primary" id="btn-generate" disabled>Generate Groups</button>
         <button class="btn-action btn-action-secondary" id="btn-place-groups" disabled>Place Groups on Board</button>
       </div>
@@ -216,6 +232,22 @@
               <option value="groups">Groups</option>
               <option value="one-to-one">1 : 1</option>
             </select>
+          </div>
+        </div>
+        <hr class="divider" />
+        <div class="section-label">Frame Settings</div>
+        <div class="frame-settings" id="frame-settings-assign">
+          <div class="option-row">
+            <span class="option-label">Size</span>
+            <select id="frame-size-assign" class="config-select frame-size-select">
+              <option value="small">Small</option>
+              <option value="medium" selected>Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </div>
+          <div class="option-row">
+            <span class="option-label">Colour</span>
+            <div class="color-swatches" id="frame-colors-assign"></div>
           </div>
         </div>
         <button class="btn-action btn-action-primary" id="btn-assign" disabled>Assign Randomly</button>

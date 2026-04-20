@@ -39,6 +39,9 @@ function defaultState() {
     tasks: [],
     assignMode: 'groups',    // 'one-to-one' | 'groups'
     lastAssignments: null,
+    // Frames (shared by groups + assign)
+    frameSize: 'medium',     // 'small' | 'medium' | 'large'
+    frameColor: '#14b8a6',
   };
 }
 
@@ -253,12 +256,22 @@ function generateDirectorySVG(entries, title) {
 
 // ── Place groups/assignments with frames + connectors ───
 // Creates a frame per group, a directory card, and connector arrows
+const FRAME_SIZES = {
+  small:  { w: 400, h: 300 },
+  medium: { w: 600, h: 450 },
+  large:  { w: 900, h: 650 },
+};
+
 export async function placeWithFrames(headers, memberLists, colorFn, titleObj, { closeModal = false, dirTitle = 'Find Your Name' } = {}) {
   const vp = await miro.board.viewport.get();
   const cx = vp.x + vp.width / 2;
   const cy = vp.y + vp.height / 2;
 
-  const frameW = 500, frameH = 400, gap = 60;
+  const state = _cache;
+  const sizeKey = state.frameSize || 'medium';
+  const { w: frameW, h: frameH } = FRAME_SIZES[sizeKey] || FRAME_SIZES.medium;
+  const fColor = state.frameColor || '#14b8a6';
+  const gap = 60;
   const count = headers.length;
   const totalW = count * frameW + (count - 1) * gap;
   const startX = cx - totalW / 2 + frameW / 2;
@@ -272,7 +285,7 @@ export async function placeWithFrames(headers, memberLists, colorFn, titleObj, {
       y: cy,
       width: frameW,
       height: frameH,
-      style: { fillColor: colorFn(i) + '18' },
+      style: { fillColor: fColor + '18' },
     });
     frames.push(frame);
   }

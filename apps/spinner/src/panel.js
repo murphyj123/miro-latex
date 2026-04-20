@@ -60,6 +60,14 @@ const assignModeSelect = document.getElementById('assign-mode');
 const btnAssign = document.getElementById('btn-assign');
 const btnPlaceAssign = document.getElementById('btn-place-assign');
 
+// Frame settings (shared by groups + assign)
+const frameSizeGroups = document.getElementById('frame-size-groups');
+const frameSizeAssign = document.getElementById('frame-size-assign');
+const frameColorsGroups = document.getElementById('frame-colors-groups');
+const frameColorsAssign = document.getElementById('frame-colors-assign');
+
+const FRAME_COLORS = ['#14b8a6', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#10b981', '#1e293b', '#ec4899'];
+
 // Saved classes
 const classSelect = document.getElementById('class-select');
 const btnNew = document.getElementById('btn-new');
@@ -406,6 +414,37 @@ btnFlip.addEventListener('click', async () => {
 });
 
 // ══════════════════════════════════════════════════════════
+// FRAME SETTINGS (shared by groups + assign)
+// ══════════════════════════════════════════════════════════
+
+function renderFrameColorSwatches(container) {
+  container.innerHTML = '';
+  const current = getState().frameColor || '#14b8a6';
+  FRAME_COLORS.forEach((c) => {
+    const btn = document.createElement('button');
+    btn.className = 'color-swatch' + (c === current ? ' active' : '');
+    btn.style.background = c;
+    btn.addEventListener('click', () => {
+      setState({ frameColor: c });
+      syncFrameSettings();
+    });
+    container.appendChild(btn);
+  });
+}
+
+function syncFrameSettings() {
+  const state = getState();
+  const size = state.frameSize || 'medium';
+  frameSizeGroups.value = size;
+  frameSizeAssign.value = size;
+  renderFrameColorSwatches(frameColorsGroups);
+  renderFrameColorSwatches(frameColorsAssign);
+}
+
+frameSizeGroups.addEventListener('change', () => { setState({ frameSize: frameSizeGroups.value }); syncFrameSettings(); });
+frameSizeAssign.addEventListener('change', () => { setState({ frameSize: frameSizeAssign.value }); syncFrameSettings(); });
+
+// ══════════════════════════════════════════════════════════
 // ASSIGN MODE
 // ══════════════════════════════════════════════════════════
 
@@ -536,6 +575,7 @@ window.addEventListener('storage', () => {
   syncDiceOptions();
   syncCoinOptions();
   syncAssignOptions();
+  syncFrameSettings();
   renderTasks();
   renderClassList();
 });
@@ -560,6 +600,7 @@ if (loadPreset?.tasks) setState({ tasks: loadPreset.tasks });
 if (loadPreset?.assignMode) setState({ assignMode: loadPreset.assignMode });
 
 syncSpinnerOptions();
+syncFrameSettings();
 renderNames();
 renderTeams();
 renderTasks();
