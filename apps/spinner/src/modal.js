@@ -1,4 +1,4 @@
-import { getState, setState, getColor, escapeXml, PALETTE } from './spinner-core.js';
+import { getState, setState, getColor, escapeXml, placeOnBoard, PALETTE } from './spinner-core.js';
 
 // ── DOM refs ─────────────────────────────────────────────
 const canvas = document.getElementById('wheel-canvas');
@@ -324,14 +324,7 @@ btnPlaceWinner.addEventListener('click', async () => {
     <text x="${w/2}" y="54" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" font-family="Inter,sans-serif">${escapeXml(winner)}</text>
   </svg>`;
 
-  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
-  const vp = await miro.board.viewport.get();
-  await miro.board.createImage({
-    url: dataUrl,
-    x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
-    width: 220,
-    title: JSON.stringify({ _spinnerWinner: true, winner, color }),
-  });
+  await placeOnBoard(svg, 220, { _spinnerWinner: true, winner, color }, true);
 });
 
 // ── Events ───────────────────────────────────────────────

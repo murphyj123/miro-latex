@@ -1,4 +1,4 @@
-import { getState, setState, generateGroups, getColor, escapeXml } from './spinner-core.js';
+import { getState, generateGroups, getColor, generateCardsSVG, placeOnBoard } from './spinner-core.js';
 
 const grid = document.getElementById('groups-grid');
 const btnShuffle = document.getElementById('btn-shuffle');
@@ -115,37 +115,10 @@ btnPlace.addEventListener('click', async () => {
   const teams = state.teams || [];
   if (!groups?.length) return;
 
-  const svg = generateGroupsSVG(groups, teams);
-  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
-  const vp = await miro.board.viewport.get();
-  await miro.board.createImage({
-    url: dataUrl,
-    x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
-    width: Math.min(groups.length * 200, 800),
-    title: JSON.stringify({ _spinnerGroups: true, names: state.names, teams }),
-  });
+  const headers = groups.map((_, i) => teams[i]?.name || `Group ${i + 1}`);
+  const svg = generateCardsSVG(headers, groups, (i) => teams[i]?.color || getColor(i));
+  await placeOnBoard(svg, Math.min(groups.length * 200, 800), { _spinnerGroups: true, names: state.names, teams }, true);
 });
-
-function generateGroupsSVG(groups, teams) {
-  const colW = 180, pad = 16, headerH = 36, rowH = 24;
-  const maxMembers = Math.max(...groups.map((g) => g.length));
-  const h = pad * 2 + headerH + maxMembers * rowH + 8;
-  const w = pad + groups.length * (colW + pad);
-  let svg = '';
-  groups.forEach((members, i) => {
-    const x = pad + i * (colW + pad);
-    const color = teams[i]?.color || getColor(i);
-    const name = teams[i]?.name || `Group ${i + 1}`;
-    svg += `<rect x="${x}" y="${pad}" width="${colW}" height="${h - pad * 2}" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>`;
-    svg += `<rect x="${x}" y="${pad}" width="${colW}" height="${headerH}" rx="8" fill="${color}"/>`;
-    svg += `<rect x="${x}" y="${pad + 20}" width="${colW}" height="${headerH - 20}" fill="${color}"/>`;
-    svg += `<text x="${x + colW / 2}" y="${pad + headerH / 2 + 1}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="13" font-weight="700" font-family="Inter,sans-serif">${escapeXml(name)}</text>`;
-    members.forEach((member, j) => {
-      svg += `<text x="${x + 14}" y="${pad + headerH + 12 + j * rowH}" dominant-baseline="hanging" fill="#1e293b" font-size="12" font-weight="500" font-family="Inter,sans-serif">${escapeXml(member)}</text>`;
-    });
-  });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${svg}</svg>`;
-}
 
 // ── Events ───────────────────────────────────────────────
 btnShuffle.addEventListener('click', animatedShuffle);

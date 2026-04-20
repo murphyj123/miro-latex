@@ -1,4 +1,4 @@
-import { getState, setState, escapeXml } from './spinner-core.js';
+import { getState, setState, escapeXml, placeOnBoard } from './spinner-core.js';
 
 // ── DOM refs ─────────────────────────────────────────────
 const coinArea = document.getElementById('coin-area');
@@ -289,14 +289,7 @@ btnPlace.addEventListener('click', async () => {
   }
 
   const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${svg}</svg>`;
-  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
-  const vp = await miro.board.viewport.get();
-  await miro.board.createImage({
-    url: dataUrl,
-    x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
-    width: Math.max(w, 100),
-    title: JSON.stringify({ _spinnerCoin: true, results: lastResults, colors, labels: labelSelect.value }),
-  });
+  await placeOnBoard(svgStr, Math.max(w, 100), { _spinnerCoin: true, results: lastResults, colors, labels: labelSelect.value }, true);
 });
 
 // ── Events ───────────────────────────────────────────────

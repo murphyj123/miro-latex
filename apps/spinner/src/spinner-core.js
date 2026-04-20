@@ -185,4 +185,44 @@ export function escapeXml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+export function svgToDataUrl(svgStr) {
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+}
+
+export async function placeOnBoard(svgStr, width, titleObj, closeModal = false) {
+  const dataUrl = svgToDataUrl(svgStr);
+  const vp = await miro.board.viewport.get();
+  await miro.board.createImage({
+    url: dataUrl,
+    x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
+    width,
+    title: typeof titleObj === 'string' ? titleObj : JSON.stringify(titleObj),
+  });
+  if (closeModal) {
+    try { miro.board.ui.closeModal(); } catch (_) {}
+  }
+}
+
+// ── Column-card SVG (shared by groups + assign) ─────────
+export function generateCardsSVG(headers, memberLists, colorFn) {
+  const colW = 180, pad = 16, headerH = 36, rowH = 24;
+  const maxMembers = Math.max(...memberLists.map((m) => m.length));
+  const h = pad * 2 + headerH + maxMembers * rowH + 8;
+  const w = pad + headers.length * (colW + pad);
+  let svg = '';
+  headers.forEach((title, i) => {
+    const x = pad + i * (colW + pad);
+    const color = colorFn(i);
+    svg += `<rect x="${x}" y="${pad}" width="${colW}" height="${h - pad * 2}" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>`;
+    svg += `<rect x="${x}" y="${pad}" width="${colW}" height="${headerH}" rx="8" fill="${color}"/>`;
+    svg += `<rect x="${x}" y="${pad + 20}" width="${colW}" height="${headerH - 20}" fill="${color}"/>`;
+    const label = title.length > 18 ? title.slice(0, 17) + '\u2026' : title;
+    svg += `<text x="${x + colW / 2}" y="${pad + headerH / 2 + 1}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="12" font-weight="700" font-family="Inter,sans-serif">${escapeXml(label)}</text>`;
+    (memberLists[i] || []).forEach((member, j) => {
+      svg += `<text x="${x + 14}" y="${pad + headerH + 12 + j * rowH}" dominant-baseline="hanging" fill="#1e293b" font-size="12" font-weight="500" font-family="Inter,sans-serif">${escapeXml(member)}</text>`;
+    });
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${svg}</svg>`;
+}
+
 export { PALETTE };

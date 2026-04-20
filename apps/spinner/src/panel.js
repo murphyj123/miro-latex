@@ -2,7 +2,7 @@ import {
   getState, setState, setNames, removeNameAtIndex, getColor,
   buildTeams, getTeamCount, generateGroups, generateAssignments,
   getSavedClasses, saveClass, deleteClass,
-  escapeXml, PALETTE,
+  escapeXml, PALETTE, generateCardsSVG, placeOnBoard,
 } from './spinner-core.js';
 import { getSafeJSON } from '../../shared/storage-utils.js';
 
@@ -267,14 +267,7 @@ btnPlaceSpinner.addEventListener('click', async () => {
   const names = state.names || [];
   if (names.length < 2) return;
   const svg = generateWheelSVG(names);
-  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
-  const vp = await miro.board.viewport.get();
-  await miro.board.createImage({
-    url: dataUrl,
-    x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
-    width: 400,
-    title: JSON.stringify({ _spinner: true, names, removeWinner: state.removeWinner }),
-  });
+  await placeOnBoard(svg, 400, { _spinner: true, names, removeWinner: state.removeWinner });
 });
 
 function generateWheelSVG(names) {
@@ -345,34 +338,10 @@ btnPlaceGroups.addEventListener('click', async () => {
   const groups = state.lastGroups;
   const teams = state.teams || [];
   if (!groups?.length) return;
-  const svg = generateGroupsSVG(groups, teams);
-  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
-  const vp = await miro.board.viewport.get();
-  await miro.board.createImage({
-    url: dataUrl, x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
-    width: Math.min(groups.length * 200, 800),
-    title: JSON.stringify({ _spinnerGroups: true, names: state.names, teams }),
-  });
+  const headers = groups.map((_, i) => teams[i]?.name || `Group ${i + 1}`);
+  const svg = generateCardsSVG(headers, groups, (i) => teams[i]?.color || getColor(i));
+  await placeOnBoard(svg, Math.min(groups.length * 200, 800), { _spinnerGroups: true, names: state.names, teams });
 });
-
-function generateGroupsSVG(groups, teams) {
-  const colW = 180, pad = 16, headerH = 36, rowH = 24;
-  const maxMembers = Math.max(...groups.map((g) => g.length));
-  const h = pad * 2 + headerH + maxMembers * rowH + 8;
-  const w = pad + groups.length * (colW + pad);
-  let svg = '';
-  groups.forEach((members, i) => {
-    const x = pad + i * (colW + pad), color = teams[i]?.color || getColor(i), name = teams[i]?.name || `Group ${i + 1}`;
-    svg += `<rect x="${x}" y="${pad}" width="${colW}" height="${h - pad * 2}" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>`;
-    svg += `<rect x="${x}" y="${pad}" width="${colW}" height="${headerH}" rx="8" fill="${color}"/>`;
-    svg += `<rect x="${x}" y="${pad + 20}" width="${colW}" height="${headerH - 20}" fill="${color}"/>`;
-    svg += `<text x="${x + colW / 2}" y="${pad + headerH / 2 + 1}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="13" font-weight="700" font-family="Inter,sans-serif">${escapeXml(name)}</text>`;
-    members.forEach((member, j) => {
-      svg += `<text x="${x + 14}" y="${pad + headerH + 12 + j * rowH}" dominant-baseline="hanging" fill="#1e293b" font-size="12" font-weight="500" font-family="Inter,sans-serif">${escapeXml(member)}</text>`;
-    });
-  });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${svg}</svg>`;
-}
 
 // ══════════════════════════════════════════════════════════
 // DICE MODE
@@ -511,37 +480,10 @@ btnPlaceAssign.addEventListener('click', async () => {
   const state = getState();
   const data = state.lastAssignments;
   if (!data) return;
-  const svg = generateAssignSVG(data);
-  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
-  const vp = await miro.board.viewport.get();
-  await miro.board.createImage({
-    url: dataUrl, x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
-    width: Math.min(data.tasks.length * 200, 800),
-    title: JSON.stringify({ _spinnerAssign: true, names: state.names, tasks: data.tasks, assignMode: data.mode }),
-  });
-});
-
-function generateAssignSVG(data) {
   const { tasks, assignments } = data;
-  const colW = 180, pad = 16, headerH = 36, rowH = 24;
-  const maxMembers = Math.max(...assignments.map((a) => a.length));
-  const h = pad * 2 + headerH + maxMembers * rowH + 8;
-  const w = pad + tasks.length * (colW + pad);
-  let svg = '';
-  tasks.forEach((task, i) => {
-    const x = pad + i * (colW + pad);
-    const color = PALETTE[i % PALETTE.length];
-    svg += `<rect x="${x}" y="${pad}" width="${colW}" height="${h - pad * 2}" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>`;
-    svg += `<rect x="${x}" y="${pad}" width="${colW}" height="${headerH}" rx="8" fill="${color}"/>`;
-    svg += `<rect x="${x}" y="${pad + 20}" width="${colW}" height="${headerH - 20}" fill="${color}"/>`;
-    const label = task.length > 18 ? task.slice(0, 17) + '\u2026' : task;
-    svg += `<text x="${x + colW / 2}" y="${pad + headerH / 2 + 1}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="12" font-weight="700" font-family="Inter,sans-serif">${escapeXml(label)}</text>`;
-    (assignments[i] || []).forEach((member, j) => {
-      svg += `<text x="${x + 14}" y="${pad + headerH + 12 + j * rowH}" dominant-baseline="hanging" fill="#1e293b" font-size="12" font-weight="500" font-family="Inter,sans-serif">${escapeXml(member)}</text>`;
-    });
-  });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${svg}</svg>`;
-}
+  const svg = generateCardsSVG(tasks, assignments, (i) => PALETTE[i % PALETTE.length]);
+  await placeOnBoard(svg, Math.min(tasks.length * 200, 800), { _spinnerAssign: true, names: state.names, tasks, assignMode: data.mode });
+});
 
 // ══════════════════════════════════════════════════════════
 // STORAGE SYNC

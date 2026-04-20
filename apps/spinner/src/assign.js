@@ -1,4 +1,4 @@
-import { getState, setState, generateAssignments, escapeXml, PALETTE } from './spinner-core.js';
+import { getState, generateAssignments, generateCardsSVG, placeOnBoard, PALETTE } from './spinner-core.js';
 
 const grid = document.getElementById('assign-grid');
 const btnShuffle = document.getElementById('btn-shuffle');
@@ -111,37 +111,9 @@ btnPlace.addEventListener('click', async () => {
   if (!data) return;
 
   const { tasks, assignments } = data;
-  const svg = generateAssignSVG(tasks, assignments);
-  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
-  const vp = await miro.board.viewport.get();
-  await miro.board.createImage({
-    url: dataUrl,
-    x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
-    width: Math.min(tasks.length * 200, 800),
-    title: JSON.stringify({ _spinnerAssign: true, names: state.names, tasks, assignMode: data.mode }),
-  });
+  const svg = generateCardsSVG(tasks, assignments, (i) => PALETTE[i % PALETTE.length]);
+  await placeOnBoard(svg, Math.min(tasks.length * 200, 800), { _spinnerAssign: true, names: state.names, tasks, assignMode: data.mode }, true);
 });
-
-function generateAssignSVG(tasks, assignments) {
-  const colW = 180, pad = 16, headerH = 36, rowH = 24;
-  const maxMembers = Math.max(...assignments.map((a) => a.length));
-  const h = pad * 2 + headerH + maxMembers * rowH + 8;
-  const w = pad + tasks.length * (colW + pad);
-  let svg = '';
-  tasks.forEach((task, i) => {
-    const x = pad + i * (colW + pad);
-    const color = PALETTE[i % PALETTE.length];
-    svg += `<rect x="${x}" y="${pad}" width="${colW}" height="${h - pad * 2}" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>`;
-    svg += `<rect x="${x}" y="${pad}" width="${colW}" height="${headerH}" rx="8" fill="${color}"/>`;
-    svg += `<rect x="${x}" y="${pad + 20}" width="${colW}" height="${headerH - 20}" fill="${color}"/>`;
-    const label = task.length > 18 ? task.slice(0, 17) + '\u2026' : task;
-    svg += `<text x="${x + colW / 2}" y="${pad + headerH / 2 + 1}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="12" font-weight="700" font-family="Inter,sans-serif">${escapeXml(label)}</text>`;
-    (assignments[i] || []).forEach((member, j) => {
-      svg += `<text x="${x + 14}" y="${pad + headerH + 12 + j * rowH}" dominant-baseline="hanging" fill="#1e293b" font-size="12" font-weight="500" font-family="Inter,sans-serif">${escapeXml(member)}</text>`;
-    });
-  });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${svg}</svg>`;
-}
 
 // ── Events ──────────────────────────────────────────────
 btnShuffle.addEventListener('click', animatedShuffle);
