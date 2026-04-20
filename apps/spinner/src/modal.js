@@ -324,7 +324,7 @@ btnPlaceWinner.addEventListener('click', async () => {
     <text x="${w/2}" y="54" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" font-family="Inter,sans-serif">${escapeXml(winner)}</text>
   </svg>`;
 
-  await placeOnBoard(svg, 220, { _spinnerWinner: true, winner, color }, true);
+  await placeOnBoard(svg, 220, { _spinnerWinner: true, winner, color }, { closeModal: true });
 });
 
 // ── Events ───────────────────────────────────────────────

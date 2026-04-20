@@ -339,8 +339,14 @@ btnPlaceGroups.addEventListener('click', async () => {
   const teams = state.teams || [];
   if (!groups?.length) return;
   const headers = groups.map((_, i) => teams[i]?.name || `Group ${i + 1}`);
-  const svg = generateCardsSVG(headers, groups, (i) => teams[i]?.color || getColor(i));
-  await placeOnBoard(svg, Math.min(groups.length * 200, 800), { _spinnerGroups: true, names: state.names, teams });
+  const colorFn = (i) => teams[i]?.color || getColor(i);
+  const svg = generateCardsSVG(headers, groups, colorFn);
+  const dirEntries = groups.flatMap((members, i) =>
+    members.map((name) => ({ name, group: headers[i], color: colorFn(i) }))
+  );
+  await placeOnBoard(svg, Math.min(groups.length * 200, 800),
+    { _spinnerGroups: true, names: state.names, teams },
+    { directory: { entries: dirEntries, title: 'Find Your Group' } });
 });
 
 // ══════════════════════════════════════════════════════════
@@ -481,8 +487,14 @@ btnPlaceAssign.addEventListener('click', async () => {
   const data = state.lastAssignments;
   if (!data) return;
   const { tasks, assignments } = data;
-  const svg = generateCardsSVG(tasks, assignments, (i) => PALETTE[i % PALETTE.length]);
-  await placeOnBoard(svg, Math.min(tasks.length * 200, 800), { _spinnerAssign: true, names: state.names, tasks, assignMode: data.mode });
+  const colorFn = (i) => PALETTE[i % PALETTE.length];
+  const svg = generateCardsSVG(tasks, assignments, colorFn);
+  const dirEntries = assignments.flatMap((members, i) =>
+    members.map((name) => ({ name, group: tasks[i], color: colorFn(i) }))
+  );
+  await placeOnBoard(svg, Math.min(tasks.length * 200, 800),
+    { _spinnerAssign: true, names: state.names, tasks, assignMode: data.mode },
+    { directory: { entries: dirEntries, title: 'Find Your Task' } });
 });
 
 // ══════════════════════════════════════════════════════════

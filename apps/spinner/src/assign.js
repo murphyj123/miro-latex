@@ -111,8 +111,14 @@ btnPlace.addEventListener('click', async () => {
   if (!data) return;
 
   const { tasks, assignments } = data;
-  const svg = generateCardsSVG(tasks, assignments, (i) => PALETTE[i % PALETTE.length]);
-  await placeOnBoard(svg, Math.min(tasks.length * 200, 800), { _spinnerAssign: true, names: state.names, tasks, assignMode: data.mode }, true);
+  const colorFn = (i) => PALETTE[i % PALETTE.length];
+  const svg = generateCardsSVG(tasks, assignments, colorFn);
+  const dirEntries = assignments.flatMap((members, i) =>
+    members.map((name) => ({ name, group: tasks[i], color: colorFn(i) }))
+  );
+  await placeOnBoard(svg, Math.min(tasks.length * 200, 800),
+    { _spinnerAssign: true, names: state.names, tasks, assignMode: data.mode },
+    { closeModal: true, directory: { entries: dirEntries, title: 'Find Your Task' } });
 });
 
 // ── Events ──────────────────────────────────────────────

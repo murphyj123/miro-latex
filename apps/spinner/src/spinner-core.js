@@ -189,18 +189,66 @@ export function svgToDataUrl(svgStr) {
   return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
 }
 
-export async function placeOnBoard(svgStr, width, titleObj, closeModal = false) {
+export async function placeOnBoard(svgStr, width, titleObj, { closeModal = false, directory = null } = {}) {
   const dataUrl = svgToDataUrl(svgStr);
   const vp = await miro.board.viewport.get();
+  const cx = vp.x + vp.width / 2;
+  const cy = vp.y + vp.height / 2;
+
+  // Place main image (shift left if directory will go beside it)
+  const mainX = directory ? cx - 100 : cx;
   await miro.board.createImage({
     url: dataUrl,
-    x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
+    x: mainX, y: cy,
     width,
     title: typeof titleObj === 'string' ? titleObj : JSON.stringify(titleObj),
   });
+
+  // Place alphabetical directory to the right
+  if (directory) {
+    const dirSvg = generateDirectorySVG(directory.entries, directory.title);
+    const dirUrl = svgToDataUrl(dirSvg);
+    await miro.board.createImage({
+      url: dirUrl,
+      x: mainX + width / 2 + 130,
+      y: cy,
+      width: 220,
+      title: '{}',
+    });
+  }
+
   if (closeModal) {
     try { miro.board.ui.closeModal(); } catch (_) {}
   }
+}
+
+// ── Alphabetical directory SVG ──────────────────────────
+// entries: [{ name, group, color }] — sorted alphabetically
+function generateDirectorySVG(entries, title) {
+  const colW = 220, pad = 14, headerH = 32, rowH = 22;
+  const sorted = [...entries].sort((a, b) => a.name.localeCompare(b.name));
+  const h = pad * 2 + headerH + sorted.length * rowH + 8;
+
+  let svg = '';
+  // Background card
+  svg += `<rect x="0" y="0" width="${colW}" height="${h}" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>`;
+  // Header
+  svg += `<rect x="0" y="0" width="${colW}" height="${headerH}" rx="8" fill="#1e293b"/>`;
+  svg += `<rect x="0" y="16" width="${colW}" height="${headerH - 16}" fill="#1e293b"/>`;
+  svg += `<text x="${colW / 2}" y="${headerH / 2 + 1}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="11" font-weight="700" font-family="Inter,sans-serif">${escapeXml(title || 'Find Your Name')}</text>`;
+  // Rows
+  sorted.forEach((entry, i) => {
+    const y = headerH + pad + i * rowH;
+    // Colored dot
+    svg += `<circle cx="${pad + 5}" cy="${y + 6}" r="4" fill="${entry.color}"/>`;
+    // Name
+    svg += `<text x="${pad + 16}" y="${y + 7}" dominant-baseline="central" fill="#1e293b" font-size="11" font-weight="600" font-family="Inter,sans-serif">${escapeXml(entry.name)}</text>`;
+    // Group label (right-aligned)
+    const groupLabel = entry.group.length > 16 ? entry.group.slice(0, 15) + '\u2026' : entry.group;
+    svg += `<text x="${colW - pad}" y="${y + 7}" text-anchor="end" dominant-baseline="central" fill="#64748b" font-size="10" font-weight="500" font-family="Inter,sans-serif">${escapeXml(groupLabel)}</text>`;
+  });
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${colW} ${h}" width="${colW}" height="${h}">${svg}</svg>`;
 }
 
 // ── Column-card SVG (shared by groups + assign) ─────────

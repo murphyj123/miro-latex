@@ -350,7 +350,7 @@ btnPlace.addEventListener('click', async () => {
   }
 
   const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${svg}</svg>`;
-  await placeOnBoard(svgStr, Math.max(w, 120), { _spinnerDice: true, values, colors }, true);
+  await placeOnBoard(svgStr, Math.max(w, 120), { _spinnerDice: true, values, colors }, { closeModal: true });
 });
 
 // ── Events ───────────────────────────────────────────────
