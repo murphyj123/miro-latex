@@ -473,7 +473,43 @@ assignModeSelect.addEventListener('change', () => {
   setState({ assignMode: assignModeSelect.value });
 });
 
+// ── Confirm dialog helper ────────────────────────────────
+const confirmDialog = document.getElementById('confirm-dialog');
+const confirmTitle = document.getElementById('confirm-title');
+const confirmMessage = document.getElementById('confirm-message');
+const confirmOk = document.getElementById('confirm-ok');
+const confirmCancel = document.getElementById('confirm-cancel');
+
+function showConfirm(title, message) {
+  return new Promise((resolve) => {
+    confirmTitle.textContent = title;
+    confirmMessage.textContent = message;
+    confirmDialog.classList.remove('hidden');
+    const cleanup = () => {
+      confirmDialog.classList.add('hidden');
+      confirmOk.removeEventListener('click', onOk);
+      confirmCancel.removeEventListener('click', onCancel);
+    };
+    const onOk = () => { cleanup(); resolve(true); };
+    const onCancel = () => { cleanup(); resolve(false); };
+    confirmOk.addEventListener('click', onOk);
+    confirmCancel.addEventListener('click', onCancel);
+  });
+}
+
 btnAssign.addEventListener('click', async () => {
+  const state = getState();
+  const names = state.names || [];
+  const tasks = state.tasks || [];
+
+  if (state.assignMode === 'one-to-one' && names.length !== tasks.length) {
+    const msg = names.length > tasks.length
+      ? `You have ${names.length} students but only ${tasks.length} task${tasks.length !== 1 ? 's' : ''}. Some tasks will get more than one student.`
+      : `You have ${tasks.length} task${tasks.length !== 1 ? 's' : ''} but only ${names.length} student${names.length !== 1 ? 's' : ''}. Some tasks will have no one assigned.`;
+    const ok = await showConfirm('1 : 1 Mismatch', msg);
+    if (!ok) return;
+  }
+
   generateAssignments();
   await miro.board.ui.openModal({ url: 'spinner/assign.html', width: 740, height: 520 });
 });

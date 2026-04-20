@@ -790,6 +790,13 @@ body {
   margin-bottom: 12px;
 }
 
+.dialog-message {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
 .dialog-input {
   width: 100%;
   padding: 8px 10px;
