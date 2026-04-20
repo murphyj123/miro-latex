@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/spinner/src/assign.css" />
+    <script defer src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+  </head>
+  <body>
+
+    <div class="assign-layout">
+      <div class="assign-header">
+        <h1 class="assign-title">Random Assignments</h1>
+        <div class="assign-actions">
+          <button class="btn-shuffle" id="btn-shuffle">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2v5h5"/><path d="M3.05 10A6 6 0 1 0 4 4.27L2 7"/></svg>
+            Re-assign
+          </button>
+          <button class="btn-place" id="btn-place">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/></svg>
+            Place on Board
+          </button>
+        </div>
+      </div>
+      <div class="assign-grid" id="assign-grid"></div>
+    </div>
+
+    <script type="module" src="/spinner/src/assign.js"></script>
+  </body>
+</html>

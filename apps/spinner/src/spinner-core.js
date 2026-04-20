@@ -35,6 +35,10 @@ function defaultState() {
     coinColor: '#f59e0b',
     coinSound: true,
     diceShowTotal: true,
+    // Assign
+    tasks: [],
+    assignMode: 'groups',    // 'one-to-one' | 'groups'
+    lastAssignments: null,
   };
 }
 
@@ -121,6 +125,38 @@ export function generateGroups() {
   const teams = buildTeams(teamCount);
   setState({ lastGroups: groups, teams });
   return groups;
+}
+
+// ── Assignment generation ────────────────────────────
+export function generateAssignments() {
+  const s = _cache;
+  const names = [...(s.names || [])];
+  const tasks = [...(s.tasks || [])];
+  if (!names.length || !tasks.length) return [];
+
+  // Fisher-Yates shuffle names
+  for (let i = names.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [names[i], names[j]] = [names[j], names[i]];
+  }
+
+  if (s.assignMode === 'one-to-one') {
+    // Each task gets one person (cycle tasks if more names than tasks)
+    const assignments = tasks.map(() => []);
+    names.forEach((name, i) => {
+      assignments[i % tasks.length].push(name);
+    });
+    setState({ lastAssignments: { tasks, assignments, mode: 'one-to-one' } });
+    return assignments;
+  } else {
+    // Groups mode: round-robin into task groups
+    const assignments = tasks.map(() => []);
+    names.forEach((name, i) => {
+      assignments[i % tasks.length].push(name);
+    });
+    setState({ lastAssignments: { tasks, assignments, mode: 'groups' } });
+    return assignments;
+  }
 }
 
 // ── Saved classes ────────────────────────────────────────

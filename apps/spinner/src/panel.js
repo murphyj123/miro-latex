@@ -1,6 +1,6 @@
 import {
   getState, setState, setNames, removeNameAtIndex, getColor,
-  buildTeams, getTeamCount, generateGroups,
+  buildTeams, getTeamCount, generateGroups, generateAssignments,
   getSavedClasses, saveClass, deleteClass,
   escapeXml, PALETTE,
 } from './spinner-core.js';
@@ -51,6 +51,15 @@ const coinPlus = document.getElementById('coin-plus');
 const coinSoundCb = document.getElementById('coin-sound');
 const coinColorsEl = document.getElementById('coin-colors');
 
+// Assign
+const taskInput = document.getElementById('task-input');
+const btnAddTask = document.getElementById('btn-add-task');
+const taskListEl = document.getElementById('task-list');
+const btnClearTasks = document.getElementById('btn-clear-tasks');
+const assignModeSelect = document.getElementById('assign-mode');
+const btnAssign = document.getElementById('btn-assign');
+const btnPlaceAssign = document.getElementById('btn-place-assign');
+
 // Saved classes
 const classSelect = document.getElementById('class-select');
 const btnNew = document.getElementById('btn-new');
@@ -65,7 +74,7 @@ const saveCancel = document.getElementById('save-cancel');
 // MODE TABS (at the top — controls everything)
 // ══════════════════════════════════════════════════════════
 
-const MODES_WITH_NAMES = ['spinner', 'groups'];
+const MODES_WITH_NAMES = ['spinner', 'groups', 'assign'];
 
 function setMode(mode) {
   setState({ mode });
@@ -74,13 +83,15 @@ function setMode(mode) {
   document.getElementById('mode-groups').classList.toggle('hidden', mode !== 'groups');
   document.getElementById('mode-dice').classList.toggle('hidden', mode !== 'dice');
   document.getElementById('mode-coin').classList.toggle('hidden', mode !== 'coin');
+  document.getElementById('mode-assign').classList.toggle('hidden', mode !== 'assign');
 
-  // Show names section only for spinner/groups
+  // Show names section only for modes that use names
   namesSection.classList.toggle('hidden', !MODES_WITH_NAMES.includes(mode));
 
   if (mode === 'groups') renderTeams();
   if (mode === 'dice') syncDiceOptions();
   if (mode === 'coin') syncCoinOptions();
+  if (mode === 'assign') { syncAssignOptions(); renderTasks(); }
 }
 
 modeTabs.forEach((tab) => {
@@ -104,6 +115,8 @@ function renderNames() {
   btnPlaceSpinner.disabled = !hasEnough;
   btnGenerate.disabled = !hasEnough;
   btnPlaceGroups.disabled = !hasEnough || !state.lastGroups;
+  btnAssign.disabled = !(names.length >= 1 && (state.tasks || []).length > 0);
+  btnPlaceAssign.disabled = !state.lastAssignments;
 
   // Show/hide empty state vs name list
   emptyState.classList.toggle('hidden', hasNames);
@@ -422,6 +435,115 @@ btnFlip.addEventListener('click', async () => {
 });
 
 // ══════════════════════════════════════════════════════════
+// ASSIGN MODE
+// ══════════════════════════════════════════════════════════
+
+function renderTasks() {
+  const tasks = getState().tasks || [];
+  const names = getState().names || [];
+  const hasTasks = tasks.length > 0;
+  const canAssign = hasTasks && names.length >= 1;
+
+  taskListEl.innerHTML = '';
+  btnClearTasks.classList.toggle('hidden', !hasTasks);
+  btnAssign.disabled = !canAssign;
+  btnPlaceAssign.disabled = !getState().lastAssignments;
+
+  tasks.forEach((task, i) => {
+    const row = document.createElement('div');
+    row.className = 'task-row';
+
+    const num = document.createElement('span');
+    num.className = 'task-number';
+    num.textContent = i + 1;
+
+    const label = document.createElement('span');
+    label.className = 'task-label';
+    label.textContent = task;
+
+    const del = document.createElement('button');
+    del.className = 'task-delete';
+    del.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>';
+    del.addEventListener('click', () => {
+      const updated = [...(getState().tasks || [])];
+      updated.splice(i, 1);
+      setState({ tasks: updated, lastAssignments: null });
+      renderTasks();
+    });
+
+    row.append(num, label, del);
+    taskListEl.appendChild(row);
+  });
+}
+
+function addTask() {
+  const val = taskInput.value.trim();
+  if (!val) return;
+  setState({ tasks: [...(getState().tasks || []), val], lastAssignments: null });
+  taskInput.value = '';
+  taskInput.focus();
+  renderTasks();
+}
+
+function syncAssignOptions() {
+  const state = getState();
+  assignModeSelect.value = state.assignMode || 'groups';
+}
+
+btnAddTask.addEventListener('click', addTask);
+taskInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTask(); });
+
+btnClearTasks.addEventListener('click', () => {
+  setState({ tasks: [], lastAssignments: null });
+  renderTasks();
+});
+
+assignModeSelect.addEventListener('change', () => {
+  setState({ assignMode: assignModeSelect.value });
+});
+
+btnAssign.addEventListener('click', async () => {
+  generateAssignments();
+  await miro.board.ui.openModal({ url: 'spinner/assign.html', width: 740, height: 520 });
+});
+
+btnPlaceAssign.addEventListener('click', async () => {
+  const state = getState();
+  const data = state.lastAssignments;
+  if (!data) return;
+  const svg = generateAssignSVG(data);
+  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  const vp = await miro.board.viewport.get();
+  await miro.board.createImage({
+    url: dataUrl, x: vp.x + vp.width / 2, y: vp.y + vp.height / 2,
+    width: Math.min(data.tasks.length * 200, 800),
+    title: JSON.stringify({ _spinnerAssign: true, names: state.names, tasks: data.tasks, assignMode: data.mode }),
+  });
+});
+
+function generateAssignSVG(data) {
+  const { tasks, assignments } = data;
+  const colW = 180, pad = 16, headerH = 36, rowH = 24;
+  const maxMembers = Math.max(...assignments.map((a) => a.length));
+  const h = pad * 2 + headerH + maxMembers * rowH + 8;
+  const w = pad + tasks.length * (colW + pad);
+  let svg = '';
+  tasks.forEach((task, i) => {
+    const x = pad + i * (colW + pad);
+    const color = PALETTE[i % PALETTE.length];
+    svg += `<rect x="${x}" y="${pad}" width="${colW}" height="${h - pad * 2}" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>`;
+    svg += `<rect x="${x}" y="${pad}" width="${colW}" height="${headerH}" rx="8" fill="${color}"/>`;
+    svg += `<rect x="${x}" y="${pad + 20}" width="${colW}" height="${headerH - 20}" fill="${color}"/>`;
+    const label = task.length > 18 ? task.slice(0, 17) + '\u2026' : task;
+    svg += `<text x="${x + colW / 2}" y="${pad + headerH / 2 + 1}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="12" font-weight="700" font-family="Inter,sans-serif">${escapeXml(label)}</text>`;
+    (assignments[i] || []).forEach((member, j) => {
+      svg += `<text x="${x + 14}" y="${pad + headerH + 12 + j * rowH}" dominant-baseline="hanging" fill="#1e293b" font-size="12" font-weight="500" font-family="Inter,sans-serif">${escapeXml(member)}</text>`;
+    });
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${svg}</svg>`;
+}
+
+// ══════════════════════════════════════════════════════════
 // STORAGE SYNC
 // ══════════════════════════════════════════════════════════
 
@@ -431,6 +553,8 @@ window.addEventListener('storage', () => {
   syncSpinnerOptions();
   syncDiceOptions();
   syncCoinOptions();
+  syncAssignOptions();
+  renderTasks();
   renderClassList();
 });
 
@@ -450,10 +574,13 @@ if (loadPreset?.names?.length) {
 }
 if (loadPreset?.diceColor) setState({ diceColor: loadPreset.diceColor });
 if (loadPreset?.coinColor) setState({ coinColor: loadPreset.coinColor });
+if (loadPreset?.tasks) setState({ tasks: loadPreset.tasks });
+if (loadPreset?.assignMode) setState({ assignMode: loadPreset.assignMode });
 
 syncSpinnerOptions();
 renderNames();
 renderTeams();
+renderTasks();
 renderClassList();
 setMode(loadPreset?.mode || getState().mode || 'spinner');
 
@@ -472,4 +599,8 @@ if (loadPreset?.autoOpen === 'coin') {
   const w = count > 2 ? 560 : 420;
   const h = count > 3 ? 480 : 400;
   miro.board.ui.openModal({ url: 'spinner/coin.html', width: w, height: h });
+}
+if (loadPreset?.autoOpen === 'assign') {
+  generateAssignments();
+  miro.board.ui.openModal({ url: 'spinner/assign.html', width: 740, height: 520 });
 }

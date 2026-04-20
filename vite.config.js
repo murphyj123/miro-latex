@@ -34,6 +34,7 @@ export default defineConfig({
         'spinner-groups': resolve(import.meta.dirname, root, 'spinner/groups.html'),
         'spinner-dice': resolve(import.meta.dirname, root, 'spinner/dice.html'),
         'spinner-coin': resolve(import.meta.dirname, root, 'spinner/coin.html'),
+        'spinner-assign': resolve(import.meta.dirname, root, 'spinner/assign.html'),
       },
     },
   },

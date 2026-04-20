@@ -42,6 +42,14 @@ async function init() {
             JSON.stringify({ mode: 'coin', autoOpen: 'coin', coinColor: cfg.color })
           );
         }
+
+        // Assign image — open assign modal with settings
+        if (cfg._spinnerAssign && cfg.names?.length) {
+          localStorage.setItem(
+            'spinner-load',
+            JSON.stringify({ names: cfg.names, tasks: cfg.tasks, assignMode: cfg.assignMode, mode: 'assign', autoOpen: 'assign' })
+          );
+        }
       } catch (_) { /* ignore bad JSON */ }
     }
 

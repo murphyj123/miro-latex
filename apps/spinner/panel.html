@@ -36,6 +36,10 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><text x="12" y="13" text-anchor="middle" dominant-baseline="central" font-size="9" font-weight="700" fill="currentColor" stroke="none">H</text></svg>
         Coin
       </button>
+      <button class="mode-tab" data-mode="assign">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+        Assign
+      </button>
     </div>
 
     <div class="panel-body">
@@ -190,6 +194,32 @@
           </div>
         </div>
         <button class="btn-action btn-action-primary" id="btn-flip">Flip Coin</button>
+      </div>
+
+      <!-- ══ ASSIGN OPTIONS ══════════════════════════════════ -->
+      <div class="mode-panel hidden" id="mode-assign">
+        <div class="input-section">
+          <div class="section-label">Tasks / Topics</div>
+          <div class="add-row">
+            <input type="text" id="task-input" class="name-input" placeholder="e.g. Research topic A..." />
+            <button class="btn-add" id="btn-add-task">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="task-list" id="task-list"></div>
+        <button class="btn-clear-names" id="btn-clear-tasks">Clear tasks</button>
+        <div class="options">
+          <div class="option-row">
+            <span class="option-label">Assignment mode</span>
+            <select id="assign-mode" class="config-select">
+              <option value="groups">Groups</option>
+              <option value="one-to-one">1 : 1</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-action btn-action-primary" id="btn-assign" disabled>Assign Randomly</button>
+        <button class="btn-action btn-action-secondary" id="btn-place-assign" disabled>Place on Board</button>
       </div>
 
       <!-- Branding -->
