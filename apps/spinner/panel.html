@@ -128,7 +128,17 @@
         <div class="section-label">Teams</div>
         <div class="team-list" id="team-list"></div>
         <hr class="divider" />
-        <div class="section-label">Frame Settings</div>
+        <div class="section-label">Placement</div>
+        <div class="placement-tabs">
+          <button class="placement-tab active" data-placement="new" data-target="groups">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+            Create new frames
+          </button>
+          <button class="placement-tab" data-placement="existing" data-target="groups">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="6" y1="2" x2="6" y2="14"/></svg>
+            Use frames from board
+          </button>
+        </div>
         <div class="frame-settings" id="frame-settings-groups">
           <div class="option-row">
             <span class="option-label">Size</span>
@@ -142,6 +152,13 @@
             <span class="option-label">Colour</span>
             <div class="color-swatches" id="frame-colors-groups"></div>
           </div>
+        </div>
+        <div class="existing-frames-section hidden" id="existing-frames-groups">
+          <button class="btn-import-frames" id="btn-import-frames-groups">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="6" y1="2" x2="6" y2="14"/></svg>
+            Select frames from board
+          </button>
+          <div class="linked-frames-list" id="linked-frames-groups"></div>
         </div>
         <button class="btn-action btn-action-primary" id="btn-generate" disabled>Generate Groups</button>
         <button class="btn-action btn-action-secondary" id="btn-place-groups" disabled>Place Groups on Board</button>
@@ -217,7 +234,7 @@
         <div class="input-section">
           <div class="section-label">Tasks / Topics</div>
           <div class="add-row">
-            <input type="text" id="task-input" class="name-input" placeholder="e.g. Research topic A..." />
+            <input type="text" id="task-input" class="name-input" placeholder="Type a task..." />
             <button class="btn-add" id="btn-add-task">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
             </button>
@@ -235,7 +252,17 @@
           </div>
         </div>
         <hr class="divider" />
-        <div class="section-label">Frame Settings</div>
+        <div class="section-label">Placement</div>
+        <div class="placement-tabs">
+          <button class="placement-tab active" data-placement="new" data-target="assign">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+            Create new frames
+          </button>
+          <button class="placement-tab" data-placement="existing" data-target="assign">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="6" y1="2" x2="6" y2="14"/></svg>
+            Use frames from board
+          </button>
+        </div>
         <div class="frame-settings" id="frame-settings-assign">
           <div class="option-row">
             <span class="option-label">Size</span>
@@ -249,6 +276,13 @@
             <span class="option-label">Colour</span>
             <div class="color-swatches" id="frame-colors-assign"></div>
           </div>
+        </div>
+        <div class="existing-frames-section hidden" id="existing-frames-assign">
+          <button class="btn-import-frames" id="btn-import-frames">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="6" y1="2" x2="6" y2="14"/></svg>
+            Select frames from board
+          </button>
+          <div class="linked-frames-list" id="linked-frames-assign"></div>
         </div>
         <button class="btn-action btn-action-primary" id="btn-assign" disabled>Assign Randomly</button>
         <button class="btn-action btn-action-secondary" id="btn-place-assign" disabled>Place on Board</button>
@@ -268,6 +302,23 @@
         <div class="dialog-actions">
           <button class="dialog-btn dialog-btn-cancel" id="confirm-cancel">Cancel</button>
           <button class="dialog-btn dialog-btn-ok" id="confirm-ok">Continue</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Frame Picker Dialog -->
+    <div class="dialog-overlay hidden" id="frame-picker-dialog">
+      <div class="dialog dialog-wide">
+        <div class="dialog-title">Select Frames</div>
+        <p class="dialog-message" id="frame-picker-message">Choose which frames to use:</p>
+        <div class="frame-picker-actions-top">
+          <button class="frame-picker-toggle" id="frame-picker-all">Select all</button>
+          <button class="frame-picker-toggle" id="frame-picker-none">Select none</button>
+        </div>
+        <div class="frame-picker-list" id="frame-picker-list"></div>
+        <div class="dialog-actions">
+          <button class="dialog-btn dialog-btn-cancel" id="frame-picker-cancel">Cancel</button>
+          <button class="dialog-btn dialog-btn-ok" id="frame-picker-ok">Use Selected</button>
         </div>
       </div>
     </div>

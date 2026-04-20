@@ -59,6 +59,14 @@ const btnClearTasks = document.getElementById('btn-clear-tasks');
 const assignModeSelect = document.getElementById('assign-mode');
 const btnAssign = document.getElementById('btn-assign');
 const btnPlaceAssign = document.getElementById('btn-place-assign');
+const btnImportFrames = document.getElementById('btn-import-frames');
+const btnImportFramesGroups = document.getElementById('btn-import-frames-groups');
+
+// Placement tabs + existing frames sections
+const existingFramesAssign = document.getElementById('existing-frames-assign');
+const existingFramesGroups = document.getElementById('existing-frames-groups');
+const linkedFramesAssign = document.getElementById('linked-frames-assign');
+const linkedFramesGroups = document.getElementById('linked-frames-groups');
 
 // Frame settings (shared by groups + assign)
 const frameSizeGroups = document.getElementById('frame-size-groups');
@@ -350,7 +358,7 @@ btnPlaceGroups.addEventListener('click', async () => {
   const colorFn = (i) => teams[i]?.color || getColor(i);
   await placeWithFrames(headers, groups, colorFn,
     { _spinnerGroups: true, names: state.names, teams },
-    { dirTitle: 'Find Your Group' });
+    { dirTitle: 'Find Your Group', frameIds: state.groupFrameIds || [] });
 });
 
 // ══════════════════════════════════════════════════════════
@@ -445,19 +453,91 @@ frameSizeGroups.addEventListener('change', () => { setState({ frameSize: frameSi
 frameSizeAssign.addEventListener('change', () => { setState({ frameSize: frameSizeAssign.value }); syncFrameSettings(); });
 
 // ══════════════════════════════════════════════════════════
+// PLACEMENT TABS (create new vs use existing)
+// ══════════════════════════════════════════════════════════
+
+document.querySelectorAll('.placement-tab').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    const target = tab.dataset.target; // 'assign' or 'groups'
+    const placement = tab.dataset.placement; // 'new' or 'existing'
+
+    // Toggle active tab
+    document.querySelectorAll(`.placement-tab[data-target="${target}"]`)
+      .forEach((t) => t.classList.toggle('active', t === tab));
+
+    const isNew = placement === 'new';
+    if (target === 'assign') {
+      document.getElementById('frame-settings-assign').classList.toggle('hidden', !isNew);
+      existingFramesAssign.classList.toggle('hidden', isNew);
+      if (isNew) setState({ taskFrameIds: [] });
+    } else {
+      document.getElementById('frame-settings-groups').classList.toggle('hidden', !isNew);
+      existingFramesGroups.classList.toggle('hidden', isNew);
+      if (isNew) setState({ groupFrameIds: [] });
+    }
+  });
+});
+
+function renderLinkedFrames(container, frameNames, stateKey) {
+  container.innerHTML = '';
+  if (!frameNames.length) {
+    const empty = document.createElement('div');
+    empty.className = 'linked-frames-empty';
+    empty.textContent = 'No frames selected yet';
+    container.appendChild(empty);
+    return;
+  }
+  frameNames.forEach((name, i) => {
+    const row = document.createElement('div');
+    row.className = 'linked-frame-row';
+    row.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="6" y1="2" x2="6" y2="14"/></svg>`;
+    const label = document.createElement('span');
+    label.className = 'linked-frame-name';
+    label.textContent = name;
+    const del = document.createElement('button');
+    del.className = 'linked-frame-remove';
+    del.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>';
+    del.addEventListener('click', () => {
+      const state = getState();
+      if (stateKey === 'taskFrameIds') {
+        const tasks = [...(state.tasks || [])];
+        const ids = [...(state.taskFrameIds || [])];
+        tasks.splice(i, 1);
+        ids.splice(i, 1);
+        setState({ tasks, taskFrameIds: ids, lastAssignments: null });
+        renderTasks();
+        renderLinkedFrames(container, tasks, stateKey);
+      } else {
+        const ids = [...(state.groupFrameIds || [])];
+        const teams = [...(state.teams || [])];
+        ids.splice(i, 1);
+        teams.splice(i, 1);
+        setState({ groupFrameIds: ids, teams, groupCount: teams.length });
+        renderTeams();
+        renderLinkedFrames(container, teams.map((t) => t.name), stateKey);
+      }
+    });
+    row.append(label, del);
+    container.appendChild(row);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
 // ASSIGN MODE
 // ══════════════════════════════════════════════════════════
 
 function renderTasks() {
-  const tasks = getState().tasks || [];
-  const names = getState().names || [];
+  const state = getState();
+  const tasks = state.tasks || [];
+  const taskFrameIds = state.taskFrameIds || [];
+  const names = state.names || [];
   const hasTasks = tasks.length > 0;
   const canAssign = hasTasks && names.length >= 1;
 
   taskListEl.innerHTML = '';
   btnClearTasks.classList.toggle('hidden', !hasTasks);
   btnAssign.disabled = !canAssign;
-  btnPlaceAssign.disabled = !getState().lastAssignments;
+  btnPlaceAssign.disabled = !state.lastAssignments;
 
   tasks.forEach((task, i) => {
     const row = document.createElement('div');
@@ -465,7 +545,13 @@ function renderTasks() {
 
     const num = document.createElement('span');
     num.className = 'task-number';
-    num.textContent = i + 1;
+    // Show frame icon if linked to a board frame
+    if (taskFrameIds[i]) {
+      num.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="6" y1="2" x2="6" y2="14"/></svg>';
+      num.title = 'Linked to board frame';
+    } else {
+      num.textContent = i + 1;
+    }
 
     const label = document.createElement('span');
     label.className = 'task-label';
@@ -475,9 +561,11 @@ function renderTasks() {
     del.className = 'task-delete';
     del.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>';
     del.addEventListener('click', () => {
-      const updated = [...(getState().tasks || [])];
-      updated.splice(i, 1);
-      setState({ tasks: updated, lastAssignments: null });
+      const updatedTasks = [...(getState().tasks || [])];
+      const updatedIds = [...(getState().taskFrameIds || [])];
+      updatedTasks.splice(i, 1);
+      updatedIds.splice(i, 1);
+      setState({ tasks: updatedTasks, taskFrameIds: updatedIds, lastAssignments: null });
       renderTasks();
     });
 
@@ -489,7 +577,11 @@ function renderTasks() {
 function addTask() {
   const val = taskInput.value.trim();
   if (!val) return;
-  setState({ tasks: [...(getState().tasks || []), val], lastAssignments: null });
+  setState({
+    tasks: [...(getState().tasks || []), val],
+    taskFrameIds: [...(getState().taskFrameIds || []), null],
+    lastAssignments: null,
+  });
   taskInput.value = '';
   taskInput.focus();
   renderTasks();
@@ -504,12 +596,130 @@ btnAddTask.addEventListener('click', addTask);
 taskInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTask(); });
 
 btnClearTasks.addEventListener('click', () => {
-  setState({ tasks: [], lastAssignments: null });
+  setState({ tasks: [], taskFrameIds: [], lastAssignments: null });
   renderTasks();
 });
 
 assignModeSelect.addEventListener('change', () => {
   setState({ assignMode: assignModeSelect.value });
+});
+
+// ── Frame Picker ─────────────────────────────────────────
+const framePickerDialog = document.getElementById('frame-picker-dialog');
+const framePickerList = document.getElementById('frame-picker-list');
+const framePickerOk = document.getElementById('frame-picker-ok');
+const framePickerCancel = document.getElementById('frame-picker-cancel');
+const framePickerAll = document.getElementById('frame-picker-all');
+const framePickerNone = document.getElementById('frame-picker-none');
+
+function showFramePicker(frames) {
+  return new Promise((resolve) => {
+    framePickerList.innerHTML = '';
+    const selected = new Set(frames.map((f) => f.id));
+
+    frames.forEach((frame) => {
+      const row = document.createElement('label');
+      row.className = 'frame-picker-item selected';
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'frame-picker-cb';
+      cb.checked = true;
+      cb.dataset.frameId = frame.id;
+      cb.addEventListener('change', () => {
+        if (cb.checked) { selected.add(frame.id); } else { selected.delete(frame.id); }
+        row.classList.toggle('selected', cb.checked);
+      });
+
+      const icon = document.createElement('span');
+      icon.className = 'frame-picker-icon';
+      icon.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="6" y1="2" x2="6" y2="14"/></svg>';
+
+      const label = document.createElement('span');
+      label.className = 'frame-picker-label';
+      label.textContent = frame.title || 'Untitled Frame';
+
+      row.append(cb, icon, label);
+      framePickerList.appendChild(row);
+    });
+
+    framePickerDialog.classList.remove('hidden');
+
+    const cleanup = () => {
+      framePickerDialog.classList.add('hidden');
+      framePickerOk.removeEventListener('click', onOk);
+      framePickerCancel.removeEventListener('click', onCancel);
+      framePickerAll.removeEventListener('click', onAll);
+      framePickerNone.removeEventListener('click', onNone);
+    };
+    const onOk = () => {
+      cleanup();
+      resolve(frames.filter((f) => selected.has(f.id)));
+    };
+    const onCancel = () => { cleanup(); resolve(null); };
+    const onAll = () => {
+      framePickerList.querySelectorAll('.frame-picker-cb').forEach((cb) => { cb.checked = true; cb.closest('.frame-picker-item').classList.add('selected'); });
+      frames.forEach((f) => selected.add(f.id));
+    };
+    const onNone = () => {
+      framePickerList.querySelectorAll('.frame-picker-cb').forEach((cb) => { cb.checked = false; cb.closest('.frame-picker-item').classList.remove('selected'); });
+      selected.clear();
+    };
+
+    framePickerOk.addEventListener('click', onOk);
+    framePickerCancel.addEventListener('click', onCancel);
+    framePickerAll.addEventListener('click', onAll);
+    framePickerNone.addEventListener('click', onNone);
+  });
+}
+
+async function fetchAndPickFrames() {
+  let frames = [];
+  try {
+    // Fetch ALL board items — the type filter may not work from panel context
+    const items = await miro.board.get();
+    frames = items.filter((i) => i.type === 'frame');
+  } catch (err) {
+    console.warn('Failed to read board items:', err);
+  }
+
+  if (!frames.length) {
+    await showConfirm('No Frames Found', 'There are no frames on the board. Create some frames first, then try again.');
+    return null;
+  }
+
+  const picked = await showFramePicker(frames);
+  if (!picked || !picked.length) return null;
+  return picked;
+}
+
+btnImportFrames.addEventListener('click', async () => {
+  const frames = await fetchAndPickFrames();
+  if (!frames) return;
+
+  const tasks = frames.map((f) => f.title || 'Untitled Frame');
+  const frameIds = frames.map((f) => f.id);
+  setState({ tasks, taskFrameIds: frameIds, lastAssignments: null });
+  renderTasks();
+  renderLinkedFrames(linkedFramesAssign, tasks, 'taskFrameIds');
+});
+
+btnImportFramesGroups.addEventListener('click', async () => {
+  const frames = await fetchAndPickFrames();
+  if (!frames) return;
+
+  const teams = frames.map((f, i) => ({
+    name: f.title || `Group ${i + 1}`,
+    color: PALETTE[i % PALETTE.length],
+  }));
+  const groupFrameIds = frames.map((f) => f.id);
+  setState({
+    teams,
+    groupCount: frames.length,
+    groupFrameIds,
+  });
+  renderTeams();
+  renderLinkedFrames(linkedFramesGroups, teams.map((t) => t.name), 'groupFrameIds');
 });
 
 // ── Confirm dialog helper ────────────────────────────────
@@ -561,7 +771,7 @@ btnPlaceAssign.addEventListener('click', async () => {
   const colorFn = (i) => PALETTE[i % PALETTE.length];
   await placeWithFrames(tasks, assignments, colorFn,
     { _spinnerAssign: true, names: state.names, tasks, assignMode: data.mode },
-    { dirTitle: 'Find Your Task' });
+    { dirTitle: 'Find Your Task', frameIds: state.taskFrameIds || [] });
 });
 
 // ══════════════════════════════════════════════════════════
@@ -605,6 +815,8 @@ renderNames();
 renderTeams();
 renderTasks();
 renderClassList();
+renderLinkedFrames(linkedFramesAssign, getState().tasks || [], 'taskFrameIds');
+renderLinkedFrames(linkedFramesGroups, (getState().teams || []).map((t) => t.name), 'groupFrameIds');
 setMode(loadPreset?.mode || getState().mode || 'spinner');
 
 if (loadPreset?.autoSpin) {

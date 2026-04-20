@@ -114,7 +114,7 @@ btnPlace.addEventListener('click', async () => {
   const colorFn = (i) => PALETTE[i % PALETTE.length];
   await placeWithFrames(tasks, assignments, colorFn,
     { _spinnerAssign: true, names: state.names, tasks, assignMode: data.mode },
-    { closeModal: true, dirTitle: 'Find Your Task' });
+    { closeModal: true, dirTitle: 'Find Your Task', frameIds: state.taskFrameIds || [] });
 });
 
 // ── Events ──────────────────────────────────────────────

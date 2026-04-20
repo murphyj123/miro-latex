@@ -36,9 +36,12 @@ function defaultState() {
     coinSound: true,
     diceShowTotal: true,
     // Assign
-    tasks: [],
-    assignMode: 'groups',    // 'one-to-one' | 'groups'
+    tasks: [],              // [string] task names
+    taskFrameIds: [],       // [string|null] matching Miro frame IDs (null = create new)
+    assignMode: 'groups',   // 'one-to-one' | 'groups'
     lastAssignments: null,
+    // Groups frame IDs (when imported from board)
+    groupFrameIds: [],      // [string|null] matching Miro frame IDs
     // Frames (shared by groups + assign)
     frameSize: 'medium',     // 'small' | 'medium' | 'large'
     frameColor: '#14b8a6',
@@ -262,7 +265,7 @@ const FRAME_SIZES = {
   large:  { w: 900, h: 650 },
 };
 
-export async function placeWithFrames(headers, memberLists, colorFn, titleObj, { closeModal = false, dirTitle = 'Find Your Name' } = {}) {
+export async function placeWithFrames(headers, memberLists, colorFn, titleObj, { closeModal = false, dirTitle = 'Find Your Name', frameIds = [] } = {}) {
   const vp = await miro.board.viewport.get();
   const cx = vp.x + vp.width / 2;
   const cy = vp.y + vp.height / 2;
@@ -273,21 +276,45 @@ export async function placeWithFrames(headers, memberLists, colorFn, titleObj, {
   const fColor = state.frameColor || '#14b8a6';
   const gap = 60;
   const count = headers.length;
-  const totalW = count * frameW + (count - 1) * gap;
-  const startX = cx - totalW / 2 + frameW / 2;
 
-  // 1. Create frames
+  // 1. Resolve frames — use existing or create new
   const frames = [];
-  for (let i = 0; i < count; i++) {
-    const frame = await miro.board.createFrame({
-      title: headers[i],
-      x: startX + i * (frameW + gap),
-      y: cy,
-      width: frameW,
-      height: frameH,
-      style: { fillColor: fColor + '18' },
-    });
-    frames.push(frame);
+  const hasExisting = frameIds.some(Boolean);
+
+  if (hasExisting) {
+    // Use existing frames from the board
+    for (let i = 0; i < count; i++) {
+      if (frameIds[i]) {
+        try {
+          const frame = await miro.board.getById(frameIds[i]);
+          frames.push(frame);
+          continue;
+        } catch (_) { /* frame was deleted, create new */ }
+      }
+      // Fallback: create new frame positioned near viewport center
+      const totalW = count * frameW + (count - 1) * gap;
+      const startX = cx - totalW / 2 + frameW / 2;
+      const frame = await miro.board.createFrame({
+        title: headers[i],
+        x: startX + i * (frameW + gap), y: cy,
+        width: frameW, height: frameH,
+        style: { fillColor: fColor + '18' },
+      });
+      frames.push(frame);
+    }
+  } else {
+    // Create all new frames in a row
+    const totalW = count * frameW + (count - 1) * gap;
+    const startX = cx - totalW / 2 + frameW / 2;
+    for (let i = 0; i < count; i++) {
+      const frame = await miro.board.createFrame({
+        title: headers[i],
+        x: startX + i * (frameW + gap), y: cy,
+        width: frameW, height: frameH,
+        style: { fillColor: fColor + '18' },
+      });
+      frames.push(frame);
+    }
   }
 
   // 2. Place member-list card images inside each frame
@@ -296,42 +323,47 @@ export async function placeWithFrames(headers, memberLists, colorFn, titleObj, {
     if (!members.length) continue;
     const cardSvg = generateSingleCardSVG(headers[i], members, colorFn(i));
     const cardUrl = svgToDataUrl(cardSvg);
+    const f = frames[i];
     await miro.board.createImage({
       url: cardUrl,
-      x: startX + i * (frameW + gap) - frameW / 2 + 110,
-      y: cy - frameH / 2 + 20 + members.length * 12 + 40,
+      x: f.x - f.width / 2 + 110,
+      y: f.y - f.height / 2 + 20 + members.length * 12 + 40,
       width: 200,
       title: '{}',
     });
   }
 
-  // 3. Build directory entries and place directory card to the left
+  // 3. Build directory entries and place directory card
   const dirEntries = memberLists.flatMap((members, i) =>
     members.map((name) => ({ name, group: headers[i], color: colorFn(i) }))
   );
   const dirSvg = generateDirectorySVG(dirEntries, dirTitle);
   const dirUrl = svgToDataUrl(dirSvg);
-  const dirX = startX - frameW / 2 - 180;
+  // Place directory to the left of the leftmost frame
+  const leftFrame = frames.reduce((a, b) => a.x < b.x ? a : b);
+  const dirX = leftFrame.x - leftFrame.width / 2 - 180;
   const dirImg = await miro.board.createImage({
     url: dirUrl,
     x: dirX,
-    y: cy,
+    y: leftFrame.y,
     width: 220,
     title: typeof titleObj === 'string' ? titleObj : JSON.stringify(titleObj),
   });
 
   // 4. Draw connector arrows from directory to each frame
   for (const frame of frames) {
-    await miro.board.createConnector({
-      start: { item: dirImg.id },
-      end: { item: frame.id },
-      shape: 'curved',
-      style: {
-        endStrokeCap: 'filled_arrow',
-        strokeColor: '#14b8a6',
-        strokeWidth: 2,
-      },
-    });
+    try {
+      await miro.board.createConnector({
+        start: { item: dirImg.id },
+        end: { item: frame.id },
+        shape: 'curved',
+        style: {
+          endStrokeCap: 'filled_arrow',
+          strokeColor: fColor,
+          strokeWidth: 2,
+        },
+      });
+    } catch (_) { /* connector creation may fail in some contexts */ }
   }
 
   if (closeModal) {

@@ -119,7 +119,7 @@ btnPlace.addEventListener('click', async () => {
   const colorFn = (i) => teams[i]?.color || getColor(i);
   await placeWithFrames(headers, groups, colorFn,
     { _spinnerGroups: true, names: state.names, teams },
-    { closeModal: true, dirTitle: 'Find Your Group' });
+    { closeModal: true, dirTitle: 'Find Your Group', frameIds: state.groupFrameIds || [] });
 });
 
 // ── Events ───────────────────────────────────────────────
