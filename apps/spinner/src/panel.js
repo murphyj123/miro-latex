@@ -2,7 +2,7 @@ import {
   getState, setState, setNames, removeNameAtIndex, getColor,
   buildTeams, getTeamCount, generateGroups, generateAssignments,
   getSavedClasses, saveClass, deleteClass,
-  escapeXml, PALETTE, generateCardsSVG, placeOnBoard,
+  escapeXml, PALETTE, placeOnBoard, placeWithFrames,
 } from './spinner-core.js';
 import { getSafeJSON } from '../../shared/storage-utils.js';
 
@@ -340,13 +340,9 @@ btnPlaceGroups.addEventListener('click', async () => {
   if (!groups?.length) return;
   const headers = groups.map((_, i) => teams[i]?.name || `Group ${i + 1}`);
   const colorFn = (i) => teams[i]?.color || getColor(i);
-  const svg = generateCardsSVG(headers, groups, colorFn);
-  const dirEntries = groups.flatMap((members, i) =>
-    members.map((name) => ({ name, group: headers[i], color: colorFn(i) }))
-  );
-  await placeOnBoard(svg, Math.min(groups.length * 200, 800),
+  await placeWithFrames(headers, groups, colorFn,
     { _spinnerGroups: true, names: state.names, teams },
-    { directory: { entries: dirEntries, title: 'Find Your Group' } });
+    { dirTitle: 'Find Your Group' });
 });
 
 // ══════════════════════════════════════════════════════════
@@ -488,13 +484,9 @@ btnPlaceAssign.addEventListener('click', async () => {
   if (!data) return;
   const { tasks, assignments } = data;
   const colorFn = (i) => PALETTE[i % PALETTE.length];
-  const svg = generateCardsSVG(tasks, assignments, colorFn);
-  const dirEntries = assignments.flatMap((members, i) =>
-    members.map((name) => ({ name, group: tasks[i], color: colorFn(i) }))
-  );
-  await placeOnBoard(svg, Math.min(tasks.length * 200, 800),
+  await placeWithFrames(tasks, assignments, colorFn,
     { _spinnerAssign: true, names: state.names, tasks, assignMode: data.mode },
-    { directory: { entries: dirEntries, title: 'Find Your Task' } });
+    { dirTitle: 'Find Your Task' });
 });
 
 // ══════════════════════════════════════════════════════════

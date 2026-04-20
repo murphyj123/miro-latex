@@ -1,4 +1,4 @@
-import { getState, generateAssignments, generateCardsSVG, placeOnBoard, PALETTE } from './spinner-core.js';
+import { getState, generateAssignments, placeWithFrames, PALETTE } from './spinner-core.js';
 
 const grid = document.getElementById('assign-grid');
 const btnShuffle = document.getElementById('btn-shuffle');
@@ -112,13 +112,9 @@ btnPlace.addEventListener('click', async () => {
 
   const { tasks, assignments } = data;
   const colorFn = (i) => PALETTE[i % PALETTE.length];
-  const svg = generateCardsSVG(tasks, assignments, colorFn);
-  const dirEntries = assignments.flatMap((members, i) =>
-    members.map((name) => ({ name, group: tasks[i], color: colorFn(i) }))
-  );
-  await placeOnBoard(svg, Math.min(tasks.length * 200, 800),
+  await placeWithFrames(tasks, assignments, colorFn,
     { _spinnerAssign: true, names: state.names, tasks, assignMode: data.mode },
-    { closeModal: true, directory: { entries: dirEntries, title: 'Find Your Task' } });
+    { closeModal: true, dirTitle: 'Find Your Task' });
 });
 
 // ── Events ──────────────────────────────────────────────

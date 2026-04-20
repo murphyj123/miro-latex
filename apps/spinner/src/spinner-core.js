@@ -251,6 +251,97 @@ function generateDirectorySVG(entries, title) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${colW} ${h}" width="${colW}" height="${h}">${svg}</svg>`;
 }
 
+// ── Place groups/assignments with frames + connectors ───
+// Creates a frame per group, a directory card, and connector arrows
+export async function placeWithFrames(headers, memberLists, colorFn, titleObj, { closeModal = false, dirTitle = 'Find Your Name' } = {}) {
+  const vp = await miro.board.viewport.get();
+  const cx = vp.x + vp.width / 2;
+  const cy = vp.y + vp.height / 2;
+
+  const frameW = 500, frameH = 400, gap = 60;
+  const count = headers.length;
+  const totalW = count * frameW + (count - 1) * gap;
+  const startX = cx - totalW / 2 + frameW / 2;
+
+  // 1. Create frames
+  const frames = [];
+  for (let i = 0; i < count; i++) {
+    const frame = await miro.board.createFrame({
+      title: headers[i],
+      x: startX + i * (frameW + gap),
+      y: cy,
+      width: frameW,
+      height: frameH,
+      style: { fillColor: colorFn(i) + '18' },
+    });
+    frames.push(frame);
+  }
+
+  // 2. Place member-list card images inside each frame
+  for (let i = 0; i < count; i++) {
+    const members = memberLists[i] || [];
+    if (!members.length) continue;
+    const cardSvg = generateSingleCardSVG(headers[i], members, colorFn(i));
+    const cardUrl = svgToDataUrl(cardSvg);
+    await miro.board.createImage({
+      url: cardUrl,
+      x: startX + i * (frameW + gap) - frameW / 2 + 110,
+      y: cy - frameH / 2 + 20 + members.length * 12 + 40,
+      width: 200,
+      title: '{}',
+    });
+  }
+
+  // 3. Build directory entries and place directory card to the left
+  const dirEntries = memberLists.flatMap((members, i) =>
+    members.map((name) => ({ name, group: headers[i], color: colorFn(i) }))
+  );
+  const dirSvg = generateDirectorySVG(dirEntries, dirTitle);
+  const dirUrl = svgToDataUrl(dirSvg);
+  const dirX = startX - frameW / 2 - 180;
+  const dirImg = await miro.board.createImage({
+    url: dirUrl,
+    x: dirX,
+    y: cy,
+    width: 220,
+    title: typeof titleObj === 'string' ? titleObj : JSON.stringify(titleObj),
+  });
+
+  // 4. Draw connector arrows from directory to each frame
+  for (const frame of frames) {
+    await miro.board.createConnector({
+      start: { item: dirImg.id },
+      end: { item: frame.id },
+      shape: 'curved',
+      style: {
+        endStrokeCap: 'filled_arrow',
+        strokeColor: '#14b8a6',
+        strokeWidth: 2,
+      },
+    });
+  }
+
+  if (closeModal) {
+    try { miro.board.ui.closeModal(); } catch (_) {}
+  }
+}
+
+// ── Single-column card SVG (for inside a frame) ─────────
+function generateSingleCardSVG(title, members, color) {
+  const colW = 200, pad = 12, headerH = 32, rowH = 22;
+  const h = pad * 2 + headerH + members.length * rowH + 8;
+  let svg = '';
+  svg += `<rect x="0" y="0" width="${colW}" height="${h}" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1"/>`;
+  svg += `<rect x="0" y="0" width="${colW}" height="${headerH}" rx="8" fill="${color}"/>`;
+  svg += `<rect x="0" y="16" width="${colW}" height="${headerH - 16}" fill="${color}"/>`;
+  const label = title.length > 20 ? title.slice(0, 19) + '\u2026' : title;
+  svg += `<text x="${colW / 2}" y="${headerH / 2 + 1}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="11" font-weight="700" font-family="Inter,sans-serif">${escapeXml(label)}</text>`;
+  members.forEach((member, j) => {
+    svg += `<text x="${pad + 4}" y="${headerH + pad + j * rowH + 7}" dominant-baseline="central" fill="#1e293b" font-size="11" font-weight="500" font-family="Inter,sans-serif">${escapeXml(member)}</text>`;
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${colW} ${h}" width="${colW}" height="${h}">${svg}</svg>`;
+}
+
 // ── Column-card SVG (shared by groups + assign) ─────────
 export function generateCardsSVG(headers, memberLists, colorFn) {
   const colW = 180, pad = 16, headerH = 36, rowH = 24;

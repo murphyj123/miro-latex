@@ -1,4 +1,4 @@
-import { getState, generateGroups, getColor, generateCardsSVG, placeOnBoard } from './spinner-core.js';
+import { getState, generateGroups, getColor, placeWithFrames } from './spinner-core.js';
 
 const grid = document.getElementById('groups-grid');
 const btnShuffle = document.getElementById('btn-shuffle');
@@ -117,13 +117,9 @@ btnPlace.addEventListener('click', async () => {
 
   const headers = groups.map((_, i) => teams[i]?.name || `Group ${i + 1}`);
   const colorFn = (i) => teams[i]?.color || getColor(i);
-  const svg = generateCardsSVG(headers, groups, colorFn);
-  const dirEntries = groups.flatMap((members, i) =>
-    members.map((name) => ({ name, group: headers[i], color: colorFn(i) }))
-  );
-  await placeOnBoard(svg, Math.min(groups.length * 200, 800),
+  await placeWithFrames(headers, groups, colorFn,
     { _spinnerGroups: true, names: state.names, teams },
-    { closeModal: true, directory: { entries: dirEntries, title: 'Find Your Group' } });
+    { closeModal: true, dirTitle: 'Find Your Group' });
 });
 
 // ── Events ───────────────────────────────────────────────
