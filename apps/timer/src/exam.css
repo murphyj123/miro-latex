@@ -190,7 +190,8 @@ body {
 }
 
 .form-group input[type="text"],
-.form-group select {
+.form-group select,
+.form-group textarea {
   width: 100%;
   padding: 10px 12px;
   background: var(--bg-input);
@@ -203,9 +204,120 @@ body {
   transition: border-color var(--transition);
 }
 
+.form-group textarea {
+  resize: vertical;
+  line-height: 1.45;
+  min-height: 60px;
+}
+
 .form-group input[type="text"]:focus,
-.form-group select:focus {
+.form-group select:focus,
+.form-group textarea:focus {
   border-color: var(--color-blue);
+}
+
+.label-hint {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.sound-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.sound-type {
+  display: flex;
+  gap: 12px;
+}
+
+.voice-select {
+  flex: 1;
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition), opacity var(--transition);
+}
+
+.voice-select:focus { border-color: var(--color-blue); }
+
+.voice-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-preview {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-preview:hover {
+  border-color: var(--color-blue);
+  color: var(--color-blue);
+}
+
+.btn-preview:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.volume-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.volume-row .volume-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.volume-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--color-blue);
+  height: 4px;
+}
+
+.volume-value {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 36px;
+  text-align: right;
+}
+
+.top-bar-volume {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  margin: 0 12px;
+}
+
+.top-bar-volume input[type="range"] {
+  width: 80px;
+  accent-color: var(--color-blue);
+  height: 3px;
 }
 
 .form-row {
@@ -368,6 +480,31 @@ body {
   transition: background 0.4s ease;
 }
 
+.pause-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 14px;
+  border-radius: 16px;
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--color-amber);
+  margin-top: 4px;
+}
+
+.pause-info-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.pause-info-duration {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
 .time-remaining {
   font-size: clamp(48px, 10vw, 72px);
   font-weight: 700;
@@ -416,6 +553,52 @@ body {
   background: var(--color-phase);
   border-radius: 4px;
   transition: width 1s linear, background 0.4s ease;
+}
+
+/* ── Notes / Instructions ────────────────────────────────── */
+.notes-section {
+  padding: 10px 24px 4px;
+}
+
+.notes-header {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.notes-editor {
+  width: 100%;
+  background: transparent;
+  border: 1px dashed transparent;
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  margin: -6px -8px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.45;
+  resize: none;
+  outline: none;
+  overflow: hidden;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.notes-editor::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.notes-editor:hover {
+  border-color: var(--border);
+}
+
+.notes-editor:focus {
+  background: var(--bg-input);
+  border-color: var(--color-blue);
+  border-style: solid;
 }
 
 /* ── End Times ───────────────────────────────────────────── */
@@ -483,6 +666,32 @@ body {
 .btn-control:hover {
   background: rgba(255, 255, 255, 0.05);
   color: var(--text);
+}
+
+.btn-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-lock .lock-icon { flex-shrink: 0; }
+
+.btn-lock.locked {
+  border-color: var(--color-amber);
+  color: var(--color-amber);
+  background: rgba(245, 158, 11, 0.10);
+}
+
+.btn-lock.locked:hover {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--color-amber);
+}
+
+.btn-control:disabled,
+.btn-control[disabled] {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .btn-pause {

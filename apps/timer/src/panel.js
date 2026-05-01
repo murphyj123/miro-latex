@@ -25,6 +25,32 @@ const customMin = document.getElementById('custom-min');
 const customSec = document.getElementById('custom-sec');
 const btnSet = document.getElementById('btn-set');
 const btnCards = document.getElementById('btn-cards');
+const btnLock = document.getElementById('btn-lock');
+const lockIconOpen = btnLock.querySelector('.lock-icon-open');
+const lockIconClosed = btnLock.querySelector('.lock-icon-closed');
+
+// ── Lock state ───────────────────────────────────────────
+const LOCK_KEY = 'timer-locked';
+
+function isLocked() {
+  return localStorage.getItem(LOCK_KEY) === '1';
+}
+
+function setLocked(locked) {
+  if (locked) localStorage.setItem(LOCK_KEY, '1');
+  else localStorage.removeItem(LOCK_KEY);
+  syncLockUI();
+}
+
+function syncLockUI() {
+  const locked = isLocked();
+  document.body.classList.toggle('lock-disabled', locked);
+  btnLock.classList.toggle('locked', locked);
+  btnLock.setAttribute('aria-pressed', locked ? 'true' : 'false');
+  btnLock.title = locked ? 'Click to unlock controls' : 'Click to lock controls';
+  lockIconOpen.style.display = locked ? 'none' : '';
+  lockIconClosed.style.display = locked ? '' : 'none';
+}
 
 // ── Ring geometry ────────────────────────────────────────
 const RING_RADIUS = 80;
@@ -214,7 +240,12 @@ function tick() {
 }
 
 // ── Event listeners ──────────────────────────────────────
+btnLock.addEventListener('click', () => {
+  setLocked(!isLocked());
+});
+
 btnStart.addEventListener('click', () => {
+  if (isLocked()) return;
   const state = getState();
   if (state.running) {
     pause();
@@ -228,6 +259,7 @@ btnStart.addEventListener('click', () => {
 });
 
 btnReset.addEventListener('click', () => {
+  if (isLocked()) return;
   reset();
   alarmPlayed = false;
   lastTickSecond = -1;
@@ -237,6 +269,7 @@ btnReset.addEventListener('click', () => {
 
 presetPills.forEach(pill => {
   pill.addEventListener('click', () => {
+    if (isLocked()) return;
     const sec = parseInt(pill.dataset.seconds);
     setDuration(sec);
     alarmPlayed = false;
@@ -246,6 +279,7 @@ presetPills.forEach(pill => {
 });
 
 btnSet.addEventListener('click', () => {
+  if (isLocked()) return;
   const min = parseInt(customMin.value) || 0;
   const sec = parseInt(customSec.value) || 0;
   const total = min * 60 + sec;
@@ -259,6 +293,7 @@ btnSet.addEventListener('click', () => {
 
 modeBtns.forEach(btn => {
   btn.addEventListener('click', () => {
+    if (isLocked()) return;
     setMode(btn.dataset.mode);
     alarmPlayed = false;
     lastTickSecond = -1;
@@ -322,4 +357,5 @@ if (cardPreset && cardPreset.seconds > 0) {
 }
 
 syncUI();
+syncLockUI();
 rafId = requestAnimationFrame(tick);

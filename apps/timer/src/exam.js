@@ -1,5 +1,35 @@
 // ── Exam Mode ───────────────────────────────────────────
 import { getSafeJSON, setSafeJSON } from '../../shared/storage-utils.js';
+import soniaReadingEnd from '../sounds/sonia/reading-end.mp3?url';
+import soniaFiveMin from '../sounds/sonia/five-min-warning.mp3?url';
+import soniaExtraTime from '../sounds/sonia/extra-time-start.mp3?url';
+import soniaExtra25End from '../sounds/sonia/extra25-end.mp3?url';
+import soniaExamEnd from '../sounds/sonia/exam-end.mp3?url';
+
+import ryanReadingEnd from '../sounds/ryan/reading-end.mp3?url';
+import ryanFiveMin from '../sounds/ryan/five-min-warning.mp3?url';
+import ryanExtraTime from '../sounds/ryan/extra-time-start.mp3?url';
+import ryanExtra25End from '../sounds/ryan/extra25-end.mp3?url';
+import ryanExamEnd from '../sounds/ryan/exam-end.mp3?url';
+
+import libbyReadingEnd from '../sounds/libby/reading-end.mp3?url';
+import libbyFiveMin from '../sounds/libby/five-min-warning.mp3?url';
+import libbyExtraTime from '../sounds/libby/extra-time-start.mp3?url';
+import libbyExtra25End from '../sounds/libby/extra25-end.mp3?url';
+import libbyExamEnd from '../sounds/libby/exam-end.mp3?url';
+
+import ariaReadingEnd from '../sounds/aria/reading-end.mp3?url';
+import ariaFiveMin from '../sounds/aria/five-min-warning.mp3?url';
+import ariaExtraTime from '../sounds/aria/extra-time-start.mp3?url';
+import ariaExtra25End from '../sounds/aria/extra25-end.mp3?url';
+import ariaExamEnd from '../sounds/aria/exam-end.mp3?url';
+
+const VOICES = {
+  sonia: { label: 'Sonia · UK female (soft)', readingEnd: soniaReadingEnd, fiveMin: soniaFiveMin, extraTime: soniaExtraTime, extra25End: soniaExtra25End, examEnd: soniaExamEnd },
+  libby: { label: 'Libby · UK female (warm)', readingEnd: libbyReadingEnd, fiveMin: libbyFiveMin, extraTime: libbyExtraTime, extra25End: libbyExtra25End, examEnd: libbyExamEnd },
+  ryan:  { label: 'Ryan · UK male (friendly)', readingEnd: ryanReadingEnd, fiveMin: ryanFiveMin, extraTime: ryanExtraTime, extra25End: ryanExtra25End, examEnd: ryanExamEnd },
+  aria:  { label: 'Aria · US female (clear)', readingEnd: ariaReadingEnd, fiveMin: ariaFiveMin, extraTime: ariaExtraTime, extra25End: ariaExtra25End, examEnd: ariaExamEnd },
+};
 
 const EXAM_KEY = 'miro-exam-state';
 
@@ -75,6 +105,12 @@ const extra25Cb = document.getElementById('extra-25');
 const extra50Cb = document.getElementById('extra-50');
 const startModeRadios = document.querySelectorAll('input[name="start-mode"]');
 const scheduledTimeInput = document.getElementById('scheduled-time');
+const examNotesInput = document.getElementById('exam-notes');
+const examVolumeInput = document.getElementById('exam-volume');
+const examVolumeValue = document.getElementById('exam-volume-value');
+const examVoiceSelect = document.getElementById('exam-voice');
+const soundModeRadios = document.querySelectorAll('input[name="sound-mode"]');
+const btnPreviewVoice = document.getElementById('btn-preview-voice');
 const btnStartExam = document.getElementById('btn-start-exam');
 
 // ── DOM refs: Display ───────────────────────────────────
@@ -88,6 +124,14 @@ const progressBar = document.getElementById('progress-bar');
 const endTimesBody = document.getElementById('end-times-body');
 const btnPause = document.getElementById('btn-pause');
 const btnEnd = document.getElementById('btn-end');
+const btnLock = document.getElementById('btn-lock');
+const lockIconOpen = btnLock.querySelector('.lock-icon-open');
+const lockIconClosed = btnLock.querySelector('.lock-icon-closed');
+const lockLabel = btnLock.querySelector('.lock-label');
+const pauseInfo = document.getElementById('pause-info');
+const pauseDurationEl = document.getElementById('pause-duration');
+const notesEditor = document.getElementById('notes-editor');
+const displayVolumeInput = document.getElementById('display-volume');
 
 // ── Audio ───────────────────────────────────────────────
 let audioCtx = null;
@@ -105,8 +149,9 @@ function beep(freq = 800, duration = 200) {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration / 1000);
+    const peak = 0.3 * getVolume();
+    gain.gain.setValueAtTime(peak, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000);
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start();
@@ -126,13 +171,27 @@ function sustainedTone(freq, duration) {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime + duration / 1000 - 0.1);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration / 1000);
+    const peak = 0.3 * getVolume();
+    gain.gain.setValueAtTime(peak, ctx.currentTime);
+    gain.gain.setValueAtTime(peak, ctx.currentTime + duration / 1000 - 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000);
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + duration / 1000);
+  } catch (_e) { /* audio not available */ }
+}
+
+function getVolume() {
+  const s = getState();
+  return (s && typeof s.volume === 'number') ? s.volume : 0.6;
+}
+
+function playVoice(url) {
+  try {
+    const audio = new Audio(url);
+    audio.volume = getVolume();
+    audio.play().catch(() => {});
   } catch (_e) { /* audio not available */ }
 }
 
@@ -275,6 +334,43 @@ function getPhaseLabel(phase) {
 // ── Sound cues ──────────────────────────────────────────
 let soundsPlayed = {};
 
+function getVoiceSet(state) {
+  return VOICES[state.voiceId] || VOICES.sonia;
+}
+
+function cueReadingEnd(state) {
+  if (state.soundMode === 'tones') multiBeep([600, 800, 1000], 200, 50);
+  else playVoice(getVoiceSet(state).readingEnd);
+}
+
+function cueFiveMin(state) {
+  if (state.soundMode === 'tones') multiBeep([600, 600], 150, 100);
+  else playVoice(getVoiceSet(state).fiveMin);
+}
+
+function cueExtraTimeStart(state) {
+  if (state.soundMode === 'tones') {
+    multiBeep([800, 800, 800], 200, 50);
+    setTimeout(() => sustainedTone(600, 1000), 800);
+  } else {
+    playVoice(getVoiceSet(state).extraTime);
+  }
+}
+
+function cueExtra25End(state) {
+  if (state.soundMode === 'tones') multiBeep([700, 700], 200, 100);
+  else playVoice(getVoiceSet(state).extra25End);
+}
+
+function cueExamEnd(state) {
+  if (state.soundMode === 'tones') {
+    multiBeep([800, 800, 800], 200, 50);
+    setTimeout(() => sustainedTone(500, 1500), 800);
+  } else {
+    playVoice(getVoiceSet(state).examEnd);
+  }
+}
+
 function checkSoundCues(state) {
   const phase = getCurrentPhase(state);
   const remaining = getPhaseRemaining(state);
@@ -283,34 +379,45 @@ function checkSoundCues(state) {
   // Reading time end
   if (phase === 'writing' && !soundsPlayed.readingEnd) {
     soundsPlayed.readingEnd = true;
-    if (state.readingMin > 0) {
-      multiBeep([600, 800, 1000], 200, 50);
-    }
+    if (state.readingMin > 0) cueReadingEnd(state);
   }
 
   // 5 minute warning during writing
   if (phase === 'writing' && secLeft <= 300 && secLeft > 298 && !soundsPlayed.fiveMin) {
     soundsPlayed.fiveMin = true;
-    multiBeep([600, 600], 150, 100);
+    cueFiveMin(state);
   }
 
-  // Standard writing time end
+  // 5 minute warning during 25% extra time
+  if (phase === 'extra25' && secLeft <= 300 && secLeft > 298 && !soundsPlayed.fiveMinExtra25) {
+    soundsPlayed.fiveMinExtra25 = true;
+    cueFiveMin(state);
+  }
+
+  // 5 minute warning during 50% extra time
+  if (phase === 'extra50' && secLeft <= 300 && secLeft > 298 && !soundsPlayed.fiveMinExtra50) {
+    soundsPlayed.fiveMinExtra50 = true;
+    cueFiveMin(state);
+  }
+
+  // Leaving writing phase — distinguish "extra time begins" vs "exam over"
   if (phase !== 'writing' && phase !== 'reading' && !soundsPlayed.writingEnd) {
     soundsPlayed.writingEnd = true;
-    multiBeep([800, 800, 800], 200, 50);
-    setTimeout(() => sustainedTone(600, 1000), 800);
+    if (phase === 'extra25' || phase === 'extra50') cueExtraTimeStart(state);
+    else cueExamEnd(state);
   }
 
-  // 25% extra end
+  // 25% extra end — going to extra50 or final end
   if (state.extra25 && (phase === 'extra50' || (phase === 'ended' && !state.extra50)) && !soundsPlayed.extra25End) {
     soundsPlayed.extra25End = true;
-    multiBeep([700, 700], 200, 100);
+    if (phase === 'extra50') cueExtra25End(state);
+    else cueExamEnd(state);
   }
 
-  // 50% extra end
+  // 50% extra end — exam over
   if (state.extra50 && phase === 'ended' && !soundsPlayed.extra50End) {
     soundsPlayed.extra50End = true;
-    sustainedTone(500, 2000);
+    cueExamEnd(state);
   }
 }
 
@@ -348,6 +455,14 @@ function updateDisplay() {
 
   // Pause button
   btnPause.textContent = state.paused ? 'Resume' : 'Pause';
+
+  // Pause duration indicator
+  if (state.paused) {
+    pauseInfo.style.display = '';
+    pauseDurationEl.textContent = fmtHMS(Date.now() - state.pausedAt);
+  } else {
+    pauseInfo.style.display = 'none';
+  }
 
   // Phase flash
   if (lastPhase && lastPhase !== phase) {
@@ -463,6 +578,11 @@ btnStartExam.addEventListener('click', () => {
     paused: false,
     pausedAt: null,
     totalPausedMs: 0,
+    notes: examNotesInput.value,
+    locked: false,
+    volume: parseInt(examVolumeInput.value, 10) / 100,
+    soundMode: document.querySelector('input[name="sound-mode"]:checked').value,
+    voiceId: examVoiceSelect.value,
   };
 
   setState(state);
@@ -474,7 +594,7 @@ btnStartExam.addEventListener('click', () => {
 // ── Pause / Resume ──────────────────────────────────────
 btnPause.addEventListener('click', () => {
   const state = getState();
-  if (!state) return;
+  if (!state || state.locked) return;
 
   if (state.paused) {
     // Resume: add paused duration
@@ -491,9 +611,31 @@ btnPause.addEventListener('click', () => {
 
 // ── End Exam ────────────────────────────────────────────
 btnEnd.addEventListener('click', async () => {
+  const s = getState();
+  if (s && s.locked) return;
   if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
   clearState();
   await miro.board.ui.closeModal();
+});
+
+// ── Lock toggle ─────────────────────────────────────────
+function syncLockUI(locked) {
+  btnLock.classList.toggle('locked', locked);
+  btnLock.setAttribute('aria-pressed', locked ? 'true' : 'false');
+  btnLock.title = locked ? 'Click to unlock controls' : 'Click to lock controls';
+  lockIconOpen.style.display = locked ? 'none' : '';
+  lockIconClosed.style.display = locked ? '' : 'none';
+  lockLabel.textContent = locked ? 'Locked' : 'Unlocked';
+  btnPause.disabled = locked;
+  btnEnd.disabled = locked;
+}
+
+btnLock.addEventListener('click', () => {
+  const s = getState();
+  if (!s) return;
+  s.locked = !s.locked;
+  setState(s);
+  syncLockUI(s.locked);
 });
 
 window.addEventListener('pagehide', () => {
@@ -511,7 +653,66 @@ function showDisplay(state) {
   displayScreen.style.display = '';
   examNameDisplay.textContent = state.name;
   examDate.textContent = fmtDate(new Date());
+  notesEditor.value = state.notes || '';
+  autosizeNotes();
+  syncLockUI(!!state.locked);
+  displayVolumeInput.value = Math.round((state.volume ?? 0.6) * 100);
 }
+
+// ── Volume sliders ──────────────────────────────────────
+examVolumeInput.addEventListener('input', () => {
+  examVolumeValue.textContent = `${examVolumeInput.value}%`;
+});
+
+displayVolumeInput.addEventListener('input', () => {
+  const s = getState();
+  if (!s) return;
+  s.volume = parseInt(displayVolumeInput.value, 10) / 100;
+  setState(s);
+});
+
+// ── Sound mode (voice / tones) ──────────────────────────
+function syncSoundModeUI() {
+  const mode = document.querySelector('input[name="sound-mode"]:checked').value;
+  examVoiceSelect.disabled = mode !== 'voice';
+  btnPreviewVoice.disabled = mode !== 'voice';
+}
+
+soundModeRadios.forEach(r => r.addEventListener('change', syncSoundModeUI));
+syncSoundModeUI();
+
+// ── Voice change updates running exam ───────────────────
+examVoiceSelect.addEventListener('change', () => {
+  const s = getState();
+  if (s && s.phase !== 'setup' && s.phase !== 'ended') {
+    s.voiceId = examVoiceSelect.value;
+    setState(s);
+  }
+});
+
+// ── Preview voice ───────────────────────────────────────
+btnPreviewVoice.addEventListener('click', () => {
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  if (!audioCtx) getAudioCtx();
+  const voiceId = examVoiceSelect.value;
+  const voice = VOICES[voiceId] || VOICES.sonia;
+  const audio = new Audio(voice.fiveMin);
+  audio.volume = parseInt(examVolumeInput.value, 10) / 100;
+  audio.play().catch(() => {});
+});
+
+function autosizeNotes() {
+  notesEditor.style.height = 'auto';
+  notesEditor.style.height = `${notesEditor.scrollHeight}px`;
+}
+
+notesEditor.addEventListener('input', () => {
+  autosizeNotes();
+  const s = getState();
+  if (!s) return;
+  s.notes = notesEditor.value;
+  setState(s);
+});
 
 // ── Save Preset ─────────────────────────────────────────
 document.getElementById('btn-save-preset').addEventListener('click', () => {

@@ -199,6 +199,43 @@ body {
   color: var(--text);
 }
 
+.btn-lock {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  background: var(--btn-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.btn-lock:hover {
+  background: var(--btn-hover);
+  color: var(--text);
+}
+
+.btn-lock.locked {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--color-amber);
+  border-color: var(--color-amber);
+}
+
+.btn-lock.locked:hover {
+  background: rgba(245, 158, 11, 0.20);
+  color: var(--color-amber);
+}
+
+.lock-disabled .btn-start,
+.lock-disabled .btn-reset,
+.lock-disabled .btn-set,
+.lock-disabled .mode-btn,
+.lock-disabled .preset-pill,
+.lock-disabled .custom-input input,
+.lock-disabled .toggle input {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 /* ── Presets ───────────────────────────────────────────── */
 .section-label {
   font-size: 11px;
